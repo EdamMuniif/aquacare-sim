@@ -82,6 +82,8 @@ On a phone, the presenter controls open from the button at the bottom of the scr
 | `css/styles.css` | Design system and responsive layout |
 | `js/engine.js` | Simulated firmware logic: calendar, schedule, 10-minute window, daily cap, dispense check, owner model, scenarios, alerts, Wi-Fi, power. It has no UI code. |
 | `js/tank.js` | Animated aquarium illustration (SVG). Decorative only. |
+| `js/tank3d.js` | Interactive WebGL aquarium and camera controls, driven by the same demo state as the SVG view. |
+| `vendor/` | Bundled Three.js r160 renderer and its MIT license. |
 | `js/app.js` | Dashboard, calendar, chart, logs, exports |
 | `js/tour.js` | Guided "Show the project logic" mode |
 | `js/selftest.js` | Logic self-test with 30 checks, including complete 30-day runs and scenarios. It also runs in the *Logic self-test* tab. |

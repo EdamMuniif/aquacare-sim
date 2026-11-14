@@ -104,8 +104,27 @@
         <span class="simtag simtag--dark">SIMULATION</span>
         <span class="bay__right"><span class="bay__size bay__upk" id="bayUpkeep">Algae: light</span><span class="bay__size" id="baySize">Tank: 5 US gal &middot; demo setting</span></span>
       </div>
+      <div class="tank3d" id="tank3d" hidden>
+        <div class="tank3d__viewport" tabindex="0" role="region" aria-label="Interactive 3D aquarium" aria-describedby="tank3dHelp"></div>
+        <div class="tank3d__tools" role="group" aria-label="3D camera controls">
+          <label class="sr-only" for="tankView">Camera view</label>
+          <select id="tankView">
+            <option value="reset">Whole tank</option>
+            <option value="front">Front</option>
+            <option value="surface">Water surface</option>
+            <option value="fish">Fish close-up</option>
+            <option value="feeder">Feeder and probes</option>
+          </select>
+          <button type="button" data-camera="in" aria-label="Zoom in">+</button>
+          <button type="button" data-camera="out" aria-label="Zoom out">−</button>
+          <button type="button" data-camera="pan" aria-pressed="false">Pan</button>
+          <button type="button" data-camera="reset">Reset view</button>
+          <button type="button" data-camera="button">Press tank button</button>
+        </div>
+        <p id="tank3dHelp">Drag to rotate. Scroll or pinch to zoom. Right-drag, drag with two fingers, or turn on Pan to move the view. Keyboard: arrows to rotate, Shift + arrows to pan, + / − to zoom.</p>
+      </div>
       <svg id="tank" class="tank" role="img" aria-label="Animated illustration of a small freshwater aquarium with plants, driftwood, a rock cave, decorative fish and shrimp, the proposed feeder, four sensor probes (pH, DS18B20, TDS, turbidity) and the controller enclosure. Water haze follows simulated turbidity. Decorative; animals are not monitored."></svg>
-      <figcaption id="bayCap" class="bay__cap">Illustration. Dust in the water follows the simulated turbidity. Algae and debris are illustrative (days since cleaning, feeds delivered) and never change a reading. Fish and shrimp are decorative. Food passage detection means food left the dispenser. It does not confirm anything ate it.</figcaption>
+      <figcaption id="bayCap" class="bay__cap"><button class="tank3d__toggle" id="tankMode" type="button" hidden>Switch to 2D</button><span id="tank3dStatus" role="status"></span> Dust in the water follows the simulated turbidity. Fish and tank upkeep are illustrative. The IR sensor checks whether food passes through the chute.</figcaption>
     </figure>
   <article class="card feed" id="feedCard" data-state="idle" aria-labelledby="feedTitle" data-views="tank feeding">
       <div class="feed__top">
@@ -832,6 +851,8 @@
 <script src="js/engine.js"></script>
 <script src="js/selftest.js"></script>
 <script src="js/tank.js"></script>
+<script src="vendor/three-r160.min.js"></script>
+<script src="js/tank3d.js"></script>
 <script src="js/app.js"></script>
 <script src="js/tour.js"></script>
 </body>

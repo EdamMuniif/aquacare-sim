@@ -503,6 +503,10 @@
   };
 
   Tank.prototype.frame = function (t) {
+    if (this.svg.hasAttribute('hidden')) {
+      this.last = 0;
+      return;
+    }
     var dt = this.last ? Math.min(0.05, (t - this.last) / 1000) : 0;
     this.last = t;
     var v = this.view || { led: 'ok', buzzer: false };
