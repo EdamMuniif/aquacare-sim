@@ -355,10 +355,30 @@ for col, (lo, hi) in ranges.items():
 print(pert[["sim_day", "test", "baseline", "peak", "alert_after_min", "back_in_range_after_min"]])
 ```
 
-### 4.7 Screenshots for slides
+### 4.7 Download the graphs as images
+
+Go to **Water** (or **Feeding**) and find the **Graphs** section.
+
+1. Pick the range with the buttons: **All 30 days**, **Selected day** (click a day in the calendar first) or **Last 24 h**.
+2. Under **Download graph**, choose **All four sensors (one image)**, or one sensor: **pH only**, **Temperature only**, **TDS only** or **Turbidity only**.
+3. Press **Download PNG**. On the published artifact link, accept the save prompt.
+
+You get a 3200 px wide PNG, sharp enough for slides and a printed report. Each one has:
+
+- a **SIMULATION · DEMO DATA** tag in the header and on every panel, so a cropped panel is still labelled
+- a title and the exact range (days and dates)
+- the operating-range lines and where they came from (reference values from paper [2], or team-entered)
+- feed ticks, perturbation markers, controller-off and Wi-Fi-offline bands
+- a footer explaining how to read it, stating that pH ±0.1 and temperature ±0.5 °C are targets, not results, and giving the run settings, seed and export time
+
+The file name says what it is, for example `aquacare-SIMULATION-graph-ph-all-days-2026-11-14.png` or `aquacare-SIMULATION-graph-all-sensors-day12-2026-11-14.png`.
+
+For your own charts (Excel, Python), use **Export readings CSV** instead (section 4.2). It holds every minute's raw and smoothed values.
+
+### 4.8 Screenshots for slides
 
 - **Calendar:** shows all 30 days with outcome pips and scenario tags.
-- **Graphs:** use *All 30 days* for the month, or click a day in the calendar for a one-day close-up.
+- **Graphs:** use **Download PNG** (section 4.7) rather than a screenshot. It's sharper and already labelled.
 - **Feed log:** filter by outcome (e.g. *Auto, no passage*) or search `chute`.
 - **Sensors & processing:** the live signal-chain table (raw → validate → last 5 → smoothed → range → result) and the perturbation test table.
 - **Graphs, one day:** click day 12 (vinegar) or day 16 (soil) in the calendar for a close-up of a perturbation and its alert.

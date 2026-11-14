@@ -227,6 +227,18 @@
       <span class="simtag">DEMO DATA</span>
     </div>
   </div>
+  <div class="chartdl">
+    <label class="field__label" for="dlWhich">Download graph</label>
+    <select id="dlWhich">
+      <option value="all">All four sensors (one image)</option>
+      <option value="ph">pH only</option>
+      <option value="temp">Temperature only</option>
+      <option value="tds">TDS only</option>
+      <option value="turb">Turbidity only</option>
+    </select>
+    <button class="btn btn--sm" id="dlGraph" type="button">Download PNG</button>
+    <p class="fine chartdl__note">High-resolution image of the range shown above, labelled SIMULATION / DEMO DATA, for slides and the report. <span id="graphMsg" role="status"></span></p>
+  </div>
   <div class="chart chart--tall" id="chartWrap">
     <canvas id="chart" aria-label="Line chart of simulated pH and temperature with feed markers" role="img"></canvas>
     <div class="chart__tip" id="chartTip" hidden></div>

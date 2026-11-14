@@ -24,6 +24,7 @@ Then open http://localhost:8000.
 - **Dust in the water follows the turbidity reading.** Particles drift and settle, with more, larger and browner ones as NTU rises.
 - **Algae and debris build up (illustrative).** Green film and spots on the glass, a waterline scum ring, hair algae on the driftwood and rock, mulm on the gravel, and biofilm on the probes. All of it grows with simulated days since cleaning and a little faster with feeds delivered. **Wipe glass**, **Siphon gravel**, **Clean probes** and **Full clean** are in Presenter controls. This is visual only and never changes a reading.
 - First-visit card, and a **Tank upkeep** row in System health. The self-test now has 30 checks.
+- **Download graphs as PNG.** Choose all four sensors in one image or a single sensor, for the range on screen (30 days, one day or the last 24 h). The images are 3200 px wide and labelled SIMULATION / DEMO DATA in the header and on every panel, with a footer that explains how to read them.
 
 ## What was new in v3.2 (resume after closing)
 

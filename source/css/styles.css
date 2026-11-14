@@ -1017,3 +1017,11 @@ button, a, input, select, label { touch-action: manipulation; }
 .upk b[data-lv="heavy"] { color: var(--attn); }
 .upk small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
 @media (max-width: 699px) { .bay__upk { display: none; } }
+
+/* graph download */
+.chartdl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: 0 0 12px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.chartdl .field__label { margin: 0; }
+.chartdl select { width: auto; min-width: 0; flex: 0 1 260px; }
+.chartdl__note { flex: 1 1 100%; margin: 0; }
+.chartdl__note span { color: var(--ink); font-weight: 600; }
+@container stage (max-width: 599px) { .chartdl select, .chartdl .btn { flex: 1 1 100%; width: 100%; } }
