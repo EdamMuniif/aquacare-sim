@@ -1,4 +1,4 @@
-# AquaCare digital prototype (SIMULATION), v3.2
+# AquaCare digital prototype (SIMULATION), v4
 
 An interactive browser simulation of the proposed **Intelligent Feeding and Monitoring System for Small Freshwater Aquariums (2.5–10 Gallons) in Vilimalé'**. It is EE7008 Project 1, Group 2.
 
@@ -18,14 +18,21 @@ python -m http.server 8000
 
 Then open http://localhost:8000.
 
-## What's new in v3.2 (resume after closing)
+## What's new in v4 (every screen, lived-in tank)
+
+- **App layout for every screen.** Five sections (Tank, Water, Feeding, Records, Project) replace the single long page. Phones and tablets get a bottom tab bar, and desktops get a menu in the top bar. Presenter controls appear as a bottom sheet on phones, a side drawer on tablets and a fixed rail on wide screens. It handles the iPhone notch and home bar (safe areas), phones held sideways, and 1080p to 1440p monitors. Tap targets are 44 px or more, and the Back button moves between sections.
+- **Dust in the water follows the turbidity reading.** Particles drift and settle, with more, larger and browner ones as NTU rises.
+- **Algae and debris build up (illustrative).** Green film and spots on the glass, a waterline scum ring, hair algae on the driftwood and rock, mulm on the gravel, and biofilm on the probes. All of it grows with simulated days since cleaning and a little faster with feeds delivered. **Wipe glass**, **Siphon gravel**, **Clean probes** and **Full clean** are in Presenter controls. This is visual only and never changes a reading.
+- First-visit card, and a **Tank upkeep** row in System health. The self-test now has 30 checks.
+
+## What was new in v3.2 (resume after closing)
 
 - **The run survives closing the page.** It's saved in this browser as it runs. When you reopen the page, the same run is rebuilt and moved forward by the time you were away at the chosen speed. Every event in that gap is simulated.
 - **Keep time running while the page is closed** switch in the Run panel (on by default), plus a notice on reopening with a **Start a fresh run** button.
 - Background tabs keep true time. Earlier versions slowed the sim down when the tab was hidden.
 - How it works: the engine is deterministic, so the browser stores only the starting settings and every action with its simulated time, not the readings. Reopening replays that list. A 30-day run rebuilds in well under a second.
 - A closed page still can't run anything. True 24/7 operation needs a server or the real ESP32. Same browser and device only.
-- Self-test now has 29 checks, including replay equivalence and catch-up.
+- Self-test grew to 29 checks, including replay equivalence and catch-up.
 
 ## What was new in v3.1 (feeding paper [3])
 
@@ -76,7 +83,7 @@ On a phone, the presenter controls open from the button at the bottom of the scr
 | `js/tank.js` | Animated aquarium illustration (SVG). Decorative only. |
 | `js/app.js` | Dashboard, calendar, chart, logs, exports |
 | `js/tour.js` | Guided "Show the project logic" mode |
-| `js/selftest.js` | Logic self-test with 29 checks, including complete 30-day runs and scenarios. It also runs in the *Logic self-test* tab. |
+| `js/selftest.js` | Logic self-test with 30 checks, including complete 30-day runs and scenarios. It also runs in the *Logic self-test* tab. |
 | `tests/engine.test.js` | The same self-test from the command line: `node tests/engine.test.js` |
 | `tools/build_single.py` | Rebuilds the standalone file: `python tools/build_single.py` |
 | `cover/` | Cover plate for the presentation (PNG) and its design notes |

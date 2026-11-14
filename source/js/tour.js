@@ -17,7 +17,7 @@
     {
       title: 'What you are looking at',
       body: '<p>This is a <b>simulation</b> of the proposed AquaCare system. Nothing on screen comes from hardware. Every reading, alert and feed is generated in this browser and labelled as demo data.</p><p>The figures <b>pH &plusmn;0.1</b> and <b>temperature &plusmn;0.5 &deg;C</b> are project targets, not results.</p>',
-      target: '.top', act: function () {}
+      target: '#appbar', act: function () {}
     },
     {
       title: 'The proposed architecture',
@@ -136,11 +136,12 @@
     $('tourBack').disabled = idx === 0;
     $('tourNext').textContent = idx === STEPS.length - 1 ? 'Finish' : 'Next';
     A.selectDay(null);
-    A.selectTab(st.tab || 'feed');
+    if (st.tab) A.selectTab(st.tab);
     A.refresh();
     var el = document.querySelector(st.target);
+    if (el) A.revealEl(el);
     if (el) {
-      var y = el.getBoundingClientRect().top + window.scrollY - 120;
+      var y = el.getBoundingClientRect().top + window.scrollY - (document.getElementById('appbar').offsetHeight + 16);
       window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
     }
     placeSpot();

@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#13222b">
 <meta name="color-scheme" content="light">
 <meta name="description" content="AquaCare digital prototype - SIMULATION of a proposed feeding and monitoring system for small freshwater aquariums. Demo data only.">
 <title>AquaCare Digital Prototype - SIMULATION</title>
@@ -469,27 +470,9 @@ input[type="range"] { width: 100%; height: 32px; accent-color: var(--accent); }
 .scrim { position: fixed; inset: 0; background: rgba(15, 31, 39, .45); z-index: 59; }
 
 /* ---------- responsive ---------- */
-@media (max-width: 1240px) {
-  .layout { grid-template-columns: minmax(0, 1fr) minmax(290px, 340px); grid-template-areas: "centre centre" "left presenter"; }
-  .presenter { position: static; max-height: none; }
-}
 @media (max-width: 900px) {
   :root { --pad: 14px; --gap: 14px; }
-  .layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
-  .col { display: contents; }
-  .bay { order: 1; } #feedCard { order: 2; } #cardPh { order: 3; } #cardTemp { order: 4; }
-  #recentCard { order: 5; } #healthCard { order: 6; } .presenter { order: 9; }
-  .layout > .col > * { min-width: 0; }
-  .top { padding-top: 14px; align-items: flex-start; }
-  .brand__name { font-size: 28px; }
-  .brand__title { font-size: 14px; }
-  .clock { text-align: left; width: 100%; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-  .clock .eyebrow { display: none; }
-  .clock__row { justify-content: flex-start; }
-  .clock__time { font-size: 28px; }
-  .clock__chips { margin: 0; }
   .strip { grid-template-columns: repeat(3, auto); }
-  .simbar__more { display: none; }
   .strip__item { padding: 8px 12px; }
   .strip__item:nth-child(4), .strip__item:nth-child(5) { display: none; }
   .strip__item:nth-child(3) { border-right: 0; }
@@ -508,21 +491,6 @@ input[type="range"] { width: 100%; height: 32px; accent-color: var(--accent); }
   .feed__title { font-size: 23px; }
   .countdown__time { font-size: 38px; }
 
-  .presenter {
-    position: fixed; left: 0; right: 0; bottom: 0; top: auto; z-index: 60;
-    max-height: 82vh; border-radius: 16px 16px 0 0; padding: 14px 16px calc(20px + env(safe-area-inset-bottom));
-    transform: translateY(105%); transition: transform .25s var(--ease); box-shadow: 0 -12px 30px -10px rgba(0,0,0,.35);
-    visibility: hidden;
-  }
-  .presenter.is-open { transform: translateY(0); visibility: visible; }
-  .presenter__close { display: inline-block; }
-  .mbar {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; display: grid; grid-template-columns: 1fr auto 1.6fr; gap: 8px; align-items: center;
-    padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: rgba(251, 252, 252, .96); border-top: 1px solid var(--line-2);
-    backdrop-filter: blur(6px);
-  }
-  .mbar__speed { font-weight: 700; padding: 0 6px; }
-  body { padding-bottom: 84px; }
   .reading__num { font-size: 44px; }
 }
 @media (max-width: 420px) {
@@ -768,10 +736,302 @@ body.touring .mbar { display: none !important; }
 .resume__acts { display: flex; gap: 8px; flex-wrap: wrap; }
 .btn--sm { padding: 6px 12px; font-size: 13px; }
 
+/* ===================== v4: app shell for phone, tablet and desktop ===================== */
+:root { --maxw: 1480px; --padx: max(var(--pad), env(safe-area-inset-left)); --padr: max(var(--pad), env(safe-area-inset-right)); --navh: 0px; }
+html { scroll-padding-top: calc(var(--abh, 64px) + 12px); }
+body { -webkit-tap-highlight-color: rgba(10, 102, 114, .15); }
+button, a, input, select, label { touch-action: manipulation; }
+.is-out { display: none !important; }
+
+/* evidence banner scrolls away; the app bar keeps a SIM tag in view */
+.simbar { position: relative; padding-top: env(safe-area-inset-top); padding-right: var(--padr); }
+
+/* ---------- app bar ---------- */
+.appbar { position: sticky; top: 0; z-index: 45; background: rgba(251, 252, 252, .97); border-bottom: 1px solid var(--line); box-shadow: 0 8px 20px -18px rgba(15, 31, 39, .5); }
+.appbar__in { max-width: var(--maxw); margin: 0 auto; padding: 8px var(--padr) 8px var(--padx); min-height: 62px; display: flex; align-items: center; gap: 12px; }
+.appbar__brand { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; flex: none; min-height: 44px; border-radius: 10px; }
+.appbar__brand:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.logo { width: 36px; height: 36px; flex: none; display: block; }
+.appbar__words { display: grid; line-height: 1.1; }
+.appbar__name { font-size: 18px; font-weight: 750; letter-spacing: -0.015em; }
+.appbar__sub { font-size: 11.5px; font-weight: 650; color: var(--muted); letter-spacing: .03em; }
+.appbar__sim { padding-top: 3px; padding-bottom: 3px; }
+.appbar__clock { display: grid; justify-items: end; line-height: 1.15; margin-left: auto; min-width: 0; }
+.appbar .clock__time { font-size: 24px; font-weight: 650; line-height: 1.1; }
+.clock__meta { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+.clock__meta b { color: var(--ink); }
+.clock__spd { display: none; }
+.appbar__chips { display: flex; gap: 6px; flex: none; }
+.appbar__acts { display: flex; gap: 8px; align-items: center; flex: none; }
+.appbar__acts .btn { min-height: 44px; }
+.appbar__run { min-width: 92px; }
+.appbar__ctl { display: none; align-items: center; gap: 8px; padding: 8px 12px; }
+.appbar__ctl svg, .viewnav svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.appbar__ctl[aria-expanded="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.appbar__tour { margin-top: 0; }
+
+/* ---------- section navigation ---------- */
+.viewnav { display: flex; gap: 2px; padding: 4px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; margin: 0 auto; }
+.viewnav button { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: 650 15px/1 var(--sans); cursor: pointer; white-space: nowrap; }
+.viewnav button:hover { color: var(--ink); background: rgba(255, 255, 255, .7); }
+.viewnav button:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.viewnav button[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(15, 31, 39, .14), inset 0 -3px 0 var(--accent); }
+.viewnav button[aria-current="page"] svg { color: var(--accent); }
+
+/* ---------- page frame ---------- */
+.resume, .strip { max-width: calc(var(--maxw) - 2 * var(--pad)); }
+.resume { margin: 12px auto 0; margin-left: max(var(--padx), calc((100% - var(--maxw)) / 2 + var(--pad))); margin-right: max(var(--padr), calc((100% - var(--maxw)) / 2 + var(--pad))); }
+.strip { position: relative; top: auto; z-index: 1; margin: 14px auto 0; padding: 0 var(--padr) 0 var(--padx); max-width: var(--maxw); }
+.strip::before { inset: 0 var(--padr) 0 var(--padx); box-shadow: none; }
+.shell { max-width: var(--maxw); margin: 0 auto; padding: var(--gap) var(--padr) 32px var(--padx); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap); align-items: start; }
+.stagewrap { container: stage / inline-size; min-width: 0; outline: none; }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--gap); align-content: start; min-width: 0; outline: none; }
+.stage > * { min-width: 0; }
+.stage > .section, .stage > .panel, .stage > .sensorrow, .stage > .titleblock, .stage #monthSec, .stage #trendSec { max-width: none; margin: 0; }
+.stage > .sensorrow, .stage > .panel { padding: 0; }
+.stage > .titleblock { padding: 0; }
+.stage .bay { align-self: start; }
+.stage .tank { max-height: min(70vh, 760px); }
+
+/* first-visit hint */
+.hello { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 16px 18px; background: var(--ink); color: #dbe7eb; border-radius: var(--r); border-left: 6px solid var(--tape); }
+.hello__txt { flex: 1 1 360px; }
+.hello__t { color: #fff; font-weight: 700; font-size: 16px; }
+.hello__b { font-size: 14.5px; margin-top: 4px; }
+.hello__b b { color: #fff; }
+.hello__acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.hello .btn--tour { margin: 0; background: var(--tape); border-color: var(--tape); color: var(--tape-ink); }
+.hello .btn--tour .btn--tour__icon { border-left-color: var(--tape-ink); }
+.hello .btn:not(.btn--tour) { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .4); }
+
+/* project view header */
+.projhero { padding: 26px 26px 24px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.projhero__name { font-size: clamp(30px, 5cqi, 44px); line-height: 1.05; letter-spacing: -0.03em; font-weight: 750; margin: 6px 0 8px; }
+.projhero__title { font-size: clamp(16px, 2.2cqi, 20px); font-weight: 600; color: var(--ink); max-width: 46ch; text-wrap: balance; }
+.projhero__body { margin-top: 10px; color: var(--ink-2); max-width: 64ch; }
+.projhero__acts { margin-top: 16px; }
+.projhero .btn--tour { margin: 0; }
+
+/* ---------- view layouts (container widths, so the rail and sheets don't matter) ---------- */
+/* Tank: tank first, then the feeding cycle, readings, health, recent events */
+.stage[data-view="tank"] > #hello { order: 0; }
+.stage[data-view="tank"] > #bay { order: 1; }
+.stage[data-view="tank"] > #feedCard { order: 2; }
+.stage[data-view="tank"] > #scenCard { order: 3; }
+.stage[data-view="tank"] > #sensorRow { order: 4; }
+.stage[data-view="tank"] > #healthCard { order: 5; }
+.stage[data-view="tank"] > #recentCard { order: 6; }
+/* Water: readings, processing rule + health, chart, details */
+.stage[data-view="water"] > #sensorRow { order: 1; }
+.stage[data-view="water"] > #chainCard { order: 2; }
+.stage[data-view="water"] > #healthCard { order: 3; }
+.stage[data-view="water"] > #trendSec { order: 4; }
+.stage[data-view="water"] > .panel { order: 5; }
+/* Feeding: cycle, scenario result, calendar, logs, chart */
+.stage[data-view="feeding"] > #feedCard { order: 1; }
+.stage[data-view="feeding"] > #scenCard { order: 2; }
+.stage[data-view="feeding"] > #monthSec { order: 3; }
+.stage[data-view="feeding"] > .panel { order: 4; }
+.stage[data-view="feeding"] > #trendSec { order: 5; }
+.stage[data-view="project"] > #projHero { order: 1; }
+.stage[data-view="project"] > .panel { order: 2; }
+.stage[data-view="project"] > .titleblock { order: 3; }
+
+.stage > .sensorrow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container stage (min-width: 760px) {
+  .stage > .sensorrow { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .stage[data-view="water"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .stage[data-view="water"] > #sensorRow, .stage[data-view="water"] > #trendSec, .stage[data-view="water"] > .panel { grid-column: 1 / -1; }
+}
+@container stage (min-width: 1000px) {
+  /* the last row is 1fr so the tall tank never stretches the cards beside it */
+  .stage[data-view="tank"] { grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr); grid-template-rows: auto auto auto auto 1fr; }
+  .stage[data-view="tank"] > #hello { grid-area: 1 / 1 / 2 / -1; }
+  .stage[data-view="tank"] > #bay { grid-area: 2 / 1 / 6 / 2; }
+  .stage[data-view="tank"] > #feedCard { grid-area: 2 / 2; }
+  .stage[data-view="tank"] > #scenCard { grid-area: 3 / 2; }
+  .stage[data-view="tank"] > #healthCard { grid-area: 4 / 2; }
+  .stage[data-view="tank"] > #sensorRow { grid-area: 6 / 1 / 7 / -1; }
+  .stage[data-view="tank"] > #recentCard { grid-area: 7 / 1 / 8 / -1; }
+  .stage[data-view="feeding"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .stage[data-view="feeding"] > *:not(#feedCard):not(#scenCard) { grid-column: 1 / -1; }
+  .stage[data-view="feeding"] > #scenCard.is-out + * { grid-column: 1 / -1; }
+}
+/* the reading cards shrink with their container, not the window */
+@container stage (max-width: 759px) {
+  .stage .reading { padding: 12px; }
+  .stage .reading .reading__num { font-size: 32px; }
+  .stage .reading__unit { font-size: 14px; }
+  .stage .reading .spark, .stage .reading > .fine, .stage .reading .reading__meta, .stage .reading__part, .stage .reading__tags .pill { display: none; }
+  .stage .rstate { margin-left: 0; font-size: 11px; padding: 2px 6px; }
+}
+@container stage (min-width: 760px) and (max-width: 1099px) {
+  .stage .reading .reading__num { font-size: 36px; }
+  .stage .reading > .fine, .stage .reading__part { display: none; }
+}
+
+/* ---------- presenter controls: rail, drawer or sheet ---------- */
+.presenter__tour { margin: 6px 0 2px; }
+.presenter { scrollbar-width: thin; }
+@media (min-width: 1280px) {
+  .shell { grid-template-columns: minmax(0, 1fr) clamp(300px, 22vw, 360px); }
+  .presenter { position: sticky; top: calc(var(--abh, 64px) + 12px); max-height: calc(100dvh - var(--abh, 64px) - 24px); overflow: auto; grid-area: auto; }
+  .scrim { display: none !important; }
+}
+@media (max-width: 1279px) {
+  .appbar__ctl { display: inline-flex; }
+  .presenter {
+    position: fixed; z-index: 60; top: 0; right: 0; bottom: 0; width: min(420px, 92vw); max-height: none; overflow: auto; border-radius: 16px 0 0 16px;
+    padding: calc(14px + env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) 18px;
+    transform: translateX(105%); visibility: hidden; transition: transform .28s var(--ease), visibility 0s .28s; box-shadow: -18px 0 40px -18px rgba(0, 0, 0, .4);
+  }
+  .presenter.is-open { transform: none; visibility: visible; transition: transform .28s var(--ease); }
+  .presenter__close { display: inline-grid; place-items: center; }
+  .presenter__head { position: sticky; top: calc(-14px - env(safe-area-inset-top)); margin: calc(-14px - env(safe-area-inset-top)) -18px 0; padding: calc(14px + env(safe-area-inset-top)) 18px 8px; background: var(--surface); z-index: 1; border-bottom: 1px solid var(--line); }
+}
+
+/* ---------- wide desktops and monitors ---------- */
+@media (min-width: 1800px) { :root { --maxw: 1720px; --gap: 24px; } }
+@media (min-width: 2300px) { :root { --maxw: 2040px; } body { font-size: 17px; } .appbar .clock__time { font-size: 28px; } }
+@media (max-width: 1599px) { .appbar__chips { display: none; } .clock__spd { display: inline; } }
+@media (max-width: 1439px) { .appbar__tour .lbl { display: none; } .appbar__tour { padding: 8px 14px; } .appbar__tour .btn--tour__icon { margin: 0; } }
+@media (max-width: 1359px) { .appbar__sub { display: none; } }
+
+/* ---------- tablets and phones: bottom tab bar ---------- */
+@media (max-width: 1199px) {
+  :root { --navh: 64px; }
+  .viewnav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; margin: 0; border: 0; border-top: 1px solid var(--line-2); border-radius: 0;
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; background: rgba(251, 252, 252, .98);
+    padding: 6px max(8px, env(safe-area-inset-right), calc((100% - 760px) / 2)) calc(6px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left), calc((100% - 760px) / 2));
+    box-shadow: 0 -8px 24px -20px rgba(15, 31, 39, .6);
+  }
+  .viewnav button { flex-direction: column; justify-content: center; gap: 3px; min-height: 52px; padding: 4px 2px; font-size: 12px; border-radius: 12px; }
+  .viewnav button[aria-current="page"] { box-shadow: none; background: var(--accent-soft); color: var(--accent-ink); }
+  .viewnav button:hover { background: var(--surface-2); }
+  .viewnav button[aria-current="page"]:hover { background: var(--accent-soft); }
+  body { padding-bottom: calc(var(--navh) + env(safe-area-inset-bottom)); }
+  .tour { bottom: calc(var(--navh) + 12px + env(safe-area-inset-bottom)); }
+  body.touring .viewnav { display: none; }
+  body.touring { padding-bottom: 0; }
+  body.touring .tour { bottom: calc(12px + env(safe-area-inset-bottom)); }
+}
+@media (min-width: 700px) and (max-width: 1199px) { .viewnav button { flex-direction: row; gap: 8px; font-size: 14px; min-height: 48px; } }
+
+/* ---------- phones ---------- */
+@media (max-width: 699px) {
+  :root { --pad: 12px; --gap: 12px; }
+  .simbar { min-height: 32px; font-size: 12.5px; gap: 10px; }
+  .simbar__tape { width: 18px; }
+  .simbar__label { font-size: 11px; letter-spacing: .12em; }
+  .simbar__text { padding: 6px 0; }
+  .simbar__more { display: none; }
+  .appbar__in { min-height: 56px; gap: 8px; padding-top: 6px; padding-bottom: 6px; }
+  .logo { width: 32px; height: 32px; }
+  .appbar__name { font-size: 17px; }
+  .appbar__sim { display: none; }
+  .appbar .clock__time { font-size: 19px; }
+  .clock__meta { font-size: 11.5px; }
+  .clock__date { display: none; }
+  .appbar__tour { display: none; }
+  .appbar__run { min-width: 74px; padding: 8px 12px; }
+  .appbar__ctl { padding: 8px 10px; }
+  .appbar__ctl .lbl { display: none; }
+  .strip { margin-top: 10px; }
+  .strip__k { font-size: 10px; }
+  .presenter {
+    top: auto; left: 0; width: auto; max-height: 86dvh; border-radius: 18px 18px 0 0;
+    padding: 0 max(16px, env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    transform: translateY(105%); box-shadow: 0 -16px 40px -12px rgba(0, 0, 0, .4);
+  }
+  .presenter__head { top: 0; margin: 0 -16px; padding: 18px 16px 8px; border-radius: 18px 18px 0 0; }
+  .presenter__head::before { content: ""; position: absolute; left: 50%; top: 7px; width: 40px; height: 4px; margin-left: -20px; border-radius: 4px; background: var(--line-2); }
+  .projhero { padding: 18px 16px; }
+  .hello { padding: 14px; }
+  .hello__acts { width: 100%; }
+  .hello__acts .btn { flex: 1 1 auto; }
+  #monthSec, #trendSec { padding: 14px; margin: 0; }
+  .pane { padding: 16px 14px; }
+  .tabs button { padding: 10px 12px; font-size: 14px; }
+  .titleblock { grid-template-columns: 1fr; }
+}
+@media (max-width: 380px) {
+  .appbar__words { display: none; }
+  .simbar__label { display: none; }
+}
+
+/* ---------- phones held sideways ---------- */
+@media (max-height: 500px) and (orientation: landscape) {
+  :root { --navh: 50px; }
+  .simbar { min-height: 28px; }
+  .simbar__more { display: none; }
+  .appbar__in { min-height: 50px; padding-top: 4px; padding-bottom: 4px; }
+  .viewnav { padding-top: 3px; padding-bottom: calc(3px + env(safe-area-inset-bottom)); }
+  .viewnav button { flex-direction: row; gap: 6px; min-height: 44px; font-size: 13px; }
+  .stage .tank { max-height: calc(100dvh - 130px); }
+  .presenter { width: min(420px, 70vw); max-height: none; top: 0; left: auto; border-radius: 16px 0 0 16px; transform: translateX(105%); }
+  .presenter__head::before { display: none; }
+  .tour__body { max-height: 28vh; }
+}
+
+/* touch devices: no hover-only affordances, bigger hit areas on small controls */
+@media (hover: none) {
+  .btn:hover { background: var(--surface); border-color: var(--line-2); }
+  .btn--primary:hover { background: var(--accent); border-color: var(--accent); }
+  .link { min-height: 44px; }
+}
+@media print { .appbar, .viewnav, .hello { display: none !important; } .is-out { display: block !important; } }
+
+/* feeding card adapts to its own width (narrow beside the tank, wide in the Feeding view) */
+.feed { container: feed / inline-size; }
+@container feed (max-width: 560px) {
+  .flow li { flex-direction: column; text-align: center; font-size: 11.5px; padding: 6px 2px; gap: 3px; line-height: 1.2; }
+  .tally { grid-template-columns: 1fr 1fr; }
+  .feed__title { font-size: 24px; }
+}
+.switch input { flex: none; }
+.appbar__brand { min-width: 44px; justify-content: center; }
+@media (max-height: 500px) and (orientation: landscape) {
+  .simbar { display: none; }
+  .appbar__sim { display: inline-flex; }
+  .hello__b { display: none; }
+}
+.grid2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+@container stage (max-width: 759px) { .grid2, .appview { grid-template-columns: minmax(0, 1fr); gap: 24px; } }
+/* phones: section tabs wrap as pills instead of a sideways-scrolling strip */
+@media (max-width: 699px) {
+  .tabs { flex-wrap: wrap; gap: 6px; overflow: visible; border-bottom: 0; margin-bottom: 10px; }
+  .tabs button { border: 1px solid var(--line-2); border-radius: 999px; min-height: 44px; background: var(--surface); margin: 0; }
+  .tabs button[aria-selected="true"] { background: var(--ink); color: #fff; border-color: var(--ink); box-shadow: none; margin: 0; }
+  .tabs button[aria-selected="true"] .badge { background: #fff; color: var(--fault); }
+  .pane { border-top: 1px solid var(--line-2); border-radius: var(--r); }
+}
+@container stage (max-width: 599px) {
+  .pane__bar { align-items: stretch; }
+  .pane__bar select, .filters select { min-width: 0; width: 100%; flex: 1 1 100%; }
+  .filters input[type="search"] { flex: 1 1 100%; }
+  .pane__bar > .btn { width: 100%; }
+}
+
+/* ===================== v4: tank upkeep (illustrative) ===================== */
+.tank .aq-fade { transition: opacity .9s ease; }
+.bay__right { display: inline-flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.bay__upk { color: #d5e8b8; border-color: rgba(171, 206, 120, .35); }
+.upk { display: grid; gap: 8px; margin: 2px 0; }
+.upk div { display: grid; grid-template-columns: 100px 1fr; gap: 10px; align-items: center; font-size: 13.5px; }
+.upk dt { color: var(--ink-2); font-weight: 600; }
+.upk dd { margin: 0; display: grid; grid-template-columns: 1fr auto; column-gap: 8px; align-items: center; }
+.upk__bar { height: 6px; border-radius: 4px; background: #e6ece5; overflow: hidden; }
+.upk__bar i { display: block; height: 100%; background: linear-gradient(90deg, #a7c56f, #5d8a2c); border-radius: 4px; transition: width .6s var(--ease); }
+.upk b { font-size: 12px; text-transform: capitalize; }
+.upk b[data-lv="heavy"] { color: var(--attn); }
+.upk small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+@media (max-width: 699px) { .bay__upk { display: none; } }
+
 </style>
 </head>
 <body>
-<a class="skip" href="#main">Skip to the dashboard</a>
+<a class="skip" href="#main">Skip to the content</a>
 
 <div class="simbar" id="simbar" role="note" aria-label="Simulation notice">
   <span class="simbar__tape" aria-hidden="true"></span>
@@ -779,22 +1039,29 @@ body.touring .mbar { display: none !important; }
   <span class="simbar__text"><b>DEMO DATA.</b> Not connected to hardware.<span class="simbar__more"> Every reading, alert and feeding event is generated in this browser.</span></span>
 </div>
 
-<header class="top">
-  <div class="brand">
-    <p class="eyebrow">Digital prototype &middot; EE7008 Project 1 &middot; Group 2</p>
-    <h1 class="brand__name">AquaCare</h1>
-    <p class="brand__title">Design and Development of an Intelligent Feeding and Monitoring System for Small Freshwater Aquariums (2.5&ndash;10 Gallons) in Vilimal&eacute;&rsquo;</p>
-    <button class="btn btn--tour" id="tourBtn" type="button"><span class="btn--tour__icon" aria-hidden="true"></span>Show the project logic</button>
-  </div>
-  <div class="clock" aria-label="Simulated clock">
-    <span class="eyebrow">Simulated clock</span>
-    <div class="clock__row">
+<header class="appbar" id="appbar">
+  <div class="appbar__in">
+    <a class="appbar__brand" href="#tank" data-view-link="tank" aria-label="AquaCare home: tank view">
+      <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#0a6672"/><path d="M8 22c3 2 6 2 9 0s6-2 9 0 4.5 1.6 6 .6V30a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3z" fill="#7fd0dc"/><path d="M15.5 17.5c2.6-3.4 7.4-3.4 10 0-2.6 3.4-7.4 3.4-10 0zm10 0 3.5-2.6v5.2z" fill="#f2c230"/><circle cx="18.6" cy="17" r="1" fill="#13222b"/></svg>
+      <span class="appbar__words"><b class="appbar__name">AquaCare</b><span class="appbar__sub">EE7008 &middot; Group 2</span></span>
+    </a>
+    <span class="simtag appbar__sim">SIM</span>
+    <nav class="viewnav" id="viewnav" aria-label="Sections">
+      <button type="button" data-view="tank" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9.5c2 1.2 3.5 1.2 5 0s3-1.2 5 0 3.5 1.2 5 0 2.5-1 3 0"/><path d="M9 15.5c1.2-1.6 3.6-1.6 4.8 0-1.2 1.6-3.6 1.6-4.8 0zm4.8 0 1.7-1.2v2.4z"/></svg><span>Tank</span></button>
+      <button type="button" data-view="water"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3.2 4 5.5 7.1 5.5 10a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6 5.5-10z"/><path d="M9.3 14.2a2.8 2.8 0 0 0 2.7 2.6"/></svg><span>Water</span></button>
+      <button type="button" data-view="feeding"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="8.5" cy="14" r="1.2"/><circle cx="12" cy="14" r="1.2"/><circle cx="15.5" cy="14" r="1.2"/></svg><span>Feeding</span></button>
+      <button type="button" data-view="records"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg><span>Records</span></button>
+      <button type="button" data-view="project"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".6"/></svg><span>Project</span></button>
+    </nav>
+    <div class="appbar__clock" aria-label="Simulated clock">
       <span id="clockTime" class="clock__time mono">07:58:00</span>
+      <span class="clock__meta"><b id="clockDay">Day 1 of 30</b><span class="clock__date"> &middot; <span id="clockDate">-</span></span><span class="clock__spd"> &middot; <span id="mSpeed" class="mono">1&times;</span></span></span>
     </div>
-    <div class="clock__date"><span id="clockDate">-</span> &middot; <b id="clockDay">Day 1 of 30</b></div>
-    <div class="clock__chips">
-      <span id="speedChip" class="chip">Real time 1&times;</span>
-      <span id="runChip" class="chip chip--quiet">Paused</span>
+    <div class="appbar__chips"><span id="speedChip" class="chip">Real time 1&times;</span><span id="runChip" class="chip chip--quiet">Paused</span></div>
+    <div class="appbar__acts">
+      <button class="btn btn--primary appbar__run" id="mRun" type="button">Start</button>
+      <button class="btn appbar__ctl" id="mOpen" type="button" aria-controls="presenter" aria-expanded="false" aria-label="Presenter controls"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span class="lbl">Controls</span></button>
+      <button class="btn btn--tour appbar__tour" id="tourBtn" type="button" aria-label="Show the project logic (guided tour)"><span class="btn--tour__icon" aria-hidden="true"></span><span class="lbl">Show the project logic</span></button>
     </div>
   </div>
 </header>
@@ -830,42 +1097,38 @@ body.touring .mbar { display: none !important; }
   </div>
 </div>
 
-<section class="sensorrow" id="sensorRow" aria-label="Water quality readings"></section>
-
-<main id="main" class="layout">
-
-  <section class="col col--left" aria-label="Water readings and system health">
-    <article class="card" id="chainCard">
-      <header class="card__head"><h2 class="card__title">Processing rule</h2><span class="simtag">SIM</span></header>
-      <ol class="chain" aria-label="Processing steps">
-        <li><b>Measure</b><span>raw reading every simulated minute</span></li>
-        <li><b>Calibrate</b><span>no calibration data yet (identity)</span></li>
-        <li><b>Validate</b><span>reject impossible values</span></li>
-        <li><b>Smooth</b><span>mean of last 5 valid samples</span></li>
-        <li><b>Compare</b><span>with the operating range</span></li>
-        <li><b>Alert</b><span>when the smoothed value leaves it</span></li>
-      </ol>
-      <button class="link" type="button" data-goto-tab="sens">See it live for each sensor</button>
-    </article>
-
-    <article class="card" id="healthCard">
-      <header class="card__head"><h2 class="card__title">System health</h2><span class="simtag">SIM</span></header>
-      <ul class="health" id="health"></ul>
-      <p class="fine">All hardware shown is proposed. States are simulated.</p>
-    </article>
+<div class="shell">
+<main id="main" class="stagewrap" tabindex="-1">
+<div class="stage" id="stage" data-view="tank">
+  <section class="hello" id="hello" data-views="tank" aria-label="Getting started" hidden>
+    <div class="hello__txt">
+      <p class="hello__t">This is a simulation of the proposed AquaCare system.</p>
+      <p class="hello__b">Press <b>Start</b> to run simulated time, tap the red button on the tank enclosure when a feed reminder appears, or let the guided tour walk you through the logic in about five minutes.</p>
+    </div>
+    <div class="hello__acts">
+      <button class="btn btn--tour" type="button" data-tour-open><span class="btn--tour__icon" aria-hidden="true"></span>Show the project logic</button>
+      <button class="btn" type="button" id="helloClose">Got it</button>
+    </div>
   </section>
-
-  <section class="col col--centre" aria-label="Aquarium and feeding cycle">
-    <figure class="bay" id="bay" aria-labelledby="bayCap">
+  <section class="projhero" id="projHero" data-views="project" aria-labelledby="projTitle">
+    <p class="eyebrow">Digital prototype &middot; EE7008 Project 1 &middot; Group 2</p>
+    <h1 class="projhero__name" id="projTitle">AquaCare</h1>
+    <p class="projhero__title">Design and Development of an Intelligent Feeding and Monitoring System for Small Freshwater Aquariums (2.5&ndash;10 Gallons) in Vilimal&eacute;&rsquo;</p>
+    <p class="projhero__body">A browser simulation of the proposed system: four water sensors, a servo feeder with an IR beam-break check, and the ask-then-fallback feeding logic. Nothing here comes from hardware, and every value is demo data.</p>
+    <div class="projhero__acts">
+      <button class="btn btn--tour" type="button" data-tour-open><span class="btn--tour__icon" aria-hidden="true"></span>Show the project logic</button>
+    </div>
+  </section>
+  <section class="sensorrow" id="sensorRow" data-views="tank water" aria-label="Water quality readings"></section>
+  <figure class="bay" id="bay" aria-labelledby="bayCap" data-views="tank">
       <div class="bay__chips">
         <span class="simtag simtag--dark">SIMULATION</span>
-        <span class="bay__size" id="baySize">Tank: 5 US gal &middot; demo setting</span>
+        <span class="bay__right"><span class="bay__size bay__upk" id="bayUpkeep">Algae: light</span><span class="bay__size" id="baySize">Tank: 5 US gal &middot; demo setting</span></span>
       </div>
       <svg id="tank" class="tank" role="img" aria-label="Animated illustration of a small freshwater aquarium with plants, driftwood, a rock cave, decorative fish and shrimp, the proposed feeder, four sensor probes (pH, DS18B20, TDS, turbidity) and the controller enclosure. Water haze follows simulated turbidity. Decorative; animals are not monitored."></svg>
-      <figcaption id="bayCap" class="bay__cap">Illustration. Fish and shrimp are decorative. Food passage detection means food left the dispenser. It does not confirm anything ate it.</figcaption>
+      <figcaption id="bayCap" class="bay__cap">Illustration. Dust in the water follows the simulated turbidity. Algae and debris are illustrative (days since cleaning, feeds delivered) and never change a reading. Fish and shrimp are decorative. Food passage detection means food left the dispenser. It does not confirm anything ate it.</figcaption>
     </figure>
-
-    <article class="card feed" id="feedCard" data-state="idle" aria-labelledby="feedTitle">
+  <article class="card feed" id="feedCard" data-state="idle" aria-labelledby="feedTitle" data-views="tank feeding">
       <div class="feed__top">
         <div>
           <p class="eyebrow">Feeding cycle &middot; ask-then-fallback</p>
@@ -901,148 +1164,36 @@ body.touring .mbar { display: none !important; }
       </dl>
       <p class="fine">Counting rule: manual confirmations and every automatic attempt, successful or not, count toward the daily cap of 3. A failed attempt is never retried, so food cannot be dispensed again and again. Design assumption awaiting team and supervisor confirmation.</p>
     </article>
-
-    <article class="card scen" id="scenCard" hidden>
+  <article class="card scen" id="scenCard" hidden data-views="tank feeding">
       <header class="card__head"><h2 class="card__title">Scenario: how the local logic responded</h2><span class="simtag">SIM</span></header>
       <p class="scen__name" id="scenName"></p>
       <p class="scen__resp" id="scenResp"></p>
       <ol class="events events--compact" id="scenTrail"></ol>
     </article>
-
-    <article class="card" id="recentCard">
+  <article class="card" id="chainCard" data-views="water">
+      <header class="card__head"><h2 class="card__title">Processing rule</h2><span class="simtag">SIM</span></header>
+      <ol class="chain" aria-label="Processing steps">
+        <li><b>Measure</b><span>raw reading every simulated minute</span></li>
+        <li><b>Calibrate</b><span>no calibration data yet (identity)</span></li>
+        <li><b>Validate</b><span>reject impossible values</span></li>
+        <li><b>Smooth</b><span>mean of last 5 valid samples</span></li>
+        <li><b>Compare</b><span>with the operating range</span></li>
+        <li><b>Alert</b><span>when the smoothed value leaves it</span></li>
+      </ol>
+      <button class="link" type="button" data-goto-tab="sens">See it live for each sensor</button>
+    </article>
+  <article class="card" id="healthCard" data-views="tank water">
+      <header class="card__head"><h2 class="card__title">System health</h2><span class="simtag">SIM</span></header>
+      <ul class="health" id="health"></ul>
+      <p class="fine">All hardware shown is proposed. States are simulated.</p>
+    </article>
+  <article class="card" id="recentCard" data-views="tank">
       <header class="card__head"><h2 class="card__title">Recent events</h2><span class="simtag">DEMO DATA</span></header>
       <ol class="events events--compact" id="recent"></ol>
       <button class="link" type="button" data-goto-tab="log">Open full event log</button>
     </article>
-  </section>
-
-  <aside class="presenter" id="presenter" aria-label="Presenter controls">
-    <div class="presenter__head">
-      <h2 class="presenter__title">Presenter controls</h2>
-      <button class="iconbtn presenter__close" id="presenterClose" type="button" aria-label="Close presenter controls">&times;</button>
-    </div>
-    <p class="fine presenter__note">These controls inject simulated conditions. They are not device features.</p>
-
-    <fieldset class="grp">
-      <legend>Run</legend>
-      <div class="row2">
-        <button class="btn btn--primary" id="runBtn" type="button">Start</button>
-        <button class="btn" id="resetBtn" type="button">Reset run</button>
-      </div>
-      <div class="field">
-        <span class="field__label" id="speedLbl">Simulation speed</span>
-        <div class="seg seg--6" role="radiogroup" aria-labelledby="speedLbl" id="speedSeg">
-          <button type="button" role="radio" data-speed="1">1&times;</button>
-          <button type="button" role="radio" data-speed="10">10&times;</button>
-          <button type="button" role="radio" data-speed="60">60&times;</button>
-          <button type="button" role="radio" data-speed="600">600&times;</button>
-          <button type="button" role="radio" data-speed="3600">1 h/s</button>
-          <button type="button" role="radio" data-speed="14400">4 h/s</button>
-        </div>
-        <p class="fine" id="speedNote">Real time.</p>
-      </div>
-      <label class="switch"><input type="checkbox" id="keepChk" checked><span>Keep time running while the page is closed <em>(catches up when you reopen it)</em></span></label>
-      <div class="row2">
-        <button class="btn" id="jumpBtn" type="button">Jump to next feed</button>
-        <button class="btn" id="dayBtn" type="button">Next day &rarr;</button>
-      </div>
-      <button class="btn btn--wide" id="endBtn" type="button">Run all 30 days now</button>
-    </fieldset>
-
-    <fieldset class="grp">
-      <legend>Feeding</legend>
-      <div class="field">
-        <label class="field__label" for="modeSel">Feeding mode</label>
-        <select id="modeSel">
-          <option value="hybrid">AquaCare: ask, then fall back (design)</option>
-          <option value="manual">Manual only (comparison, paper [3])</option>
-          <option value="auto">Automatic only (comparison, paper [3])</option>
-        </select>
-      </div>
-      <div class="field">
-        <label class="field__label" for="ownerSel">Who presses the tank button</label>
-        <select id="ownerSel">
-          <option value="presenter">Presenter (press it yourself)</option>
-          <option value="simulated">Simulated owner</option>
-        </select>
-      </div>
-      <div class="field" id="ownerPctField" hidden>
-        <label class="field__label" for="ownerPct">Owner responds to <output id="ownerPctOut" class="mono">60%</output> of reminders</label>
-        <input type="range" id="ownerPct" min="0" max="100" step="5" value="60">
-        <p class="fine">A demo assumption, not a measured behaviour.</p>
-      </div>
-      <div class="field">
-        <span class="field__label" id="passLbl">Next dispense: IR beam-break result</span>
-        <div class="seg" role="radiogroup" aria-labelledby="passLbl" id="passSeg">
-          <button type="button" role="radio" data-pass="detect">Passage detected</button>
-          <button type="button" role="radio" data-pass="none">Not detected</button>
-        </div>
-      </div>
-      <div class="row2">
-        <button class="btn" id="expireBtn" type="button">Let reminder expire</button>
-        <button class="btn" id="injectBtn" type="button">Inject extra trigger (test)</button>
-      </div>
-      <button class="btn btn--wide" id="ackFaultBtn" type="button" disabled>Acknowledge feeder fault</button>
-    </fieldset>
-
-    <fieldset class="grp">
-      <legend>Live faults (now)</legend>
-      <div id="faultSegs" class="faultsegs"></div>
-      <div class="row2">
-        <button class="btn" id="wifiBtn" type="button" aria-pressed="false">Disconnect Wi-Fi</button>
-        <button class="btn" id="powerBtn" type="button" aria-pressed="false">Cut power</button>
-      </div>
-      <button class="btn btn--wide" id="lcdBtn" type="button" aria-pressed="false">LCD status: updating</button>
-      <button class="link" type="button" data-goto-tab="scen">Schedule faults on chosen days</button>
-    </fieldset>
-
-    <fieldset class="grp">
-      <legend>Perturbation tests</legend>
-      <p class="fine">Controlled changes like those in the reviewed paper [2]. Magnitudes are demo choices.</p>
-      <div class="field">
-        <label class="field__label" for="pertMin">Stimulus lasts</label>
-        <select id="pertMin"><option value="30">30 min</option><option value="60" selected>60 min</option><option value="120">2 h</option><option value="240">4 h</option></select>
-      </div>
-      <div class="row2">
-        <button class="btn" type="button" data-pert="heater">Heater on</button>
-        <button class="btn" type="button" data-pert="vinegar">Add vinegar</button>
-        <button class="btn" type="button" data-pert="soil">Add soil</button>
-        <button class="btn" type="button" data-pert="salts">Raise TDS <small>(demo)</small></button>
-      </div>
-      <button class="btn btn--wide" id="bubBtn" type="button" aria-pressed="false">Air bubbles at turbidity sensor: off</button>
-    </fieldset>
-
-    <fieldset class="grp">
-      <legend>Water (simulated baseline)</legend>
-      <div id="baseSliders" class="baseSliders"></div>
-      <label class="switch"><input type="checkbox" id="patternChk" checked><span>Synthetic day/night pattern <em>(demo shape)</em></span></label>
-    </fieldset>
-
-    <fieldset class="grp">
-      <legend>Display</legend>
-      <div class="field">
-        <label class="field__label" for="sizeSel">Tank size (demo setting)</label>
-        <select id="sizeSel">
-          <option value="2.5">2.5 US gal</option>
-          <option value="3">3 US gal</option>
-          <option value="5" selected>5 US gal</option>
-          <option value="7.5">7.5 US gal</option>
-          <option value="10">10 US gal</option>
-          <option value="p3">36 &times; 22 &times; 26 cm (paper [3] tank)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label class="field__label" for="fishSel">Fish shown (decorative)</label>
-        <select id="fishSel"><option value="10">10</option><option value="6">6 (as in paper [3])</option><option value="4">4</option></select>
-      </div>
-      <label class="switch"><input type="checkbox" id="awayChk"><span>Away Mode <em>(proposed)</em></span></label>
-      <label class="switch"><input type="checkbox" id="animChk" checked><span>Tank animation</span></label>
-    </fieldset>
-  </aside>
-</main>
-
-<!-- 30-day run -->
-<section class="section" id="monthSec" aria-labelledby="monthTitle">
+  <!-- 30-day run -->
+<section class="section" id="monthSec" aria-labelledby="monthTitle" data-views="feeding">
   <div class="section__head">
     <div>
       <p class="eyebrow">Calendar-based simulation</p>
@@ -1079,11 +1230,10 @@ body.touring .mbar { display: none !important; }
     <span><i class="mk">S</i>Scenario</span>
   </div>
   <div class="cal" id="cal" role="grid" aria-label="30-day calendar"></div>
-  <p class="fine" id="calNote">Select a day to filter the chart and feed log. Future days show the scenarios scheduled for them.</p>
+  <p class="fine" id="calNote">Select a day to filter the feed log and chart below. Future days show the scenarios scheduled for them.</p>
 </section>
-
-<!-- Trends -->
-<section class="section" id="trendSec" aria-labelledby="trendTitle">
+  <!-- Trends -->
+<section class="section" id="trendSec" aria-labelledby="trendTitle" data-views="water feeding">
   <div class="section__head">
     <div>
       <p class="eyebrow">Graphs</p>
@@ -1104,20 +1254,19 @@ body.touring .mbar { display: none !important; }
   </div>
   <p class="fine">Synthetic demo readings, sampled once per simulated minute and smoothed over 5 samples. Dashed orange lines are the operating ranges. Grey bands: controller off. Hatched bands: Wi-Fi offline. Gaps: sensor fault (no data). Ticks under the chart are feed events, coloured as in the calendar.</p>
 </section>
-
-<section class="panel" aria-label="Details">
+  <section class="panel" aria-label="Details" data-views="water feeding records project">
   <div class="tabs" role="tablist" aria-label="Detail views" id="tabs">
-    <button role="tab" id="tab-feed" aria-controls="pane-feed" aria-selected="true">Feed log</button>
-    <button role="tab" id="tab-log" aria-controls="pane-log" aria-selected="false" tabindex="-1">Event log</button>
-    <button role="tab" id="tab-sens" aria-controls="pane-sens" aria-selected="false" tabindex="-1">Sensors &amp; processing</button>
-    <button role="tab" id="tab-modes" aria-controls="pane-modes" aria-selected="false" tabindex="-1">Feeding modes</button>
-    <button role="tab" id="tab-scen" aria-controls="pane-scen" aria-selected="false" tabindex="-1">Scenarios</button>
-    <button role="tab" id="tab-alerts" aria-controls="pane-alerts" aria-selected="false" tabindex="-1">Alerts &amp; settings <span class="badge" id="alertBadge" hidden>0</span></button>
-    <button role="tab" id="tab-cal" aria-controls="pane-cal" aria-selected="false" tabindex="-1">pH calibration</button>
-    <button role="tab" id="tab-arch" aria-controls="pane-arch" aria-selected="false" tabindex="-1">Architecture</button>
-    <button role="tab" id="tab-app" aria-controls="pane-app" aria-selected="false" tabindex="-1">App view</button>
-    <button role="tab" id="tab-assume" aria-controls="pane-assume" aria-selected="false" tabindex="-1">Assumptions</button>
-    <button role="tab" id="tab-test" aria-controls="pane-test" aria-selected="false" tabindex="-1">Logic self-test</button>
+    <button role="tab" data-view="feeding" id="tab-feed" aria-controls="pane-feed" aria-selected="true">Feed log</button>
+    <button role="tab" data-view="records" id="tab-log" aria-controls="pane-log" aria-selected="false" tabindex="-1">Event log</button>
+    <button role="tab" data-view="water" id="tab-sens" aria-controls="pane-sens" aria-selected="false" tabindex="-1">Sensors &amp; processing</button>
+    <button role="tab" data-view="feeding" id="tab-modes" aria-controls="pane-modes" aria-selected="false" tabindex="-1">Feeding modes</button>
+    <button role="tab" data-view="feeding" id="tab-scen" aria-controls="pane-scen" aria-selected="false" tabindex="-1">Scenarios</button>
+    <button role="tab" data-view="project" id="tab-alerts" aria-controls="pane-alerts" aria-selected="false" tabindex="-1">Alerts &amp; settings <span class="badge" id="alertBadge" hidden>0</span></button>
+    <button role="tab" data-view="water" id="tab-cal" aria-controls="pane-cal" aria-selected="false" tabindex="-1">pH calibration</button>
+    <button role="tab" data-view="project" id="tab-arch" aria-controls="pane-arch" aria-selected="false" tabindex="-1">Architecture</button>
+    <button role="tab" data-view="records" id="tab-app" aria-controls="pane-app" aria-selected="false" tabindex="-1">App view</button>
+    <button role="tab" data-view="project" id="tab-assume" aria-controls="pane-assume" aria-selected="false" tabindex="-1">Assumptions</button>
+    <button role="tab" data-view="project" id="tab-test" aria-controls="pane-test" aria-selected="false" tabindex="-1">Logic self-test</button>
   </div>
 
   <!-- Feed log -->
@@ -1207,7 +1356,7 @@ body.touring .mbar { display: none !important; }
     <p>Ayon, Nahar, Rahman, Arif, Hasib and Akib, <i>An IoT-Enabled Smart Aquarium System for Real-Time Water Quality Monitoring and Automated Feeding</i>, arXiv, January 2026. Values below are as summarised in the group's review slides.</p>
     <div class="grid2">
       <section>
-        <table class="table">
+        <div class="tablewrap"><table class="table">
           <thead><tr><th scope="col">Parameter</th><th scope="col">Sensor in paper</th><th scope="col">Operating range in paper</th><th scope="col">AquaCare brief</th></tr></thead>
           <tbody>
             <tr><td>Temperature</td><td>DS18B20 (digital)</td><td>24&ndash;28 &deg;C</td><td>In scope</td></tr>
@@ -1215,7 +1364,7 @@ body.touring .mbar { display: none !important; }
             <tr><td>TDS</td><td>SEN0244 (analog)</td><td>180&ndash;280 ppm</td><td><span class="pill pill--attn">Added here; team to confirm</span></td></tr>
             <tr><td>Turbidity</td><td>SEN0189 (analog)</td><td>&le; 50 NTU</td><td><span class="pill pill--attn">Added here; team to confirm</span></td></tr>
           </tbody>
-        </table>
+        </table></div>
         <p class="fine">These ranges are loaded as this demo's alert limits and marked as reference values. They are not fish-safe thresholds confirmed for AquaCare.</p>
       </section>
       <section>
@@ -1260,7 +1409,7 @@ body.touring .mbar { display: none !important; }
     <p>Setiawan, Firmansyah, Widiyana, Kusuma and Dinimaharahawati, <i>Automated Feeding System for Aquariums Based on the Internet of Things</i>, CEPAT Journal of Computer Engineering 3(1), 1&ndash;9, May 2024, DOI 10.25124/cepat.v2i02.6089 (as printed on the review slide; the DOI's volume and issue do not match 3(1), so check against the paper before citing). Values below are as summarised in the group's review slides.</p>
     <div class="grid2">
       <section>
-        <table class="table">
+        <div class="tablewrap"><table class="table">
           <thead><tr><th scope="col">Study context</th><th scope="col">As reported</th></tr></thead>
           <tbody>
             <tr><td>Tank</td><td>36 &times; 22 &times; 26 cm (about 20.6 L gross, about 5.4 US gal), inside AquaCare's 2.5&ndash;10 gal scope</td></tr>
@@ -1269,7 +1418,7 @@ body.touring .mbar { display: none !important; }
             <tr><td>System logic</td><td>Set a regular schedule; release feed through an IoT microcontroller; monitor through a dashboard</td></tr>
             <tr><td>Controller</td><td>The paper's text names both a NodeMCU ESP8266 and a Wemos D1 R1, as flagged in the group's literature review</td></tr>
           </tbody>
-        </table>
+        </table></div>
         <h3 class="h3">Limitations it reports, and where they appear here</h3>
         <ul class="checklist">
           <li>Turbidity sensor easily damaged &rarr; <b>Sensor failure</b> scenario (turbidity, disconnected or invalid values)</li>
@@ -1278,7 +1427,7 @@ body.touring .mbar { display: none !important; }
         </ul>
       </section>
       <section>
-        <table class="table">
+        <div class="tablewrap"><table class="table">
           <thead><tr><th scope="col">Reported outcome</th><th scope="col">Manual</th><th scope="col">Automatic</th></tr></thead>
           <tbody>
             <tr><td>Days until cloudy water</td><td>2</td><td>4 (+2)</td></tr>
@@ -1287,7 +1436,7 @@ body.touring .mbar { display: none !important; }
             <tr><td>Stress level</td><td>Low</td><td>Medium</td></tr>
             <tr><td>Life sustainability per year</td><td>98 %</td><td>97 %</td></tr>
           </tbody>
-        </table>
+        </table></div>
         <p class="fine">Cloudiness was judged by eye, without chemical measurements such as ammonia, pH or dissolved oxygen. These are reported comparisons from a small study, and they do not show that IoT feeding alone caused each outcome. Growth improved, but stress rose and survival fell slightly. That supports keeping the owner involved, which is what ask-then-fallback does.</p>
       </section>
     </div>
@@ -1478,7 +1627,7 @@ body.touring .mbar { display: none !important; }
   <!-- Assumptions -->
   <div class="pane" role="tabpanel" id="pane-assume" aria-labelledby="tab-assume" hidden>
     <p class="fine">Every rule this demo had to decide that the brief does not settle. Each needs team and supervisor confirmation before it goes in the report as design.</p>
-    <table class="table">
+    <div class="tablewrap"><table class="table">
       <thead><tr><th scope="col">Topic</th><th scope="col">What the demo does</th><th scope="col">Status</th></tr></thead>
       <tbody>
         <tr><td>Sensor set</td><td>pH and temperature are in the AquaCare brief. TDS (SEN0244) and turbidity (SEN0189) were added from the reviewed paper [2] at the group's request.</td><td><span class="pill pill--attn">Requires team decision</span></td></tr>
@@ -1504,7 +1653,7 @@ body.touring .mbar { display: none !important; }
         <tr><td>Sensor fault display</td><td>Shows "No data" instead of the last good value and raises an equipment alert.</td><td><span class="pill pill--attn">Assumption</span></td></tr>
         <tr><td>Tank size</td><td>Changes the illustration only. The number of fish and shrimp does not change and is not stocking advice.</td><td><span class="pill">Demo setting</span></td></tr>
       </tbody>
-    </table>
+    </table></div>
   </div>
 
   <!-- Self-test -->
@@ -1514,14 +1663,160 @@ body.touring .mbar { display: none !important; }
     <ol class="tests" id="testList"></ol>
   </div>
 </section>
-
-<footer class="titleblock" aria-label="Document information">
+  <footer class="titleblock" aria-label="Document information" data-views="project">
   <div><span class="k">Project</span><span class="v">AquaCare &middot; Intelligent feeding and monitoring, 2.5&ndash;10 gal freshwater</span></div>
   <div><span class="k">Course</span><span class="v">EE7008 Project 1 &middot; Group 2 &middot; Supervisor Dr. Furugaan</span></div>
   <div><span class="k">Status</span><span class="v"><b>Concept demo.</b> Not built or validated.</span></div>
   <div><span class="k">Data</span><span class="v">Simulation / demo data only</span></div>
   <div><span class="k">Storage</span><span class="v" id="storageNote">This browser only</span></div>
 </footer>
+</div>
+</main>
+<aside class="presenter" id="presenter" aria-label="Presenter controls">
+    <div class="presenter__head">
+      <h2 class="presenter__title">Presenter controls</h2>
+      <button class="iconbtn presenter__close" id="presenterClose" type="button" aria-label="Close presenter controls">&times;</button>
+    </div>
+    <p class="fine presenter__note">These controls inject simulated conditions. They are not device features.</p>
+    <button class="btn btn--tour btn--wide presenter__tour" type="button" data-tour-open><span class="btn--tour__icon" aria-hidden="true"></span>Show the project logic</button>
+
+    <fieldset class="grp">
+      <legend>Run</legend>
+      <div class="row2">
+        <button class="btn btn--primary" id="runBtn" type="button">Start</button>
+        <button class="btn" id="resetBtn" type="button">Reset run</button>
+      </div>
+      <div class="field">
+        <span class="field__label" id="speedLbl">Simulation speed</span>
+        <div class="seg seg--6" role="radiogroup" aria-labelledby="speedLbl" id="speedSeg">
+          <button type="button" role="radio" data-speed="1">1&times;</button>
+          <button type="button" role="radio" data-speed="10">10&times;</button>
+          <button type="button" role="radio" data-speed="60">60&times;</button>
+          <button type="button" role="radio" data-speed="600">600&times;</button>
+          <button type="button" role="radio" data-speed="3600">1 h/s</button>
+          <button type="button" role="radio" data-speed="14400">4 h/s</button>
+        </div>
+        <p class="fine" id="speedNote">Real time.</p>
+      </div>
+      <label class="switch"><input type="checkbox" id="keepChk" checked><span>Keep time running while the page is closed <em>(catches up when you reopen it)</em></span></label>
+      <div class="row2">
+        <button class="btn" id="jumpBtn" type="button">Jump to next feed</button>
+        <button class="btn" id="dayBtn" type="button">Next day &rarr;</button>
+      </div>
+      <button class="btn btn--wide" id="endBtn" type="button">Run all 30 days now</button>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Feeding</legend>
+      <div class="field">
+        <label class="field__label" for="modeSel">Feeding mode</label>
+        <select id="modeSel">
+          <option value="hybrid">AquaCare: ask, then fall back (design)</option>
+          <option value="manual">Manual only (comparison, paper [3])</option>
+          <option value="auto">Automatic only (comparison, paper [3])</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="ownerSel">Who presses the tank button</label>
+        <select id="ownerSel">
+          <option value="presenter">Presenter (press it yourself)</option>
+          <option value="simulated">Simulated owner</option>
+        </select>
+      </div>
+      <div class="field" id="ownerPctField" hidden>
+        <label class="field__label" for="ownerPct">Owner responds to <output id="ownerPctOut" class="mono">60%</output> of reminders</label>
+        <input type="range" id="ownerPct" min="0" max="100" step="5" value="60">
+        <p class="fine">A demo assumption, not a measured behaviour.</p>
+      </div>
+      <div class="field">
+        <span class="field__label" id="passLbl">Next dispense: IR beam-break result</span>
+        <div class="seg" role="radiogroup" aria-labelledby="passLbl" id="passSeg">
+          <button type="button" role="radio" data-pass="detect">Passage detected</button>
+          <button type="button" role="radio" data-pass="none">Not detected</button>
+        </div>
+      </div>
+      <div class="row2">
+        <button class="btn" id="expireBtn" type="button">Let reminder expire</button>
+        <button class="btn" id="injectBtn" type="button">Inject extra trigger (test)</button>
+      </div>
+      <button class="btn btn--wide" id="ackFaultBtn" type="button" disabled>Acknowledge feeder fault</button>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Live faults (now)</legend>
+      <div id="faultSegs" class="faultsegs"></div>
+      <div class="row2">
+        <button class="btn" id="wifiBtn" type="button" aria-pressed="false">Disconnect Wi-Fi</button>
+        <button class="btn" id="powerBtn" type="button" aria-pressed="false">Cut power</button>
+      </div>
+      <button class="btn btn--wide" id="lcdBtn" type="button" aria-pressed="false">LCD status: updating</button>
+      <button class="link" type="button" data-goto-tab="scen">Schedule faults on chosen days</button>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Perturbation tests</legend>
+      <p class="fine">Controlled changes like those in the reviewed paper [2]. Magnitudes are demo choices.</p>
+      <div class="field">
+        <label class="field__label" for="pertMin">Stimulus lasts</label>
+        <select id="pertMin"><option value="30">30 min</option><option value="60" selected>60 min</option><option value="120">2 h</option><option value="240">4 h</option></select>
+      </div>
+      <div class="row2">
+        <button class="btn" type="button" data-pert="heater">Heater on</button>
+        <button class="btn" type="button" data-pert="vinegar">Add vinegar</button>
+        <button class="btn" type="button" data-pert="soil">Add soil</button>
+        <button class="btn" type="button" data-pert="salts">Raise TDS <small>(demo)</small></button>
+      </div>
+      <button class="btn btn--wide" id="bubBtn" type="button" aria-pressed="false">Air bubbles at turbidity sensor: off</button>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Tank upkeep (illustrative)</legend>
+      <p class="fine">Algae and debris build up with simulated days since cleaning, a little faster with each feed. Dust in the water follows the turbidity reading. Cleaning changes the picture only; readings are not affected.</p>
+      <dl class="upk" id="upk"></dl>
+      <div class="row2">
+        <button class="btn" type="button" data-clean="glass">Wipe glass</button>
+        <button class="btn" type="button" data-clean="gravel">Siphon gravel</button>
+        <button class="btn" type="button" data-clean="probes">Clean probes</button>
+        <button class="btn" type="button" data-clean="all">Full clean</button>
+      </div>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Water (simulated baseline)</legend>
+      <div id="baseSliders" class="baseSliders"></div>
+      <label class="switch"><input type="checkbox" id="patternChk" checked><span>Synthetic day/night pattern <em>(demo shape)</em></span></label>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Display</legend>
+      <div class="field">
+        <label class="field__label" for="sizeSel">Tank size (demo setting)</label>
+        <select id="sizeSel">
+          <option value="2.5">2.5 US gal</option>
+          <option value="3">3 US gal</option>
+          <option value="5" selected>5 US gal</option>
+          <option value="7.5">7.5 US gal</option>
+          <option value="10">10 US gal</option>
+          <option value="p3">36 &times; 22 &times; 26 cm (paper [3] tank)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="fishSel">Fish shown (decorative)</label>
+        <select id="fishSel"><option value="10">10</option><option value="6">6 (as in paper [3])</option><option value="4">4</option></select>
+      </div>
+      <label class="switch"><input type="checkbox" id="awayChk"><span>Away Mode <em>(proposed)</em></span></label>
+      <label class="switch"><input type="checkbox" id="animChk" checked><span>Tank animation</span></label>
+    </fieldset>
+  </aside>
+</div>
+
+
+
+
+
+
+
+
 
 <!-- Guided presentation -->
 <div class="tour" id="tour" role="dialog" aria-modal="false" aria-labelledby="tourTitle" hidden>
@@ -1537,11 +1832,7 @@ body.touring .mbar { display: none !important; }
 </div>
 <div class="spot" id="spot" hidden></div>
 
-<div class="mbar" id="mbar">
-  <button class="btn btn--primary" id="mRun" type="button">Start</button>
-  <span class="mbar__speed mono" id="mSpeed">1&times;</span>
-  <button class="btn" id="mOpen" type="button" aria-controls="presenter" aria-expanded="false">Presenter controls</button>
-</div>
+
 <div class="scrim" id="scrim" hidden></div>
 
 <div class="sr-only" aria-live="polite" id="liveState"></div>
@@ -1778,6 +2069,8 @@ body.touring .mbar { display: none !important; }
     this.s = freshState(this.seed);
     this.s.speed = speed;
     this.s.simTime = this.dayStartOffset();
+    var lived = this.s.simTime - UPKEEP.startAgeDays * DAY;      // the tank starts lived-in, not spotless
+    this.s.maint = { glass: lived, gravel: lived, probes: lived };
     this.s.nextSampleAt = Math.floor(this.s.simTime / MIN) * MIN;
     var scn = this.s.scn;
     (this.settings.scenarios || []).forEach(function (sc) { scn[sc.id] = 'pending'; });
@@ -1853,6 +2146,42 @@ body.touring .mbar { display: none !important; }
         this.addLog('demo', 'Slot ' + hhmm(times[i]) + ' was set to a time already passed today; it starts tomorrow', { injected: true });
       }
     }
+  };
+
+  // ---------- tank upkeep (ILLUSTRATIVE, visual only) ----------
+  // Algae and debris build up on the tank drawing with simulated time since the last clean, a little
+  // faster with each feed delivered (nutrients). Nothing here feeds into any sensor reading, alert or
+  // feed decision: it is a picture of a lived-in tank, not a measured or validated growth model.
+  var UPKEEP = { startAgeDays: 1.5, glassTau: 9, decorTau: 14, probeTau: 12, detritusTau: 18, perFeed: 0.03 };
+  Engine.UPKEEP = UPKEEP;
+  P.upkeep = function () {
+    var s = this.s, m = s.maint || {}, t = s.simTime;
+    function fed(since) {
+      var n = 0;
+      s.records.forEach(function (r) { if ((r.outcome === 'manual' || r.outcome === 'auto_ok') && r.scheduledAt >= since) n++; });
+      return n;
+    }
+    function level(since, tau, nutrients) {
+      var d = Math.max(0, (t - since) / DAY);
+      return Math.min(1, 1 - Math.exp(-(d * (1 + UPKEEP.perFeed * nutrients)) / tau));
+    }
+    var fg = fed(m.glass), fv = fed(m.gravel), fp = fed(m.probes);
+    return {
+      glass: level(m.glass, UPKEEP.glassTau, fg),
+      decor: level(Math.min(m.glass, m.gravel), UPKEEP.decorTau, Math.max(fg, fv)),
+      probes: level(m.probes, UPKEEP.probeTau, fp),
+      detritus: level(m.gravel, UPKEEP.detritusTau, fv * 2),
+      days: { glass: (t - m.glass) / DAY, gravel: (t - m.gravel) / DAY, probes: (t - m.probes) / DAY },
+      feeds: fv
+    };
+  };
+  P.cleanTank = function (what) {
+    var s = this.s, names = { glass: 'glass wiped', gravel: 'gravel siphoned', probes: 'probes cleaned', all: 'full clean (glass, gravel, probes)' };
+    if (!names[what]) return;
+    if (what === 'all') s.maint.glass = s.maint.gravel = s.maint.probes = s.simTime;
+    else s.maint[what] = s.simTime;
+    this.addLog('demo', 'Tank upkeep: ' + names[what] + '. Illustrative only; readings are not changed.', { injected: true });
+    this.emit('change');
   };
 
   // ---------- records ----------
@@ -2589,7 +2918,7 @@ body.touring .mbar { display: none !important; }
     'setSensorStatus', 'setWifi', 'setAway', 'cutPower', 'restorePower', 'finishBoot', 'pressTankButton', 'injectTrigger',
     'jumpToNextFeed', 'expireNow', 'fastForwardToDay', 'fastForwardNextDay', 'runToEnd', 'ackFeederFault', 'ackAlert',
     'addLog', 'raise', 'clear', 'startScenario', 'endScenario', 'syncScenarios', 'setLcdBug', 'setFeedMode', 'setBubbles',
-    'startPerturbation', 'settle', 'advanceTo'];
+    'startPerturbation', 'settle', 'advanceTo', 'cleanTank'];
   var COALESCE = { setTarget: 1, setSpeed: 1 };
   Engine.JOURNAL_VERSION = 1;
 
@@ -2981,6 +3310,20 @@ body.touring .mbar { display: none !important; }
       return Math.abs(gained - 180 * 60 * MIN) < MIN && e.s.day === 8 && recs(e).length >= 21 || ('gained ' + gained / MIN + ' min, day ' + e.s.day);
     });
 
+    check('Tank upkeep: algae builds with days, resets on cleaning, never touches readings', function () {
+      var a = make(), b = make();
+      a.setSpeed(3600); b.setSpeed(3600); a.start(); b.start();
+      a.advanceTo(a.s.simTime + 6 * DAY, true); b.advanceTo(b.s.simTime + 6 * DAY, true);
+      var u6 = a.upkeep();
+      if (!(u6.glass > 0.3 && u6.glass < 1 && u6.detritus > 0)) return 'growth looks wrong: ' + JSON.stringify(u6);
+      a.cleanTank('glass');
+      if (a.upkeep().glass > 0.001) return 'glass not reset by cleaning';
+      if (a.upkeep().detritus < u6.detritus - 1e-9) return 'gravel changed when only the glass was wiped';
+      a.advanceTo(a.s.simTime + 3 * DAY, true); b.advanceTo(b.s.simTime + 3 * DAY, true);
+      var ra = JSON.stringify(a.s.samples), rb = JSON.stringify(b.s.samples);
+      return ra === rb || 'cleaning changed the simulated readings';
+    });
+
     return results;
   }
 
@@ -3017,6 +3360,21 @@ body.touring .mbar { display: none !important; }
     return n;
   }
   function rnd(a, b) { return a + Math.random() * (b - a); }
+  // seeded generator so algae and debris land in the same places on every redraw
+  function prng(seed) {
+    var a = seed >>> 0;
+    return function () { a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  // a tuft of thread/hair algae: a few thin wavy strands from one base point
+  function tuft(parent, x, y, len, color, R, lean) {
+    var d = '', n = 4 + Math.floor(R() * 4);
+    for (var i = 0; i < n; i++) {
+      var dx = (R() - 0.5) * 5, L = len * (0.55 + R() * 0.7), b = (lean || 0) + (R() - 0.5) * 7;
+      d += 'M' + (x + dx).toFixed(1) + ',' + y.toFixed(1) + ' q' + (b * 0.15 + 2).toFixed(1) + ',' + (-L * 0.5).toFixed(1) + ' ' + b.toFixed(1) + ',' + (-L).toFixed(1) + ' ';
+    }
+    el('path', { d: d, stroke: color, 'stroke-width': 0.9, fill: 'none', 'stroke-linecap': 'round' }, parent);
+  }
+  function fadeTo(node, v) { if (node) node.style.opacity = Math.max(0, Math.min(1, v)).toFixed(3); }
 
   function Tank(svg) {
     this.svg = svg;
@@ -3050,7 +3408,13 @@ body.touring .mbar { display: none !important; }
       '<radialGradient id="aqCave" cx=".5" cy=".7" r=".6"><stop offset="0" stop-color="#04161c"/><stop offset="1" stop-color="#0b2e38"/></radialGradient>' +
       '<linearGradient id="aqRock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7f8d92"/><stop offset="1" stop-color="#535f64"/></linearGradient>' +
       '<clipPath id="aqClip"><rect x="' + tx + '" y="' + G.water + '" width="' + tw + '" height="' + (BOTTOM - G.water) + '"/></clipPath>' +
-      '<pattern id="aqGrain" width="9" height="7" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".9" fill="#7d6b4b" opacity=".45"/><circle cx="6.5" cy="5" r=".7" fill="#e7d7b2" opacity=".5"/></pattern>';
+      '<pattern id="aqGrain" width="9" height="7" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".9" fill="#7d6b4b" opacity=".45"/><circle cx="6.5" cy="5" r=".7" fill="#e7d7b2" opacity=".5"/></pattern>' +
+      // green film on the glass: heaviest near the light at the top and in the corners
+      '<linearGradient id="aqAlgaeV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7aa443" stop-opacity=".46"/><stop offset=".3" stop-color="#5f8f35" stop-opacity=".20"/><stop offset="1" stop-color="#4c7a2c" stop-opacity=".10"/></linearGradient>' +
+      '<linearGradient id="aqAlgaeH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4f7d2b" stop-opacity=".42"/><stop offset=".1" stop-color="#4f7d2b" stop-opacity="0"/><stop offset=".9" stop-color="#4f7d2b" stop-opacity="0"/><stop offset="1" stop-color="#4f7d2b" stop-opacity=".42"/></linearGradient>' +
+      // two spot tiles of unrelated sizes so the green-spot algae doesn't read as a regular grid
+      '<pattern id="aqSpots" width="47" height="37" patternUnits="userSpaceOnUse"><circle cx="5" cy="6" r="1.5" fill="#3f6d22" opacity=".55"/><circle cx="23" cy="3" r="1" fill="#4c7c2a" opacity=".45"/><circle cx="38" cy="17" r="2" fill="#3a661f" opacity=".5"/><circle cx="13" cy="27" r="1.2" fill="#557f2d" opacity=".45"/><circle cx="31" cy="33" r=".8" fill="#3f6d22" opacity=".55"/></pattern>' +
+      '<pattern id="aqSpots2" width="83" height="61" patternUnits="userSpaceOnUse" patternTransform="rotate(17)"><circle cx="11" cy="41" r="2.4" fill="#3a661f" opacity=".45"/><circle cx="52" cy="12" r="1.7" fill="#4c7c2a" opacity=".5"/><circle cx="70" cy="49" r="1.1" fill="#3f6d22" opacity=".55"/><circle cx="36" cy="55" r="3" fill="#4d7b2a" opacity=".25"/></pattern>';
 
     el('line', { x1: 0, y1: BOTTOM + 8, x2: VB_W, y2: BOTTOM + 8, stroke: '#3a4a54', 'stroke-width': 1 }, svg);
 
@@ -3088,6 +3452,17 @@ body.touring .mbar { display: none !important; }
       var mx = w0 + 40 + m * 14 + (m % 2) * 4, my = wy - 14 - m * 6.4 + (m > 5 ? (m - 5) * 6 : 0);
       el('ellipse', { cx: mx, cy: my, rx: 6 + (m % 3), ry: 3.6, fill: m % 2 ? '#4f9a4a' : '#3f8a44', opacity: '.95' }, wood);
     }
+    // hair algae on the driftwood (illustrative build-up)
+    this.woodAlgae = el('g', { class: 'aq-fade', 'pointer-events': 'none' }, wood);
+    var Rw = prng(31);
+    for (var wk = 0; wk <= 12; wk++) {
+      var wu = wk / 12;
+      tuft(this.woodAlgae, w0 + 26 + wu * 104, wy - 10 - wu * 50, 6 + Rw() * 5, Rw() < 0.5 ? '#7d9b3c' : '#6a8a31', Rw, -2);
+    }
+    for (var wb = 0; wb <= 6; wb++) {
+      var bu = wb / 6;
+      tuft(this.woodAlgae, w0 + 146 + bu * (w1 - w0 - 146), wy - 64 - bu * 16, 5 + Rw() * 4, '#7d9b3c', Rw, 1);
+    }
     // fern leaves
     var fern = el('g', { class: 'aq-plant', style: 'animation-duration:9s' }, wood);
     [[-28, 54], [-8, 62], [14, 50], [32, 40]].forEach(function (L) {
@@ -3102,7 +3477,7 @@ body.touring .mbar { display: none !important; }
     el('ellipse', { cx: X(0.08), cy: sandTop + 14, rx: 14, ry: 7, fill: '#6a777b' }, water);
 
     // --- cave: dark opening behind fish, rock arch in front of fish (a hiding place) ---
-    var cx0 = X(0.60), cw = tw * 0.17, ch = 66, cyb = sandTop + 10;
+    var cx0 = X(0.60), cw = tw * 0.17, ch = 66, cyb = sandTop + 10, self0 = this;
     this.cave = { x: cx0 + cw / 2, y: cyb - ch * 0.38 };
     el('ellipse', { cx: cx0 + cw / 2, cy: cyb - ch * 0.36, rx: cw * 0.30, ry: ch * 0.34, fill: 'url(#aqCave)' }, water);
 
@@ -3119,6 +3494,17 @@ body.touring .mbar { display: none !important; }
     el('ellipse', { cx: cx0 - 6, cy: cyb + 2, rx: 14, ry: 8, fill: '#5d6b70' }, caveFront);
     el('ellipse', { cx: cx0 + cw + 8, cy: cyb + 3, rx: 11, ry: 6, fill: '#6a777b' }, caveFront);
     el('ellipse', { cx: cx0 + cw * 0.5, cy: cyb - ch * 1.02, rx: 7, ry: 3, fill: '#4f9a4a' }, caveFront);
+    // algae coating on the rock arch and stones (illustrative build-up)
+    this.rockAlgae = el('g', { class: 'aq-fade', 'pointer-events': 'none' }, caveFront);
+    el('path', { d: caveFront.firstChild.getAttribute('d'), fill: '#5d8a2c', opacity: '.55' }, this.rockAlgae);
+    var Rr = prng(47), mid = cx0 + cw / 2;
+    for (var rk = 0; rk <= 12; rk++) {
+      var ru = -0.86 + rk * (1.72 / 12);
+      tuft(this.rockAlgae, mid + ru * cw * 0.5, cyb - ch * Math.sqrt(1 - ru * ru) * 0.98 + 2, 5 + Rr() * 5, Rr() < 0.5 ? '#7d9b3c' : '#5f7f2e', Rr, ru * 6);
+    }
+    [[cx0 - 6, cyb - 3, 11], [cx0 + cw + 8, cyb - 1, 8]].forEach(function (st) {
+      el('ellipse', { cx: st[0], cy: st[1], rx: st[2], ry: 3, fill: '#5d8a2c', opacity: '.6' }, self0.rockAlgae);
+    });
 
     // --- foreground plants and carpet ---
     var self = this;
@@ -3142,6 +3528,16 @@ body.touring .mbar { display: none !important; }
       if (fx > cx0 - 10 && fx < cx0 + cw + 10) continue;
       for (var b = 0; b < 4; b++) el('path', { d: 'M' + (fx + b * 2.4) + ',' + fy + ' q' + (b - 1.5) * 2 + ',-7 ' + (b - 1.5) * 3 + ',-' + (9 + (b * 7 + c) % 5), stroke: c % 2 ? '#6cc06a' : '#58ad5c', 'stroke-width': 1.6, fill: 'none', 'stroke-linecap': 'round' }, carpet);
     }
+
+    // --- mulm / detritus on the gravel: collects in the corners and behind decor (illustrative) ---
+    this.detritus = el('g', { class: 'aq-fade', 'pointer-events': 'none' }, water);
+    var Rd = prng(73);
+    [[0.03, 1.4], [0.97, 1.4], [0.2, 1.1], [0.36, 0.8], [0.57, 1.2], [0.72, 0.9], [0.86, 1]].forEach(function (sp) {
+      for (var j = 0; j < 4; j++) {
+        el('ellipse', { cx: X(Math.max(0.01, Math.min(0.99, sp[0] + (Rd() - 0.5) * 0.07))), cy: sandTop + 3 + Rd() * 13, rx: (7 + Rd() * 16) * sp[1], ry: 1.8 + Rd() * 2.6, fill: Rd() < 0.5 ? '#4a3c28' : '#5b4a33', opacity: (0.35 + Rd() * 0.3).toFixed(2) }, self.detritus);
+      }
+    });
+    for (var dk = 0; dk < 70; dk++) el('circle', { cx: X(Rd()), cy: sandTop + 2 + Rd() * 26, r: (0.6 + Rd() * 0.9).toFixed(2), fill: Rd() < 0.6 ? '#3d3122' : '#6b5a3e', opacity: '.7' }, self.detritus);
 
     // --- shrimp (decorative) ---
     this.shrimpGroup = el('g', {}, water);
@@ -3194,6 +3590,15 @@ body.touring .mbar { display: none !important; }
     }
     el('ellipse', { cx: X(0.54) + 3, cy: sandTop + 4, rx: 8, ry: 3.5, fill: '#8e9ca1' }, water);
 
+    // suspended particles: how many drift in the water follows the simulated turbidity reading
+    this.moteFar = el('path', { fill: '#e6efe2', opacity: '.38', 'pointer-events': 'none' }, water);
+    this.moteNear = el('path', { fill: '#f1e7cc', opacity: '.68', 'pointer-events': 'none' }, water);
+    this.motes = [];
+    var Rm = prng(101);
+    for (var mi = 0; mi < 170; mi++) this.motes.push({ x: tx + Rm() * tw, y: G.water + 6 + Rm() * (sandTop - G.water - 4), z: Rm(), r: 0.45 + Rm() * 1.05, ph: Rm() * 6.283, sp: 0.5 + Rm() * 1.5 });
+    this.moteCount = this.moteCount || 28;
+    this.moteScale = this.moteScale || 1;
+
     // turbidity haze (follows simulated turbidity), heater shown only during a heater test
     this.haze = el('rect', { x: tx, y: G.water, width: tw, height: BOTTOM - G.water, fill: '#7a5a34', opacity: 0, 'pointer-events': 'none' }, water);
     this.heater = el('g', { opacity: 0 }, water);
@@ -3236,6 +3641,7 @@ body.touring .mbar { display: none !important; }
     // probes (proposed): pH and DS18B20 from the brief; TDS and turbidity from reviewed paper [2]
     var probes = el('g', {}, svg);
     this.probeHeads = {};
+    this.probeFilm = [];
     var self3 = this;
     [{ k: 'tds', x: tx + tw - 124, len: 118, w: 4, tip: 'rect', label: 'TDS', row: 0 },
      { k: 'turb', x: tx + tw - 94, len: 104, w: 6, tip: 'box', label: 'Turbidity', row: 1 },
@@ -3247,9 +3653,29 @@ body.touring .mbar { display: none !important; }
       else if (pr.tip === 'rod') el('rect', { x: pr.x - 3, y: top + pr.len - 8, width: 6, height: 16, fill: '#9aa7ad', rx: 2 }, probes);
       else if (pr.tip === 'box') el('rect', { x: pr.x - 6, y: top + pr.len - 4, width: 12, height: 16, fill: '#2d3a42', stroke: '#9aa7ad', rx: 2 }, probes);
       else { el('line', { x1: pr.x - 2, y1: top + pr.len, x2: pr.x - 2, y2: top + pr.len + 10, stroke: '#c0ccd1', 'stroke-width': 1.4 }, probes); el('line', { x1: pr.x + 2, y1: top + pr.len, x2: pr.x + 2, y2: top + pr.len + 10, stroke: '#c0ccd1', 'stroke-width': 1.4 }, probes); }
+      // biofilm on the wetted part of the probe (illustrative build-up)
+      var film = el('g', { class: 'aq-fade', 'pointer-events': 'none' }, probes);
+      el('line', { x1: pr.x, y1: G.water + 3, x2: pr.x, y2: top + pr.len + 5, stroke: '#5f7a35', 'stroke-width': pr.w + 3.4, 'stroke-linecap': 'round', 'stroke-opacity': '.8' }, film);
+      var Rp = prng(200 + pr.len);
+      for (var pf = 0; pf < 5; pf++) tuft(film, pr.x + (Rp() - 0.5) * 3, G.water + 18 + Rp() * (top + pr.len - G.water - 20), 4 + Rp() * 4, '#7d9b3c', Rp, (Rp() - 0.5) * 8);
+      self3.probeFilm.push(film);
       var lb = el('text', { x: pr.x, y: top - (pr.row ? 32 : 48), class: 'aq-label aq-label--probe', 'text-anchor': 'middle' }, probes);
       lb.textContent = pr.label;
     });
+
+    // algae film and spots on the front glass, plus the scum ring at the waterline (illustrative build-up)
+    this.glassAlgae = el('g', { 'clip-path': 'url(#aqClip)', class: 'aq-fade', 'pointer-events': 'none' }, svg);
+    el('rect', { x: tx, y: G.water, width: tw, height: BOTTOM - G.water, fill: 'url(#aqAlgaeV)' }, this.glassAlgae);
+    el('rect', { x: tx, y: G.water, width: tw, height: BOTTOM - G.water, fill: 'url(#aqAlgaeH)' }, this.glassAlgae);
+    el('rect', { x: tx, y: G.water, width: tw, height: BOTTOM - G.water, fill: 'url(#aqSpots)' }, this.glassAlgae);
+    el('rect', { x: tx, y: G.water, width: tw, height: BOTTOM - G.water, fill: 'url(#aqSpots2)' }, this.glassAlgae);
+    var Rg = prng(5);
+    for (var gk = 0; gk < 26; gk++) {
+      var gx = tx + Rg() * tw, gy = G.water + 4 + Math.pow(Rg(), 1.6) * (BOTTOM - G.water - 10);
+      el('ellipse', { cx: gx, cy: gy, rx: 3 + Rg() * 9, ry: 2 + Rg() * 6, fill: '#4d7b2a', opacity: (0.18 + Rg() * 0.3).toFixed(2) }, this.glassAlgae);
+    }
+    el('rect', { x: tx, y: G.water + 1, width: tw, height: 4, fill: '#5d8a2c', opacity: '.7' }, this.glassAlgae);
+    this.scum = el('rect', { x: tx + 1, y: G.water - 4, width: tw - 2, height: 4, fill: '#d6cfae', class: 'aq-fade', 'pointer-events': 'none' }, svg);
 
     // controller enclosure (proposed)
     var ew = Math.min(tw - 24, 470), eh = 92, ex = (VB_W - ew) / 2, ey = BOTTOM + 22;
@@ -3348,11 +3774,52 @@ body.touring .mbar { display: none !important; }
     this.veil.setAttribute('opacity', v.power === 'off' ? 0.42 : 0);
     var tb = v.turb == null ? 5 : v.turb;
     this.haze.setAttribute('opacity', Math.max(0, Math.min(0.7, (tb - 5) / 100 * 0.75)).toFixed(3));
+    // more and larger suspended particles as simulated turbidity rises
+    this.moteCount = Math.max(20, Math.min(170, Math.round(36 + (tb - 3) * 2.4)));
+    this.moteScale = 1 + Math.max(0, Math.min(0.7, (tb - 10) / 70));
+    var brown = Math.max(0, Math.min(1, (tb - 8) / 60));
+    this.moteNear.setAttribute('fill', mix('#f1e7cc', '#b98e55', brown));
+    this.moteFar.setAttribute('fill', mix('#e6efe2', '#a8865a', brown));
+    var u = v.upkeep;
+    if (u) {
+      fadeTo(this.glassAlgae, u.glass);
+      fadeTo(this.scum, u.glass * 0.75);
+      fadeTo(this.woodAlgae, u.decor);
+      fadeTo(this.rockAlgae, u.decor * 0.9);
+      fadeTo(this.detritus, u.detritus);
+      var pfv = u.probes * 0.85;
+      this.probeFilm.forEach(function (f) { fadeTo(f, pfv); });
+    }
+    if (!this.animate) this.drawMotes(0, 0);
     this.heater.setAttribute('opacity', v.heater ? 1 : 0);
     this.bubbling = !!v.bubbles;
     this.bubStream.setAttribute('opacity', v.bubbles ? 1 : 0);
     var heads = this.probeHeads;
     if (v.probes) Object.keys(heads).forEach(function (k) { heads[k].setAttribute('fill', v.probes[k] === 'ok' ? '#3b4b55' : '#b3261e'); });
+  };
+
+  function mix(a, b, f) {
+    var pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16), out = '#';
+    [16, 8, 0].forEach(function (sh) { var c = Math.round(((pa >> sh) & 255) * (1 - f) + ((pb >> sh) & 255) * f); out += (c < 16 ? '0' : '') + c.toString(16); });
+    return out;
+  }
+  // Brownian-looking drift with a slow settle; particles that reach the gravel re-enter near the top.
+  Tank.prototype.drawMotes = function (dt, t) {
+    var G = this.g, x0 = G.tx + 3, x1 = G.tx + G.tw - 3, y0 = G.water + 4, y1 = this.sandTop + 2;
+    var n = Math.min(this.moteCount, this.motes.length), sc = this.moteScale, far = '', near = '';
+    for (var i = 0; i < n; i++) {
+      var m = this.motes[i], k = 0.35 + m.z;
+      if (dt) {
+        m.x += (Math.sin(t / 2300 + m.ph) * 3.2 + Math.sin(t / 7100 + m.ph * 2) * 2.2) * dt * k;
+        m.y += (m.sp * 1.1 + Math.cos(t / 1900 + m.ph) * 2.6) * dt * k;
+        if (m.y > y1) { m.y = y0 + Math.random() * 30; m.x = x0 + Math.random() * (x1 - x0); }
+        if (m.x < x0) m.x = x1; else if (m.x > x1) m.x = x0;
+      }
+      var r = m.r * (0.6 + m.z * 0.8) * sc, d = 'M' + (m.x - r).toFixed(1) + ',' + m.y.toFixed(1) + 'a' + r.toFixed(2) + ',' + r.toFixed(2) + ' 0 1,0 ' + (2 * r).toFixed(2) + ',0a' + r.toFixed(2) + ',' + r.toFixed(2) + ' 0 1,0 ' + (-2 * r).toFixed(2) + ',0';
+      if (m.z < 0.55) far += d; else near += d;
+    }
+    this.moteFar.setAttribute('d', far);
+    this.moteNear.setAttribute('d', near);
   };
 
   Tank.prototype.dispense = function (phase, outcome) {
@@ -3398,7 +3865,8 @@ body.touring .mbar { display: none !important; }
       else if (q.y < q.rest) { q.y += 28 * dt; q.x += Math.sin(t / 400 + p) * q.drift * dt * 0.4; }
       else q.life += dt;
       q.node.setAttribute('cx', q.x.toFixed(1)); q.node.setAttribute('cy', q.y.toFixed(1));
-      if (q.life > 14) { var o = Math.max(0, 1 - (q.life - 14) / 3); q.node.setAttribute('opacity', o); if (o === 0) { q.node.remove(); this.pellets.splice(p, 1); } }
+      if (q.life > 6 && !q.dark) { q.dark = true; q.node.setAttribute('fill', '#6e5534'); q.node.setAttribute('stroke', '#4a3820'); }
+      if (q.life > 30) { var o = Math.max(0, 1 - (q.life - 30) / 6); q.node.setAttribute('opacity', o); if (o === 0) { q.node.remove(); this.pellets.splice(p, 1); } }
     }
 
     if (!this.animate) return;
@@ -3458,6 +3926,7 @@ body.touring .mbar { display: none !important; }
       });
     }
     if (this.heaterCoil) this.heaterCoil.setAttribute('fill', Math.floor(t / 600) % 2 ? '#ff7a3d' : '#ff9a5e');
+    this.drawMotes(dt, t);
     var water = G.water;
     this.bubbles.forEach(function (b) {
       b.y -= b.sp * dt;
@@ -3834,6 +4303,7 @@ body.touring .mbar { display: none !important; }
     else if (nf) l2 = 'Next feed ' + F.hhmm(nf.at);
     else l2 = 'Day ' + s.day + ' done';
     var anyAlert = s.alerts.some(function (a) { return !a.ack; });
+    var upk = engine.upkeep();
     tank.update({
       power: s.power,
       led: s.power !== 'on' ? 'off' : (s.phase === 'reminder' ? 'blink' : (anyAlert ? 'fault' : 'ok')),
@@ -3842,8 +4312,10 @@ body.touring .mbar { display: none !important; }
       turb: sv.turb.water == null ? 5 : sv.turb.water,
       heater: s.perts.some(function (p) { return p.kind === 'heater' && s.simTime <= p.end; }),
       bubbles: bub || s.bubblesScn > 0,
-      probes: { ph: sv.ph.status, temp: sv.temp.status, tds: sv.tds.status, turb: sv.turb.status }
+      probes: { ph: sv.ph.status, temp: sv.temp.status, tds: sv.tds.status, turb: sv.turb.status },
+      upkeep: upk
     });
+    renderUpkeep(upk);
 
     // architecture
     var off = s.power !== 'on';
@@ -3942,6 +4414,26 @@ body.touring .mbar { display: none !important; }
     svg.innerHTML = '<path class="ln" style="stroke:' + COLOR[key] + '" d="' + d + '"/>';
   }
 
+  // ---------- tank upkeep (illustrative) ----------
+  function upkWord(x) { return x < 0.15 ? 'clean' : (x < 0.4 ? 'light' : (x < 0.7 ? 'moderate' : 'heavy')); }
+  function ago(d) { return d < 1 ? Math.max(0, Math.round(d * 24)) + ' h ago' : d.toFixed(1) + ' d ago'; }
+  function renderUpkeep(u) {
+    var rows = [['Glass algae', u.glass, 'wiped ' + ago(u.days.glass)], ['Gravel debris', u.detritus, 'siphoned ' + ago(u.days.gravel)], ['Probe film', u.probes, 'cleaned ' + ago(u.days.probes)]];
+    var sig = rows.map(function (r) { return upkWord(r[1]) + r[2]; }).join('|');
+    if (sig !== ui.sigUpk) {
+      ui.sigUpk = sig;
+      $('upk').innerHTML = rows.map(function (r) {
+        return '<div><dt>' + r[0] + '</dt><dd><span class="upk__bar"><i style="width:' + Math.round(r[1] * 100) + '%"></i></span><b data-lv="' + upkWord(r[1]) + '">' + upkWord(r[1]) + '</b><small>' + r[2] + '</small></dd></div>';
+      }).join('');
+      $('bayUpkeep').textContent = 'Algae: ' + upkWord(u.glass) + ' \u00b7 glass wiped ' + ago(u.days.glass);
+    }
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-clean]'); if (!b) return;
+    engine.cleanTank(b.getAttribute('data-clean'));
+    ui.sigUpk = ''; render();
+  });
+
   function renderHealth() {
     var s = engine.s, rows = [];
     KEYS.forEach(function (k) {
@@ -3957,8 +4449,10 @@ body.touring .mbar { display: none !important; }
     rows.push(['App link', !s.wifi ? 'Stale since ' + F.hhmm(s.appLastSync) : (s.power === 'on' ? 'Live' : 'Device offline'), s.wifi && s.power === 'on' ? 'ok' : 'attn', 0]);
     rows.push(['LCD', s.power !== 'on' ? 'No power' : (s.lcdBug ? 'Status not updating (fault)' : 'Updating'), s.power !== 'on' ? 'off' : (s.lcdBug ? 'fault' : 'ok'), 1]);
     rows.push(['pH calibration', 'Not calibrated', 'attn', 0]);
+    var u = engine.upkeep(), worst = Math.max(u.glass, u.detritus, u.probes);
+    rows.push(['Tank upkeep <small>illustrative</small>', worst >= 0.7 ? 'Cleaning due' : (worst >= 0.4 ? 'Algae building up' : 'Clean enough'), worst >= 0.7 ? 'attn' : 'ok', 0, true]);
     setHTML($('health'), rows.map(function (r) {
-      return '<li><span class="nm">' + esc(r[0]) + (r[3] ? ' <small>proposed</small>' : '') + '</span><span class="st" data-tone="' + r[2] + '">' + esc(r[1]) + '</span></li>';
+      return '<li><span class="nm">' + (r[4] ? r[0] : esc(r[0])) + (r[3] ? ' <small>proposed</small>' : '') + '</span><span class="st" data-tone="' + r[2] + '">' + esc(r[1]) + '</span></li>';
     }).join(''));
   }
 
@@ -4793,24 +5287,28 @@ body.touring .mbar { display: none !important; }
     }, 30);
   });
 
-  // ---------- tabs ----------
+  // ---------- tabs (each belongs to one view) ----------
   var tabs = Array.prototype.slice.call(document.querySelectorAll('#tabs [role="tab"]'));
+  var lastTab = {};
   function selectTab(t, focus) {
     if (typeof t === 'string') t = $('tab-' + t);
+    var tv = t.getAttribute('data-view');
+    if (tv && tv !== curView) setView(tv, { keepTab: true, noScroll: true });
     tabs.forEach(function (x) { var on = x === t; x.setAttribute('aria-selected', String(on)); x.tabIndex = on ? 0 : -1; $(x.getAttribute('aria-controls')).hidden = !on; });
+    if (tv) lastTab[tv] = t;
     ui.sigFeed = ''; ui.sigLog = ''; ui.sigSens = '';
     if (focus) t.focus();
     render();
   }
-  tabs.forEach(function (t, i) {
+  tabs.forEach(function (t) {
     t.addEventListener('click', function () { selectTab(t); });
     t.addEventListener('keydown', function (ev) {
-      var j = null;
-      if (ev.key === 'ArrowRight') j = (i + 1) % tabs.length;
-      if (ev.key === 'ArrowLeft') j = (i - 1 + tabs.length) % tabs.length;
+      var vis = tabs.filter(function (x) { return !x.hidden; }), i = vis.indexOf(t), j = null;
+      if (ev.key === 'ArrowRight') j = (i + 1) % vis.length;
+      if (ev.key === 'ArrowLeft') j = (i - 1 + vis.length) % vis.length;
       if (ev.key === 'Home') j = 0;
-      if (ev.key === 'End') j = tabs.length - 1;
-      if (j !== null) { ev.preventDefault(); selectTab(tabs[j], true); }
+      if (ev.key === 'End') j = vis.length - 1;
+      if (j !== null) { ev.preventDefault(); selectTab(vis[j], true); }
     });
   });
   document.addEventListener('click', function (ev) {
@@ -4819,6 +5317,59 @@ body.touring .mbar { display: none !important; }
     if (sheet.classList.contains('is-open')) openSheet(false);
     selectTab(t, true);
     t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // ---------- views: Tank / Water / Feeding / Records / Project ----------
+  var VIEWS = ['tank', 'water', 'feeding', 'records', 'project'];
+  var curView = 'tank';
+  var viewEls = Array.prototype.slice.call(document.querySelectorAll('#stage > [data-views]'));
+  var navBtns = Array.prototype.slice.call(document.querySelectorAll('#viewnav [data-view]'));
+  function inView(el, v) { return (' ' + el.getAttribute('data-views') + ' ').indexOf(' ' + v + ' ') >= 0; }
+  function setView(v, opts) {
+    opts = opts || {};
+    if (VIEWS.indexOf(v) < 0) v = 'tank';
+    var changed = v !== curView;
+    curView = v;
+    $('stage').setAttribute('data-view', v);
+    viewEls.forEach(function (el) { el.classList.toggle('is-out', !inView(el, v)); });
+    navBtns.forEach(function (b) { if (b.getAttribute('data-view') === v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+    var mine = tabs.filter(function (t) { return t.getAttribute('data-view') === v; });
+    tabs.forEach(function (t) { t.hidden = t.getAttribute('data-view') !== v; });
+    if (mine.length && !opts.keepTab && mine.every(function (t) { return t.getAttribute('aria-selected') !== 'true'; })) selectTab(lastTab[v] || mine[0]);
+    if (!opts.fromHash && changed) { try { history.pushState(null, '', '#' + v); } catch (e) { /* sandboxed frame */ } }
+    if (changed && !opts.noScroll) window.scrollTo(0, 0);
+    ui.sigChart = ''; ui.sigCal = ''; ui.sigFeed = ''; ui.sigLog = ''; ui.sigSens = '';
+    render(); drawChart();
+    var nm = { tank: 'Tank', water: 'Water quality', feeding: 'Feeding', records: 'Records', project: 'Project' }[v];
+    if (changed) $('liveState').textContent = nm + ' view';
+  }
+  // Shows whichever view holds this element (used by the guided tour).
+  function revealEl(el) {
+    var holder = el && el.closest && el.closest('#stage > [data-views]');
+    if (holder && !inView(holder, curView)) setView(holder.getAttribute('data-views').split(' ')[0], { noScroll: true });
+  }
+  navBtns.forEach(function (b) { b.addEventListener('click', function () { if (sheet.classList.contains('is-open')) openSheet(false); setView(b.getAttribute('data-view')); }); });
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest('[data-view-link]'); if (!a) return;
+    ev.preventDefault(); setView(a.getAttribute('data-view-link'));
+  });
+  function viewFromHash() { var h = (location.hash || '').replace('#', ''); return VIEWS.indexOf(h) >= 0 ? h : null; }
+  window.addEventListener('popstate', function () { setView(viewFromHash() || 'tank', { fromHash: true, noScroll: true }); });
+  window.addEventListener('hashchange', function () { var h = viewFromHash(); if (h && h !== curView) setView(h, { fromHash: true }); });
+
+  // tour shortcuts placed in the hello card, Project view and controls sheet
+  document.addEventListener('click', function (ev) {
+    if (!ev.target.closest('[data-tour-open]')) return;
+    if (sheet.classList.contains('is-open')) openSheet(false);
+    $('tourBtn').click();
+  });
+
+  // first-visit hint
+  var HELLO_KEY = 'aquacare-hello-v1';
+  try { if (!window.localStorage.getItem(HELLO_KEY)) $('hello').hidden = false; } catch (e) { $('hello').hidden = false; }
+  $('helloClose').addEventListener('click', function () {
+    $('hello').hidden = true;
+    try { window.localStorage.setItem(HELLO_KEY, '1'); } catch (e) { /* storage blocked */ }
   });
 
   // ---------- mobile presenter sheet ----------
@@ -4833,8 +5384,13 @@ body.touring .mbar { display: none !important; }
   document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && sheet.classList.contains('is-open')) openSheet(false); });
 
   // keep sticky offsets right when the notice bar wraps
-  function syncBars() { document.documentElement.style.setProperty('--sbh', $('simbar').offsetHeight + 'px'); }
+  function syncBars() {
+    var r = document.documentElement.style;
+    r.setProperty('--sbh', $('simbar').offsetHeight + 'px');
+    r.setProperty('--abh', $('appbar').offsetHeight + 'px');
+  }
   window.addEventListener('resize', syncBars); syncBars();
+  setView(viewFromHash() || 'tank', { fromHash: true, noScroll: true });
 
   // ---------- loop ----------
   // Background tabs throttle timers to about once a minute; the event-driven engine handles the
@@ -4879,7 +5435,7 @@ body.touring .mbar { display: none !important; }
   $('resumeOk').addEventListener('click', function () { $('resumeBar').hidden = true; syncBars(); });
   $('resumeFresh').addEventListener('click', function () { engine.reset(); saveRun(); $('resumeBar').hidden = true; syncBars(); render(); });
 
-  window.aquacare = { engine: engine, tank: tank, settings: settings, render: render, selectTab: selectTab, selectDay: selectDay, setRange: setRange, save: save,
+  window.aquacare = { engine: engine, tank: tank, settings: settings, render: render, selectTab: selectTab, setView: setView, revealEl: revealEl, view: function () { return curView; }, selectDay: selectDay, setRange: setRange, save: save,
     refresh: function () { ui.sigCal = ui.sigFeed = ui.sigLog = ui.sigChart = ui.sigScen = ui.sigAlerts = ''; ui.sigScenList = ''; ui.sigSens = ''; fillSetup(); fillLimits(); render(); } };
 })();
 
@@ -4904,7 +5460,7 @@ body.touring .mbar { display: none !important; }
     {
       title: 'What you are looking at',
       body: '<p>This is a <b>simulation</b> of the proposed AquaCare system. Nothing on screen comes from hardware. Every reading, alert and feed is generated in this browser and labelled as demo data.</p><p>The figures <b>pH &plusmn;0.1</b> and <b>temperature &plusmn;0.5 &deg;C</b> are project targets, not results.</p>',
-      target: '.top', act: function () {}
+      target: '#appbar', act: function () {}
     },
     {
       title: 'The proposed architecture',
@@ -5023,11 +5579,12 @@ body.touring .mbar { display: none !important; }
     $('tourBack').disabled = idx === 0;
     $('tourNext').textContent = idx === STEPS.length - 1 ? 'Finish' : 'Next';
     A.selectDay(null);
-    A.selectTab(st.tab || 'feed');
+    if (st.tab) A.selectTab(st.tab);
     A.refresh();
     var el = document.querySelector(st.target);
+    if (el) A.revealEl(el);
     if (el) {
-      var y = el.getBoundingClientRect().top + window.scrollY - 120;
+      var y = el.getBoundingClientRect().top + window.scrollY - (document.getElementById('appbar').offsetHeight + 16);
       window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
     }
     placeSpot();

@@ -360,6 +360,7 @@
     else if (nf) l2 = 'Next feed ' + F.hhmm(nf.at);
     else l2 = 'Day ' + s.day + ' done';
     var anyAlert = s.alerts.some(function (a) { return !a.ack; });
+    var upk = engine.upkeep();
     tank.update({
       power: s.power,
       led: s.power !== 'on' ? 'off' : (s.phase === 'reminder' ? 'blink' : (anyAlert ? 'fault' : 'ok')),
@@ -368,8 +369,10 @@
       turb: sv.turb.water == null ? 5 : sv.turb.water,
       heater: s.perts.some(function (p) { return p.kind === 'heater' && s.simTime <= p.end; }),
       bubbles: bub || s.bubblesScn > 0,
-      probes: { ph: sv.ph.status, temp: sv.temp.status, tds: sv.tds.status, turb: sv.turb.status }
+      probes: { ph: sv.ph.status, temp: sv.temp.status, tds: sv.tds.status, turb: sv.turb.status },
+      upkeep: upk
     });
+    renderUpkeep(upk);
 
     // architecture
     var off = s.power !== 'on';
@@ -468,6 +471,26 @@
     svg.innerHTML = '<path class="ln" style="stroke:' + COLOR[key] + '" d="' + d + '"/>';
   }
 
+  // ---------- tank upkeep (illustrative) ----------
+  function upkWord(x) { return x < 0.15 ? 'clean' : (x < 0.4 ? 'light' : (x < 0.7 ? 'moderate' : 'heavy')); }
+  function ago(d) { return d < 1 ? Math.max(0, Math.round(d * 24)) + ' h ago' : d.toFixed(1) + ' d ago'; }
+  function renderUpkeep(u) {
+    var rows = [['Glass algae', u.glass, 'wiped ' + ago(u.days.glass)], ['Gravel debris', u.detritus, 'siphoned ' + ago(u.days.gravel)], ['Probe film', u.probes, 'cleaned ' + ago(u.days.probes)]];
+    var sig = rows.map(function (r) { return upkWord(r[1]) + r[2]; }).join('|');
+    if (sig !== ui.sigUpk) {
+      ui.sigUpk = sig;
+      $('upk').innerHTML = rows.map(function (r) {
+        return '<div><dt>' + r[0] + '</dt><dd><span class="upk__bar"><i style="width:' + Math.round(r[1] * 100) + '%"></i></span><b data-lv="' + upkWord(r[1]) + '">' + upkWord(r[1]) + '</b><small>' + r[2] + '</small></dd></div>';
+      }).join('');
+      $('bayUpkeep').textContent = 'Algae: ' + upkWord(u.glass) + ' \u00b7 glass wiped ' + ago(u.days.glass);
+    }
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-clean]'); if (!b) return;
+    engine.cleanTank(b.getAttribute('data-clean'));
+    ui.sigUpk = ''; render();
+  });
+
   function renderHealth() {
     var s = engine.s, rows = [];
     KEYS.forEach(function (k) {
@@ -483,8 +506,10 @@
     rows.push(['App link', !s.wifi ? 'Stale since ' + F.hhmm(s.appLastSync) : (s.power === 'on' ? 'Live' : 'Device offline'), s.wifi && s.power === 'on' ? 'ok' : 'attn', 0]);
     rows.push(['LCD', s.power !== 'on' ? 'No power' : (s.lcdBug ? 'Status not updating (fault)' : 'Updating'), s.power !== 'on' ? 'off' : (s.lcdBug ? 'fault' : 'ok'), 1]);
     rows.push(['pH calibration', 'Not calibrated', 'attn', 0]);
+    var u = engine.upkeep(), worst = Math.max(u.glass, u.detritus, u.probes);
+    rows.push(['Tank upkeep <small>illustrative</small>', worst >= 0.7 ? 'Cleaning due' : (worst >= 0.4 ? 'Algae building up' : 'Clean enough'), worst >= 0.7 ? 'attn' : 'ok', 0, true]);
     setHTML($('health'), rows.map(function (r) {
-      return '<li><span class="nm">' + esc(r[0]) + (r[3] ? ' <small>proposed</small>' : '') + '</span><span class="st" data-tone="' + r[2] + '">' + esc(r[1]) + '</span></li>';
+      return '<li><span class="nm">' + (r[4] ? r[0] : esc(r[0])) + (r[3] ? ' <small>proposed</small>' : '') + '</span><span class="st" data-tone="' + r[2] + '">' + esc(r[1]) + '</span></li>';
     }).join(''));
   }
 
@@ -1319,24 +1344,28 @@
     }, 30);
   });
 
-  // ---------- tabs ----------
+  // ---------- tabs (each belongs to one view) ----------
   var tabs = Array.prototype.slice.call(document.querySelectorAll('#tabs [role="tab"]'));
+  var lastTab = {};
   function selectTab(t, focus) {
     if (typeof t === 'string') t = $('tab-' + t);
+    var tv = t.getAttribute('data-view');
+    if (tv && tv !== curView) setView(tv, { keepTab: true, noScroll: true });
     tabs.forEach(function (x) { var on = x === t; x.setAttribute('aria-selected', String(on)); x.tabIndex = on ? 0 : -1; $(x.getAttribute('aria-controls')).hidden = !on; });
+    if (tv) lastTab[tv] = t;
     ui.sigFeed = ''; ui.sigLog = ''; ui.sigSens = '';
     if (focus) t.focus();
     render();
   }
-  tabs.forEach(function (t, i) {
+  tabs.forEach(function (t) {
     t.addEventListener('click', function () { selectTab(t); });
     t.addEventListener('keydown', function (ev) {
-      var j = null;
-      if (ev.key === 'ArrowRight') j = (i + 1) % tabs.length;
-      if (ev.key === 'ArrowLeft') j = (i - 1 + tabs.length) % tabs.length;
+      var vis = tabs.filter(function (x) { return !x.hidden; }), i = vis.indexOf(t), j = null;
+      if (ev.key === 'ArrowRight') j = (i + 1) % vis.length;
+      if (ev.key === 'ArrowLeft') j = (i - 1 + vis.length) % vis.length;
       if (ev.key === 'Home') j = 0;
-      if (ev.key === 'End') j = tabs.length - 1;
-      if (j !== null) { ev.preventDefault(); selectTab(tabs[j], true); }
+      if (ev.key === 'End') j = vis.length - 1;
+      if (j !== null) { ev.preventDefault(); selectTab(vis[j], true); }
     });
   });
   document.addEventListener('click', function (ev) {
@@ -1345,6 +1374,59 @@
     if (sheet.classList.contains('is-open')) openSheet(false);
     selectTab(t, true);
     t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  // ---------- views: Tank / Water / Feeding / Records / Project ----------
+  var VIEWS = ['tank', 'water', 'feeding', 'records', 'project'];
+  var curView = 'tank';
+  var viewEls = Array.prototype.slice.call(document.querySelectorAll('#stage > [data-views]'));
+  var navBtns = Array.prototype.slice.call(document.querySelectorAll('#viewnav [data-view]'));
+  function inView(el, v) { return (' ' + el.getAttribute('data-views') + ' ').indexOf(' ' + v + ' ') >= 0; }
+  function setView(v, opts) {
+    opts = opts || {};
+    if (VIEWS.indexOf(v) < 0) v = 'tank';
+    var changed = v !== curView;
+    curView = v;
+    $('stage').setAttribute('data-view', v);
+    viewEls.forEach(function (el) { el.classList.toggle('is-out', !inView(el, v)); });
+    navBtns.forEach(function (b) { if (b.getAttribute('data-view') === v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+    var mine = tabs.filter(function (t) { return t.getAttribute('data-view') === v; });
+    tabs.forEach(function (t) { t.hidden = t.getAttribute('data-view') !== v; });
+    if (mine.length && !opts.keepTab && mine.every(function (t) { return t.getAttribute('aria-selected') !== 'true'; })) selectTab(lastTab[v] || mine[0]);
+    if (!opts.fromHash && changed) { try { history.pushState(null, '', '#' + v); } catch (e) { /* sandboxed frame */ } }
+    if (changed && !opts.noScroll) window.scrollTo(0, 0);
+    ui.sigChart = ''; ui.sigCal = ''; ui.sigFeed = ''; ui.sigLog = ''; ui.sigSens = '';
+    render(); drawChart();
+    var nm = { tank: 'Tank', water: 'Water quality', feeding: 'Feeding', records: 'Records', project: 'Project' }[v];
+    if (changed) $('liveState').textContent = nm + ' view';
+  }
+  // Shows whichever view holds this element (used by the guided tour).
+  function revealEl(el) {
+    var holder = el && el.closest && el.closest('#stage > [data-views]');
+    if (holder && !inView(holder, curView)) setView(holder.getAttribute('data-views').split(' ')[0], { noScroll: true });
+  }
+  navBtns.forEach(function (b) { b.addEventListener('click', function () { if (sheet.classList.contains('is-open')) openSheet(false); setView(b.getAttribute('data-view')); }); });
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest('[data-view-link]'); if (!a) return;
+    ev.preventDefault(); setView(a.getAttribute('data-view-link'));
+  });
+  function viewFromHash() { var h = (location.hash || '').replace('#', ''); return VIEWS.indexOf(h) >= 0 ? h : null; }
+  window.addEventListener('popstate', function () { setView(viewFromHash() || 'tank', { fromHash: true, noScroll: true }); });
+  window.addEventListener('hashchange', function () { var h = viewFromHash(); if (h && h !== curView) setView(h, { fromHash: true }); });
+
+  // tour shortcuts placed in the hello card, Project view and controls sheet
+  document.addEventListener('click', function (ev) {
+    if (!ev.target.closest('[data-tour-open]')) return;
+    if (sheet.classList.contains('is-open')) openSheet(false);
+    $('tourBtn').click();
+  });
+
+  // first-visit hint
+  var HELLO_KEY = 'aquacare-hello-v1';
+  try { if (!window.localStorage.getItem(HELLO_KEY)) $('hello').hidden = false; } catch (e) { $('hello').hidden = false; }
+  $('helloClose').addEventListener('click', function () {
+    $('hello').hidden = true;
+    try { window.localStorage.setItem(HELLO_KEY, '1'); } catch (e) { /* storage blocked */ }
   });
 
   // ---------- mobile presenter sheet ----------
@@ -1359,8 +1441,13 @@
   document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && sheet.classList.contains('is-open')) openSheet(false); });
 
   // keep sticky offsets right when the notice bar wraps
-  function syncBars() { document.documentElement.style.setProperty('--sbh', $('simbar').offsetHeight + 'px'); }
+  function syncBars() {
+    var r = document.documentElement.style;
+    r.setProperty('--sbh', $('simbar').offsetHeight + 'px');
+    r.setProperty('--abh', $('appbar').offsetHeight + 'px');
+  }
   window.addEventListener('resize', syncBars); syncBars();
+  setView(viewFromHash() || 'tank', { fromHash: true, noScroll: true });
 
   // ---------- loop ----------
   // Background tabs throttle timers to about once a minute; the event-driven engine handles the
@@ -1405,6 +1492,6 @@
   $('resumeOk').addEventListener('click', function () { $('resumeBar').hidden = true; syncBars(); });
   $('resumeFresh').addEventListener('click', function () { engine.reset(); saveRun(); $('resumeBar').hidden = true; syncBars(); render(); });
 
-  window.aquacare = { engine: engine, tank: tank, settings: settings, render: render, selectTab: selectTab, selectDay: selectDay, setRange: setRange, save: save,
+  window.aquacare = { engine: engine, tank: tank, settings: settings, render: render, selectTab: selectTab, setView: setView, revealEl: revealEl, view: function () { return curView; }, selectDay: selectDay, setRange: setRange, save: save,
     refresh: function () { ui.sigCal = ui.sigFeed = ui.sigLog = ui.sigChart = ui.sigScen = ui.sigAlerts = ''; ui.sigScenList = ''; ui.sigSens = ''; fillSetup(); fillLimits(); render(); } };
 })();

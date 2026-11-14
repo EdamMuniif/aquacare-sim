@@ -228,6 +228,8 @@
     this.s = freshState(this.seed);
     this.s.speed = speed;
     this.s.simTime = this.dayStartOffset();
+    var lived = this.s.simTime - UPKEEP.startAgeDays * DAY;      // the tank starts lived-in, not spotless
+    this.s.maint = { glass: lived, gravel: lived, probes: lived };
     this.s.nextSampleAt = Math.floor(this.s.simTime / MIN) * MIN;
     var scn = this.s.scn;
     (this.settings.scenarios || []).forEach(function (sc) { scn[sc.id] = 'pending'; });
@@ -303,6 +305,42 @@
         this.addLog('demo', 'Slot ' + hhmm(times[i]) + ' was set to a time already passed today; it starts tomorrow', { injected: true });
       }
     }
+  };
+
+  // ---------- tank upkeep (ILLUSTRATIVE, visual only) ----------
+  // Algae and debris build up on the tank drawing with simulated time since the last clean, a little
+  // faster with each feed delivered (nutrients). Nothing here feeds into any sensor reading, alert or
+  // feed decision: it is a picture of a lived-in tank, not a measured or validated growth model.
+  var UPKEEP = { startAgeDays: 1.5, glassTau: 9, decorTau: 14, probeTau: 12, detritusTau: 18, perFeed: 0.03 };
+  Engine.UPKEEP = UPKEEP;
+  P.upkeep = function () {
+    var s = this.s, m = s.maint || {}, t = s.simTime;
+    function fed(since) {
+      var n = 0;
+      s.records.forEach(function (r) { if ((r.outcome === 'manual' || r.outcome === 'auto_ok') && r.scheduledAt >= since) n++; });
+      return n;
+    }
+    function level(since, tau, nutrients) {
+      var d = Math.max(0, (t - since) / DAY);
+      return Math.min(1, 1 - Math.exp(-(d * (1 + UPKEEP.perFeed * nutrients)) / tau));
+    }
+    var fg = fed(m.glass), fv = fed(m.gravel), fp = fed(m.probes);
+    return {
+      glass: level(m.glass, UPKEEP.glassTau, fg),
+      decor: level(Math.min(m.glass, m.gravel), UPKEEP.decorTau, Math.max(fg, fv)),
+      probes: level(m.probes, UPKEEP.probeTau, fp),
+      detritus: level(m.gravel, UPKEEP.detritusTau, fv * 2),
+      days: { glass: (t - m.glass) / DAY, gravel: (t - m.gravel) / DAY, probes: (t - m.probes) / DAY },
+      feeds: fv
+    };
+  };
+  P.cleanTank = function (what) {
+    var s = this.s, names = { glass: 'glass wiped', gravel: 'gravel siphoned', probes: 'probes cleaned', all: 'full clean (glass, gravel, probes)' };
+    if (!names[what]) return;
+    if (what === 'all') s.maint.glass = s.maint.gravel = s.maint.probes = s.simTime;
+    else s.maint[what] = s.simTime;
+    this.addLog('demo', 'Tank upkeep: ' + names[what] + '. Illustrative only; readings are not changed.', { injected: true });
+    this.emit('change');
   };
 
   // ---------- records ----------
@@ -1039,7 +1077,7 @@
     'setSensorStatus', 'setWifi', 'setAway', 'cutPower', 'restorePower', 'finishBoot', 'pressTankButton', 'injectTrigger',
     'jumpToNextFeed', 'expireNow', 'fastForwardToDay', 'fastForwardNextDay', 'runToEnd', 'ackFeederFault', 'ackAlert',
     'addLog', 'raise', 'clear', 'startScenario', 'endScenario', 'syncScenarios', 'setLcdBug', 'setFeedMode', 'setBubbles',
-    'startPerturbation', 'settle', 'advanceTo'];
+    'startPerturbation', 'settle', 'advanceTo', 'cleanTank'];
   var COALESCE = { setTarget: 1, setSpeed: 1 };
   Engine.JOURNAL_VERSION = 1;
 

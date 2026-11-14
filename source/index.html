@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#13222b">
 <meta name="color-scheme" content="light">
 <meta name="description" content="AquaCare digital prototype - SIMULATION of a proposed feeding and monitoring system for small freshwater aquariums. Demo data only.">
 <title>AquaCare Digital Prototype - SIMULATION</title>
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<a class="skip" href="#main">Skip to the dashboard</a>
+<a class="skip" href="#main">Skip to the content</a>
 
 <div class="simbar" id="simbar" role="note" aria-label="Simulation notice">
   <span class="simbar__tape" aria-hidden="true"></span>
@@ -17,22 +18,29 @@
   <span class="simbar__text"><b>DEMO DATA.</b> Not connected to hardware.<span class="simbar__more"> Every reading, alert and feeding event is generated in this browser.</span></span>
 </div>
 
-<header class="top">
-  <div class="brand">
-    <p class="eyebrow">Digital prototype &middot; EE7008 Project 1 &middot; Group 2</p>
-    <h1 class="brand__name">AquaCare</h1>
-    <p class="brand__title">Design and Development of an Intelligent Feeding and Monitoring System for Small Freshwater Aquariums (2.5&ndash;10 Gallons) in Vilimal&eacute;&rsquo;</p>
-    <button class="btn btn--tour" id="tourBtn" type="button"><span class="btn--tour__icon" aria-hidden="true"></span>Show the project logic</button>
-  </div>
-  <div class="clock" aria-label="Simulated clock">
-    <span class="eyebrow">Simulated clock</span>
-    <div class="clock__row">
+<header class="appbar" id="appbar">
+  <div class="appbar__in">
+    <a class="appbar__brand" href="#tank" data-view-link="tank" aria-label="AquaCare home: tank view">
+      <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect x="1" y="1" width="38" height="38" rx="10" fill="#0a6672"/><path d="M8 22c3 2 6 2 9 0s6-2 9 0 4.5 1.6 6 .6V30a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3z" fill="#7fd0dc"/><path d="M15.5 17.5c2.6-3.4 7.4-3.4 10 0-2.6 3.4-7.4 3.4-10 0zm10 0 3.5-2.6v5.2z" fill="#f2c230"/><circle cx="18.6" cy="17" r="1" fill="#13222b"/></svg>
+      <span class="appbar__words"><b class="appbar__name">AquaCare</b><span class="appbar__sub">EE7008 &middot; Group 2</span></span>
+    </a>
+    <span class="simtag appbar__sim">SIM</span>
+    <nav class="viewnav" id="viewnav" aria-label="Sections">
+      <button type="button" data-view="tank" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9.5c2 1.2 3.5 1.2 5 0s3-1.2 5 0 3.5 1.2 5 0 2.5-1 3 0"/><path d="M9 15.5c1.2-1.6 3.6-1.6 4.8 0-1.2 1.6-3.6 1.6-4.8 0zm4.8 0 1.7-1.2v2.4z"/></svg><span>Tank</span></button>
+      <button type="button" data-view="water"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5c3.2 4 5.5 7.1 5.5 10a5.5 5.5 0 0 1-11 0c0-2.9 2.3-6 5.5-10z"/><path d="M9.3 14.2a2.8 2.8 0 0 0 2.7 2.6"/></svg><span>Water</span></button>
+      <button type="button" data-view="feeding"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="8.5" cy="14" r="1.2"/><circle cx="12" cy="14" r="1.2"/><circle cx="15.5" cy="14" r="1.2"/></svg><span>Feeding</span></button>
+      <button type="button" data-view="records"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg><span>Records</span></button>
+      <button type="button" data-view="project"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".6"/></svg><span>Project</span></button>
+    </nav>
+    <div class="appbar__clock" aria-label="Simulated clock">
       <span id="clockTime" class="clock__time mono">07:58:00</span>
+      <span class="clock__meta"><b id="clockDay">Day 1 of 30</b><span class="clock__date"> &middot; <span id="clockDate">-</span></span><span class="clock__spd"> &middot; <span id="mSpeed" class="mono">1&times;</span></span></span>
     </div>
-    <div class="clock__date"><span id="clockDate">-</span> &middot; <b id="clockDay">Day 1 of 30</b></div>
-    <div class="clock__chips">
-      <span id="speedChip" class="chip">Real time 1&times;</span>
-      <span id="runChip" class="chip chip--quiet">Paused</span>
+    <div class="appbar__chips"><span id="speedChip" class="chip">Real time 1&times;</span><span id="runChip" class="chip chip--quiet">Paused</span></div>
+    <div class="appbar__acts">
+      <button class="btn btn--primary appbar__run" id="mRun" type="button">Start</button>
+      <button class="btn appbar__ctl" id="mOpen" type="button" aria-controls="presenter" aria-expanded="false" aria-label="Presenter controls"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg><span class="lbl">Controls</span></button>
+      <button class="btn btn--tour appbar__tour" id="tourBtn" type="button" aria-label="Show the project logic (guided tour)"><span class="btn--tour__icon" aria-hidden="true"></span><span class="lbl">Show the project logic</span></button>
     </div>
   </div>
 </header>
@@ -68,42 +76,38 @@
   </div>
 </div>
 
-<section class="sensorrow" id="sensorRow" aria-label="Water quality readings"></section>
-
-<main id="main" class="layout">
-
-  <section class="col col--left" aria-label="Water readings and system health">
-    <article class="card" id="chainCard">
-      <header class="card__head"><h2 class="card__title">Processing rule</h2><span class="simtag">SIM</span></header>
-      <ol class="chain" aria-label="Processing steps">
-        <li><b>Measure</b><span>raw reading every simulated minute</span></li>
-        <li><b>Calibrate</b><span>no calibration data yet (identity)</span></li>
-        <li><b>Validate</b><span>reject impossible values</span></li>
-        <li><b>Smooth</b><span>mean of last 5 valid samples</span></li>
-        <li><b>Compare</b><span>with the operating range</span></li>
-        <li><b>Alert</b><span>when the smoothed value leaves it</span></li>
-      </ol>
-      <button class="link" type="button" data-goto-tab="sens">See it live for each sensor</button>
-    </article>
-
-    <article class="card" id="healthCard">
-      <header class="card__head"><h2 class="card__title">System health</h2><span class="simtag">SIM</span></header>
-      <ul class="health" id="health"></ul>
-      <p class="fine">All hardware shown is proposed. States are simulated.</p>
-    </article>
+<div class="shell">
+<main id="main" class="stagewrap" tabindex="-1">
+<div class="stage" id="stage" data-view="tank">
+  <section class="hello" id="hello" data-views="tank" aria-label="Getting started" hidden>
+    <div class="hello__txt">
+      <p class="hello__t">This is a simulation of the proposed AquaCare system.</p>
+      <p class="hello__b">Press <b>Start</b> to run simulated time, tap the red button on the tank enclosure when a feed reminder appears, or let the guided tour walk you through the logic in about five minutes.</p>
+    </div>
+    <div class="hello__acts">
+      <button class="btn btn--tour" type="button" data-tour-open><span class="btn--tour__icon" aria-hidden="true"></span>Show the project logic</button>
+      <button class="btn" type="button" id="helloClose">Got it</button>
+    </div>
   </section>
-
-  <section class="col col--centre" aria-label="Aquarium and feeding cycle">
-    <figure class="bay" id="bay" aria-labelledby="bayCap">
+  <section class="projhero" id="projHero" data-views="project" aria-labelledby="projTitle">
+    <p class="eyebrow">Digital prototype &middot; EE7008 Project 1 &middot; Group 2</p>
+    <h1 class="projhero__name" id="projTitle">AquaCare</h1>
+    <p class="projhero__title">Design and Development of an Intelligent Feeding and Monitoring System for Small Freshwater Aquariums (2.5&ndash;10 Gallons) in Vilimal&eacute;&rsquo;</p>
+    <p class="projhero__body">A browser simulation of the proposed system: four water sensors, a servo feeder with an IR beam-break check, and the ask-then-fallback feeding logic. Nothing here comes from hardware, and every value is demo data.</p>
+    <div class="projhero__acts">
+      <button class="btn btn--tour" type="button" data-tour-open><span class="btn--tour__icon" aria-hidden="true"></span>Show the project logic</button>
+    </div>
+  </section>
+  <section class="sensorrow" id="sensorRow" data-views="tank water" aria-label="Water quality readings"></section>
+  <figure class="bay" id="bay" aria-labelledby="bayCap" data-views="tank">
       <div class="bay__chips">
         <span class="simtag simtag--dark">SIMULATION</span>
-        <span class="bay__size" id="baySize">Tank: 5 US gal &middot; demo setting</span>
+        <span class="bay__right"><span class="bay__size bay__upk" id="bayUpkeep">Algae: light</span><span class="bay__size" id="baySize">Tank: 5 US gal &middot; demo setting</span></span>
       </div>
       <svg id="tank" class="tank" role="img" aria-label="Animated illustration of a small freshwater aquarium with plants, driftwood, a rock cave, decorative fish and shrimp, the proposed feeder, four sensor probes (pH, DS18B20, TDS, turbidity) and the controller enclosure. Water haze follows simulated turbidity. Decorative; animals are not monitored."></svg>
-      <figcaption id="bayCap" class="bay__cap">Illustration. Fish and shrimp are decorative. Food passage detection means food left the dispenser. It does not confirm anything ate it.</figcaption>
+      <figcaption id="bayCap" class="bay__cap">Illustration. Dust in the water follows the simulated turbidity. Algae and debris are illustrative (days since cleaning, feeds delivered) and never change a reading. Fish and shrimp are decorative. Food passage detection means food left the dispenser. It does not confirm anything ate it.</figcaption>
     </figure>
-
-    <article class="card feed" id="feedCard" data-state="idle" aria-labelledby="feedTitle">
+  <article class="card feed" id="feedCard" data-state="idle" aria-labelledby="feedTitle" data-views="tank feeding">
       <div class="feed__top">
         <div>
           <p class="eyebrow">Feeding cycle &middot; ask-then-fallback</p>
@@ -139,148 +143,36 @@
       </dl>
       <p class="fine">Counting rule: manual confirmations and every automatic attempt, successful or not, count toward the daily cap of 3. A failed attempt is never retried, so food cannot be dispensed again and again. Design assumption awaiting team and supervisor confirmation.</p>
     </article>
-
-    <article class="card scen" id="scenCard" hidden>
+  <article class="card scen" id="scenCard" hidden data-views="tank feeding">
       <header class="card__head"><h2 class="card__title">Scenario: how the local logic responded</h2><span class="simtag">SIM</span></header>
       <p class="scen__name" id="scenName"></p>
       <p class="scen__resp" id="scenResp"></p>
       <ol class="events events--compact" id="scenTrail"></ol>
     </article>
-
-    <article class="card" id="recentCard">
+  <article class="card" id="chainCard" data-views="water">
+      <header class="card__head"><h2 class="card__title">Processing rule</h2><span class="simtag">SIM</span></header>
+      <ol class="chain" aria-label="Processing steps">
+        <li><b>Measure</b><span>raw reading every simulated minute</span></li>
+        <li><b>Calibrate</b><span>no calibration data yet (identity)</span></li>
+        <li><b>Validate</b><span>reject impossible values</span></li>
+        <li><b>Smooth</b><span>mean of last 5 valid samples</span></li>
+        <li><b>Compare</b><span>with the operating range</span></li>
+        <li><b>Alert</b><span>when the smoothed value leaves it</span></li>
+      </ol>
+      <button class="link" type="button" data-goto-tab="sens">See it live for each sensor</button>
+    </article>
+  <article class="card" id="healthCard" data-views="tank water">
+      <header class="card__head"><h2 class="card__title">System health</h2><span class="simtag">SIM</span></header>
+      <ul class="health" id="health"></ul>
+      <p class="fine">All hardware shown is proposed. States are simulated.</p>
+    </article>
+  <article class="card" id="recentCard" data-views="tank">
       <header class="card__head"><h2 class="card__title">Recent events</h2><span class="simtag">DEMO DATA</span></header>
       <ol class="events events--compact" id="recent"></ol>
       <button class="link" type="button" data-goto-tab="log">Open full event log</button>
     </article>
-  </section>
-
-  <aside class="presenter" id="presenter" aria-label="Presenter controls">
-    <div class="presenter__head">
-      <h2 class="presenter__title">Presenter controls</h2>
-      <button class="iconbtn presenter__close" id="presenterClose" type="button" aria-label="Close presenter controls">&times;</button>
-    </div>
-    <p class="fine presenter__note">These controls inject simulated conditions. They are not device features.</p>
-
-    <fieldset class="grp">
-      <legend>Run</legend>
-      <div class="row2">
-        <button class="btn btn--primary" id="runBtn" type="button">Start</button>
-        <button class="btn" id="resetBtn" type="button">Reset run</button>
-      </div>
-      <div class="field">
-        <span class="field__label" id="speedLbl">Simulation speed</span>
-        <div class="seg seg--6" role="radiogroup" aria-labelledby="speedLbl" id="speedSeg">
-          <button type="button" role="radio" data-speed="1">1&times;</button>
-          <button type="button" role="radio" data-speed="10">10&times;</button>
-          <button type="button" role="radio" data-speed="60">60&times;</button>
-          <button type="button" role="radio" data-speed="600">600&times;</button>
-          <button type="button" role="radio" data-speed="3600">1 h/s</button>
-          <button type="button" role="radio" data-speed="14400">4 h/s</button>
-        </div>
-        <p class="fine" id="speedNote">Real time.</p>
-      </div>
-      <label class="switch"><input type="checkbox" id="keepChk" checked><span>Keep time running while the page is closed <em>(catches up when you reopen it)</em></span></label>
-      <div class="row2">
-        <button class="btn" id="jumpBtn" type="button">Jump to next feed</button>
-        <button class="btn" id="dayBtn" type="button">Next day &rarr;</button>
-      </div>
-      <button class="btn btn--wide" id="endBtn" type="button">Run all 30 days now</button>
-    </fieldset>
-
-    <fieldset class="grp">
-      <legend>Feeding</legend>
-      <div class="field">
-        <label class="field__label" for="modeSel">Feeding mode</label>
-        <select id="modeSel">
-          <option value="hybrid">AquaCare: ask, then fall back (design)</option>
-          <option value="manual">Manual only (comparison, paper [3])</option>
-          <option value="auto">Automatic only (comparison, paper [3])</option>
-        </select>
-      </div>
-      <div class="field">
-        <label class="field__label" for="ownerSel">Who presses the tank button</label>
-        <select id="ownerSel">
-          <option value="presenter">Presenter (press it yourself)</option>
-          <option value="simulated">Simulated owner</option>
-        </select>
-      </div>
-      <div class="field" id="ownerPctField" hidden>
-        <label class="field__label" for="ownerPct">Owner responds to <output id="ownerPctOut" class="mono">60%</output> of reminders</label>
-        <input type="range" id="ownerPct" min="0" max="100" step="5" value="60">
-        <p class="fine">A demo assumption, not a measured behaviour.</p>
-      </div>
-      <div class="field">
-        <span class="field__label" id="passLbl">Next dispense: IR beam-break result</span>
-        <div class="seg" role="radiogroup" aria-labelledby="passLbl" id="passSeg">
-          <button type="button" role="radio" data-pass="detect">Passage detected</button>
-          <button type="button" role="radio" data-pass="none">Not detected</button>
-        </div>
-      </div>
-      <div class="row2">
-        <button class="btn" id="expireBtn" type="button">Let reminder expire</button>
-        <button class="btn" id="injectBtn" type="button">Inject extra trigger (test)</button>
-      </div>
-      <button class="btn btn--wide" id="ackFaultBtn" type="button" disabled>Acknowledge feeder fault</button>
-    </fieldset>
-
-    <fieldset class="grp">
-      <legend>Live faults (now)</legend>
-      <div id="faultSegs" class="faultsegs"></div>
-      <div class="row2">
-        <button class="btn" id="wifiBtn" type="button" aria-pressed="false">Disconnect Wi-Fi</button>
-        <button class="btn" id="powerBtn" type="button" aria-pressed="false">Cut power</button>
-      </div>
-      <button class="btn btn--wide" id="lcdBtn" type="button" aria-pressed="false">LCD status: updating</button>
-      <button class="link" type="button" data-goto-tab="scen">Schedule faults on chosen days</button>
-    </fieldset>
-
-    <fieldset class="grp">
-      <legend>Perturbation tests</legend>
-      <p class="fine">Controlled changes like those in the reviewed paper [2]. Magnitudes are demo choices.</p>
-      <div class="field">
-        <label class="field__label" for="pertMin">Stimulus lasts</label>
-        <select id="pertMin"><option value="30">30 min</option><option value="60" selected>60 min</option><option value="120">2 h</option><option value="240">4 h</option></select>
-      </div>
-      <div class="row2">
-        <button class="btn" type="button" data-pert="heater">Heater on</button>
-        <button class="btn" type="button" data-pert="vinegar">Add vinegar</button>
-        <button class="btn" type="button" data-pert="soil">Add soil</button>
-        <button class="btn" type="button" data-pert="salts">Raise TDS <small>(demo)</small></button>
-      </div>
-      <button class="btn btn--wide" id="bubBtn" type="button" aria-pressed="false">Air bubbles at turbidity sensor: off</button>
-    </fieldset>
-
-    <fieldset class="grp">
-      <legend>Water (simulated baseline)</legend>
-      <div id="baseSliders" class="baseSliders"></div>
-      <label class="switch"><input type="checkbox" id="patternChk" checked><span>Synthetic day/night pattern <em>(demo shape)</em></span></label>
-    </fieldset>
-
-    <fieldset class="grp">
-      <legend>Display</legend>
-      <div class="field">
-        <label class="field__label" for="sizeSel">Tank size (demo setting)</label>
-        <select id="sizeSel">
-          <option value="2.5">2.5 US gal</option>
-          <option value="3">3 US gal</option>
-          <option value="5" selected>5 US gal</option>
-          <option value="7.5">7.5 US gal</option>
-          <option value="10">10 US gal</option>
-          <option value="p3">36 &times; 22 &times; 26 cm (paper [3] tank)</option>
-        </select>
-      </div>
-      <div class="field">
-        <label class="field__label" for="fishSel">Fish shown (decorative)</label>
-        <select id="fishSel"><option value="10">10</option><option value="6">6 (as in paper [3])</option><option value="4">4</option></select>
-      </div>
-      <label class="switch"><input type="checkbox" id="awayChk"><span>Away Mode <em>(proposed)</em></span></label>
-      <label class="switch"><input type="checkbox" id="animChk" checked><span>Tank animation</span></label>
-    </fieldset>
-  </aside>
-</main>
-
-<!-- 30-day run -->
-<section class="section" id="monthSec" aria-labelledby="monthTitle">
+  <!-- 30-day run -->
+<section class="section" id="monthSec" aria-labelledby="monthTitle" data-views="feeding">
   <div class="section__head">
     <div>
       <p class="eyebrow">Calendar-based simulation</p>
@@ -317,11 +209,10 @@
     <span><i class="mk">S</i>Scenario</span>
   </div>
   <div class="cal" id="cal" role="grid" aria-label="30-day calendar"></div>
-  <p class="fine" id="calNote">Select a day to filter the chart and feed log. Future days show the scenarios scheduled for them.</p>
+  <p class="fine" id="calNote">Select a day to filter the feed log and chart below. Future days show the scenarios scheduled for them.</p>
 </section>
-
-<!-- Trends -->
-<section class="section" id="trendSec" aria-labelledby="trendTitle">
+  <!-- Trends -->
+<section class="section" id="trendSec" aria-labelledby="trendTitle" data-views="water feeding">
   <div class="section__head">
     <div>
       <p class="eyebrow">Graphs</p>
@@ -342,20 +233,19 @@
   </div>
   <p class="fine">Synthetic demo readings, sampled once per simulated minute and smoothed over 5 samples. Dashed orange lines are the operating ranges. Grey bands: controller off. Hatched bands: Wi-Fi offline. Gaps: sensor fault (no data). Ticks under the chart are feed events, coloured as in the calendar.</p>
 </section>
-
-<section class="panel" aria-label="Details">
+  <section class="panel" aria-label="Details" data-views="water feeding records project">
   <div class="tabs" role="tablist" aria-label="Detail views" id="tabs">
-    <button role="tab" id="tab-feed" aria-controls="pane-feed" aria-selected="true">Feed log</button>
-    <button role="tab" id="tab-log" aria-controls="pane-log" aria-selected="false" tabindex="-1">Event log</button>
-    <button role="tab" id="tab-sens" aria-controls="pane-sens" aria-selected="false" tabindex="-1">Sensors &amp; processing</button>
-    <button role="tab" id="tab-modes" aria-controls="pane-modes" aria-selected="false" tabindex="-1">Feeding modes</button>
-    <button role="tab" id="tab-scen" aria-controls="pane-scen" aria-selected="false" tabindex="-1">Scenarios</button>
-    <button role="tab" id="tab-alerts" aria-controls="pane-alerts" aria-selected="false" tabindex="-1">Alerts &amp; settings <span class="badge" id="alertBadge" hidden>0</span></button>
-    <button role="tab" id="tab-cal" aria-controls="pane-cal" aria-selected="false" tabindex="-1">pH calibration</button>
-    <button role="tab" id="tab-arch" aria-controls="pane-arch" aria-selected="false" tabindex="-1">Architecture</button>
-    <button role="tab" id="tab-app" aria-controls="pane-app" aria-selected="false" tabindex="-1">App view</button>
-    <button role="tab" id="tab-assume" aria-controls="pane-assume" aria-selected="false" tabindex="-1">Assumptions</button>
-    <button role="tab" id="tab-test" aria-controls="pane-test" aria-selected="false" tabindex="-1">Logic self-test</button>
+    <button role="tab" data-view="feeding" id="tab-feed" aria-controls="pane-feed" aria-selected="true">Feed log</button>
+    <button role="tab" data-view="records" id="tab-log" aria-controls="pane-log" aria-selected="false" tabindex="-1">Event log</button>
+    <button role="tab" data-view="water" id="tab-sens" aria-controls="pane-sens" aria-selected="false" tabindex="-1">Sensors &amp; processing</button>
+    <button role="tab" data-view="feeding" id="tab-modes" aria-controls="pane-modes" aria-selected="false" tabindex="-1">Feeding modes</button>
+    <button role="tab" data-view="feeding" id="tab-scen" aria-controls="pane-scen" aria-selected="false" tabindex="-1">Scenarios</button>
+    <button role="tab" data-view="project" id="tab-alerts" aria-controls="pane-alerts" aria-selected="false" tabindex="-1">Alerts &amp; settings <span class="badge" id="alertBadge" hidden>0</span></button>
+    <button role="tab" data-view="water" id="tab-cal" aria-controls="pane-cal" aria-selected="false" tabindex="-1">pH calibration</button>
+    <button role="tab" data-view="project" id="tab-arch" aria-controls="pane-arch" aria-selected="false" tabindex="-1">Architecture</button>
+    <button role="tab" data-view="records" id="tab-app" aria-controls="pane-app" aria-selected="false" tabindex="-1">App view</button>
+    <button role="tab" data-view="project" id="tab-assume" aria-controls="pane-assume" aria-selected="false" tabindex="-1">Assumptions</button>
+    <button role="tab" data-view="project" id="tab-test" aria-controls="pane-test" aria-selected="false" tabindex="-1">Logic self-test</button>
   </div>
 
   <!-- Feed log -->
@@ -445,7 +335,7 @@
     <p>Ayon, Nahar, Rahman, Arif, Hasib and Akib, <i>An IoT-Enabled Smart Aquarium System for Real-Time Water Quality Monitoring and Automated Feeding</i>, arXiv, January 2026. Values below are as summarised in the group's review slides.</p>
     <div class="grid2">
       <section>
-        <table class="table">
+        <div class="tablewrap"><table class="table">
           <thead><tr><th scope="col">Parameter</th><th scope="col">Sensor in paper</th><th scope="col">Operating range in paper</th><th scope="col">AquaCare brief</th></tr></thead>
           <tbody>
             <tr><td>Temperature</td><td>DS18B20 (digital)</td><td>24&ndash;28 &deg;C</td><td>In scope</td></tr>
@@ -453,7 +343,7 @@
             <tr><td>TDS</td><td>SEN0244 (analog)</td><td>180&ndash;280 ppm</td><td><span class="pill pill--attn">Added here; team to confirm</span></td></tr>
             <tr><td>Turbidity</td><td>SEN0189 (analog)</td><td>&le; 50 NTU</td><td><span class="pill pill--attn">Added here; team to confirm</span></td></tr>
           </tbody>
-        </table>
+        </table></div>
         <p class="fine">These ranges are loaded as this demo's alert limits and marked as reference values. They are not fish-safe thresholds confirmed for AquaCare.</p>
       </section>
       <section>
@@ -498,7 +388,7 @@
     <p>Setiawan, Firmansyah, Widiyana, Kusuma and Dinimaharahawati, <i>Automated Feeding System for Aquariums Based on the Internet of Things</i>, CEPAT Journal of Computer Engineering 3(1), 1&ndash;9, May 2024, DOI 10.25124/cepat.v2i02.6089 (as printed on the review slide; the DOI's volume and issue do not match 3(1), so check against the paper before citing). Values below are as summarised in the group's review slides.</p>
     <div class="grid2">
       <section>
-        <table class="table">
+        <div class="tablewrap"><table class="table">
           <thead><tr><th scope="col">Study context</th><th scope="col">As reported</th></tr></thead>
           <tbody>
             <tr><td>Tank</td><td>36 &times; 22 &times; 26 cm (about 20.6 L gross, about 5.4 US gal), inside AquaCare's 2.5&ndash;10 gal scope</td></tr>
@@ -507,7 +397,7 @@
             <tr><td>System logic</td><td>Set a regular schedule; release feed through an IoT microcontroller; monitor through a dashboard</td></tr>
             <tr><td>Controller</td><td>The paper's text names both a NodeMCU ESP8266 and a Wemos D1 R1, as flagged in the group's literature review</td></tr>
           </tbody>
-        </table>
+        </table></div>
         <h3 class="h3">Limitations it reports, and where they appear here</h3>
         <ul class="checklist">
           <li>Turbidity sensor easily damaged &rarr; <b>Sensor failure</b> scenario (turbidity, disconnected or invalid values)</li>
@@ -516,7 +406,7 @@
         </ul>
       </section>
       <section>
-        <table class="table">
+        <div class="tablewrap"><table class="table">
           <thead><tr><th scope="col">Reported outcome</th><th scope="col">Manual</th><th scope="col">Automatic</th></tr></thead>
           <tbody>
             <tr><td>Days until cloudy water</td><td>2</td><td>4 (+2)</td></tr>
@@ -525,7 +415,7 @@
             <tr><td>Stress level</td><td>Low</td><td>Medium</td></tr>
             <tr><td>Life sustainability per year</td><td>98 %</td><td>97 %</td></tr>
           </tbody>
-        </table>
+        </table></div>
         <p class="fine">Cloudiness was judged by eye, without chemical measurements such as ammonia, pH or dissolved oxygen. These are reported comparisons from a small study, and they do not show that IoT feeding alone caused each outcome. Growth improved, but stress rose and survival fell slightly. That supports keeping the owner involved, which is what ask-then-fallback does.</p>
       </section>
     </div>
@@ -716,7 +606,7 @@
   <!-- Assumptions -->
   <div class="pane" role="tabpanel" id="pane-assume" aria-labelledby="tab-assume" hidden>
     <p class="fine">Every rule this demo had to decide that the brief does not settle. Each needs team and supervisor confirmation before it goes in the report as design.</p>
-    <table class="table">
+    <div class="tablewrap"><table class="table">
       <thead><tr><th scope="col">Topic</th><th scope="col">What the demo does</th><th scope="col">Status</th></tr></thead>
       <tbody>
         <tr><td>Sensor set</td><td>pH and temperature are in the AquaCare brief. TDS (SEN0244) and turbidity (SEN0189) were added from the reviewed paper [2] at the group's request.</td><td><span class="pill pill--attn">Requires team decision</span></td></tr>
@@ -742,7 +632,7 @@
         <tr><td>Sensor fault display</td><td>Shows "No data" instead of the last good value and raises an equipment alert.</td><td><span class="pill pill--attn">Assumption</span></td></tr>
         <tr><td>Tank size</td><td>Changes the illustration only. The number of fish and shrimp does not change and is not stocking advice.</td><td><span class="pill">Demo setting</span></td></tr>
       </tbody>
-    </table>
+    </table></div>
   </div>
 
   <!-- Self-test -->
@@ -752,14 +642,160 @@
     <ol class="tests" id="testList"></ol>
   </div>
 </section>
-
-<footer class="titleblock" aria-label="Document information">
+  <footer class="titleblock" aria-label="Document information" data-views="project">
   <div><span class="k">Project</span><span class="v">AquaCare &middot; Intelligent feeding and monitoring, 2.5&ndash;10 gal freshwater</span></div>
   <div><span class="k">Course</span><span class="v">EE7008 Project 1 &middot; Group 2 &middot; Supervisor Dr. Furugaan</span></div>
   <div><span class="k">Status</span><span class="v"><b>Concept demo.</b> Not built or validated.</span></div>
   <div><span class="k">Data</span><span class="v">Simulation / demo data only</span></div>
   <div><span class="k">Storage</span><span class="v" id="storageNote">This browser only</span></div>
 </footer>
+</div>
+</main>
+<aside class="presenter" id="presenter" aria-label="Presenter controls">
+    <div class="presenter__head">
+      <h2 class="presenter__title">Presenter controls</h2>
+      <button class="iconbtn presenter__close" id="presenterClose" type="button" aria-label="Close presenter controls">&times;</button>
+    </div>
+    <p class="fine presenter__note">These controls inject simulated conditions. They are not device features.</p>
+    <button class="btn btn--tour btn--wide presenter__tour" type="button" data-tour-open><span class="btn--tour__icon" aria-hidden="true"></span>Show the project logic</button>
+
+    <fieldset class="grp">
+      <legend>Run</legend>
+      <div class="row2">
+        <button class="btn btn--primary" id="runBtn" type="button">Start</button>
+        <button class="btn" id="resetBtn" type="button">Reset run</button>
+      </div>
+      <div class="field">
+        <span class="field__label" id="speedLbl">Simulation speed</span>
+        <div class="seg seg--6" role="radiogroup" aria-labelledby="speedLbl" id="speedSeg">
+          <button type="button" role="radio" data-speed="1">1&times;</button>
+          <button type="button" role="radio" data-speed="10">10&times;</button>
+          <button type="button" role="radio" data-speed="60">60&times;</button>
+          <button type="button" role="radio" data-speed="600">600&times;</button>
+          <button type="button" role="radio" data-speed="3600">1 h/s</button>
+          <button type="button" role="radio" data-speed="14400">4 h/s</button>
+        </div>
+        <p class="fine" id="speedNote">Real time.</p>
+      </div>
+      <label class="switch"><input type="checkbox" id="keepChk" checked><span>Keep time running while the page is closed <em>(catches up when you reopen it)</em></span></label>
+      <div class="row2">
+        <button class="btn" id="jumpBtn" type="button">Jump to next feed</button>
+        <button class="btn" id="dayBtn" type="button">Next day &rarr;</button>
+      </div>
+      <button class="btn btn--wide" id="endBtn" type="button">Run all 30 days now</button>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Feeding</legend>
+      <div class="field">
+        <label class="field__label" for="modeSel">Feeding mode</label>
+        <select id="modeSel">
+          <option value="hybrid">AquaCare: ask, then fall back (design)</option>
+          <option value="manual">Manual only (comparison, paper [3])</option>
+          <option value="auto">Automatic only (comparison, paper [3])</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="ownerSel">Who presses the tank button</label>
+        <select id="ownerSel">
+          <option value="presenter">Presenter (press it yourself)</option>
+          <option value="simulated">Simulated owner</option>
+        </select>
+      </div>
+      <div class="field" id="ownerPctField" hidden>
+        <label class="field__label" for="ownerPct">Owner responds to <output id="ownerPctOut" class="mono">60%</output> of reminders</label>
+        <input type="range" id="ownerPct" min="0" max="100" step="5" value="60">
+        <p class="fine">A demo assumption, not a measured behaviour.</p>
+      </div>
+      <div class="field">
+        <span class="field__label" id="passLbl">Next dispense: IR beam-break result</span>
+        <div class="seg" role="radiogroup" aria-labelledby="passLbl" id="passSeg">
+          <button type="button" role="radio" data-pass="detect">Passage detected</button>
+          <button type="button" role="radio" data-pass="none">Not detected</button>
+        </div>
+      </div>
+      <div class="row2">
+        <button class="btn" id="expireBtn" type="button">Let reminder expire</button>
+        <button class="btn" id="injectBtn" type="button">Inject extra trigger (test)</button>
+      </div>
+      <button class="btn btn--wide" id="ackFaultBtn" type="button" disabled>Acknowledge feeder fault</button>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Live faults (now)</legend>
+      <div id="faultSegs" class="faultsegs"></div>
+      <div class="row2">
+        <button class="btn" id="wifiBtn" type="button" aria-pressed="false">Disconnect Wi-Fi</button>
+        <button class="btn" id="powerBtn" type="button" aria-pressed="false">Cut power</button>
+      </div>
+      <button class="btn btn--wide" id="lcdBtn" type="button" aria-pressed="false">LCD status: updating</button>
+      <button class="link" type="button" data-goto-tab="scen">Schedule faults on chosen days</button>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Perturbation tests</legend>
+      <p class="fine">Controlled changes like those in the reviewed paper [2]. Magnitudes are demo choices.</p>
+      <div class="field">
+        <label class="field__label" for="pertMin">Stimulus lasts</label>
+        <select id="pertMin"><option value="30">30 min</option><option value="60" selected>60 min</option><option value="120">2 h</option><option value="240">4 h</option></select>
+      </div>
+      <div class="row2">
+        <button class="btn" type="button" data-pert="heater">Heater on</button>
+        <button class="btn" type="button" data-pert="vinegar">Add vinegar</button>
+        <button class="btn" type="button" data-pert="soil">Add soil</button>
+        <button class="btn" type="button" data-pert="salts">Raise TDS <small>(demo)</small></button>
+      </div>
+      <button class="btn btn--wide" id="bubBtn" type="button" aria-pressed="false">Air bubbles at turbidity sensor: off</button>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Tank upkeep (illustrative)</legend>
+      <p class="fine">Algae and debris build up with simulated days since cleaning, a little faster with each feed. Dust in the water follows the turbidity reading. Cleaning changes the picture only; readings are not affected.</p>
+      <dl class="upk" id="upk"></dl>
+      <div class="row2">
+        <button class="btn" type="button" data-clean="glass">Wipe glass</button>
+        <button class="btn" type="button" data-clean="gravel">Siphon gravel</button>
+        <button class="btn" type="button" data-clean="probes">Clean probes</button>
+        <button class="btn" type="button" data-clean="all">Full clean</button>
+      </div>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Water (simulated baseline)</legend>
+      <div id="baseSliders" class="baseSliders"></div>
+      <label class="switch"><input type="checkbox" id="patternChk" checked><span>Synthetic day/night pattern <em>(demo shape)</em></span></label>
+    </fieldset>
+
+    <fieldset class="grp">
+      <legend>Display</legend>
+      <div class="field">
+        <label class="field__label" for="sizeSel">Tank size (demo setting)</label>
+        <select id="sizeSel">
+          <option value="2.5">2.5 US gal</option>
+          <option value="3">3 US gal</option>
+          <option value="5" selected>5 US gal</option>
+          <option value="7.5">7.5 US gal</option>
+          <option value="10">10 US gal</option>
+          <option value="p3">36 &times; 22 &times; 26 cm (paper [3] tank)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="fishSel">Fish shown (decorative)</label>
+        <select id="fishSel"><option value="10">10</option><option value="6">6 (as in paper [3])</option><option value="4">4</option></select>
+      </div>
+      <label class="switch"><input type="checkbox" id="awayChk"><span>Away Mode <em>(proposed)</em></span></label>
+      <label class="switch"><input type="checkbox" id="animChk" checked><span>Tank animation</span></label>
+    </fieldset>
+  </aside>
+</div>
+
+
+
+
+
+
+
+
 
 <!-- Guided presentation -->
 <div class="tour" id="tour" role="dialog" aria-modal="false" aria-labelledby="tourTitle" hidden>
@@ -775,11 +811,7 @@
 </div>
 <div class="spot" id="spot" hidden></div>
 
-<div class="mbar" id="mbar">
-  <button class="btn btn--primary" id="mRun" type="button">Start</button>
-  <span class="mbar__speed mono" id="mSpeed">1&times;</span>
-  <button class="btn" id="mOpen" type="button" aria-controls="presenter" aria-expanded="false">Presenter controls</button>
-</div>
+
 <div class="scrim" id="scrim" hidden></div>
 
 <div class="sr-only" aria-live="polite" id="liveState"></div>

@@ -1,6 +1,6 @@
 # AquaCare digital prototype: how to run the simulation and collect data
 
-EE7008 Project 1 · Group 2 · Prototype v3.2 (four sensors, feeding modes, resume after closing)
+EE7008 Project 1 · Group 2 · Prototype v4 (four sensors, feeding modes, resume after closing, phone/tablet/desktop layout)
 
 > **Read this first.** The prototype is a **simulation**. Every reading, alert, feed and CSV row it produces is **demo data** generated in the browser. None of it is a hardware measurement or a test result. The pH ±0.1 and temperature ±0.5 °C figures are **project targets**, not results. Every exported file and every row is labelled `SIMULATION - DEMO DATA`. Keep that label wherever you use the data.
 >
@@ -25,15 +25,56 @@ It works in Chrome, Edge, Firefox and Safari. It needs no internet, account or i
 
 ## 2. What is on the screen
 
-| Area | What it shows |
+The page works the same on an iPhone, an Android phone, a tablet and a desktop monitor. The layout changes with the screen size:
+
+| Screen | Section menu | Presenter controls |
+|---|---|---|
+| Phone (portrait) | Tab bar at the bottom | **Controls** button (sliders icon) at the top right opens a bottom sheet |
+| Phone (sideways) | Compact tab bar at the bottom | Slides in from the right |
+| Tablet, small laptop | Tab bar at the bottom | **Controls** button opens a side drawer |
+| Desktop and monitors (1280 px and wider) | Menu in the top bar | Always visible on the right |
+
+The browser **Back** button (or Android back gesture) returns to the previous section.
+
+| Part | What it shows |
 |---|---|
+| Yellow-and-black **SIMULATION** bar | Reminder that everything is demo data. The top bar also carries a **SIM** tag that stays visible while you scroll. |
+| **Top bar** | AquaCare, the section menu, the simulated clock ("Day X of 30", date, speed), **Start/Pause**, **Controls** and **Show the project logic** |
+| **Status strip** | Feeds today (x/3), next feed, system state, Wi-Fi/app, alerts |
+
+The five sections:
+
+| Section | What's in it |
+|---|---|
+| **Tank** | The animated tank (feeder, IR beam, probes, LCD, LED, buzzer, tank button), the feeding cycle card with the countdown and the 5 logic steps, the four sensor cards, system health and recent events |
+| **Water** | The four sensor cards, the processing rule (measure → calibrate → validate → smooth 5 → compare → alert), system health, the four stacked charts, and the tabs **Sensors & processing** and **pH calibration** |
+| **Feeding** | The feeding cycle card, run setup (start date, feed times), the 30-day calendar, the tabs **Feed log**, **Feeding modes** and **Scenarios**, and the charts |
+| **Records** | **Event log** and **App view** |
+| **Project** | Project title and summary, the tabs **Alerts & settings**, **Architecture**, **Assumptions** and **Logic self-test**, and the document title block |
+
+A first-visit card on the Tank section explains how to start. **Got it** hides it for good on that browser.
+
+### 2.1 What the tank picture shows
+
+| Effect | Driven by | Status |
+|---|---|---|
+| Brown haze and drifting dust | The simulated **turbidity** reading. More NTU means more, larger and browner particles. | Follows the simulation data |
+| Green film and spots on the glass, scum ring at the waterline | Simulated days since **Wipe glass**, slightly faster with each feed delivered | Illustrative only |
+| Hair algae on the driftwood and rock arch | Days since the glass or gravel was last cleaned, plus feeds | Illustrative only |
+| Mulm and debris on the gravel (heaviest in corners and behind decor) | Days since **Siphon gravel**, plus feeds | Illustrative only |
+| Biofilm on the probes | Days since **Clean probes** | Illustrative only |
+| Uneaten pellets darken on the gravel | Each successful dispense | Illustrative only |
+
+The tank starts the run 1.5 simulated days after a clean, so it looks lived-in. Cleaning is in **Presenter controls → Tank upkeep (illustrative)**: **Wipe glass**, **Siphon gravel**, **Clean probes** or **Full clean**. Each one is logged as a presenter action. The upkeep model never changes a sensor reading, alert or feed decision, and it isn't a measured growth rate. Don't report it as a result.
+
+---|---|
 | Yellow-and-black **SIMULATION** bar (top) | Permanent reminder that everything is demo data |
 | **Simulated clock** (top right) | Simulated time, date and "Day X of 30", the speed chip, and Running/Paused |
 | **Status strip** | Feeds today (x/3), next feed, system state, Wi-Fi/app, alerts |
 | **Sensor row** (below the status strip) | Four cards: pH, temperature, TDS, turbidity. Each shows the smoothed value, the latest raw reading, a range gauge, In range / Above / Below, and a trend line. TDS and turbidity carry a *Paper [2]* tag. |
 | Left column | Processing rule (measure → calibrate → validate → smooth 5 → compare → alert) and system health |
 | Centre | Animated tank with the proposed feeder, IR beam, probes, LCD, LED, buzzer and tank button. Below it are the **feeding cycle** card (countdown and the 5 logic steps), the scenario response card and recent events. |
-| Right column (**Presenter controls**) | Run, speed, feeding, live faults for all four sensors, **perturbation tests**, water baselines, display. On a phone, open it from the button at the bottom of the screen. |
+| Right column (**Presenter controls**) | Run, speed, feeding, live faults for all four sensors, **perturbation tests**, water baselines, display.  |
 | **30-day run** section | Run setup (start date, feed times) and the 30-day calendar |
 | **Graphs** section | Four stacked charts (pH, temperature, TDS, turbidity) with range lines and perturbation markers: all 30 days, the selected day, or the last 24 h |
 | Tabs | Feed log · Event log · **Sensors & processing** · **Feeding modes** · Scenarios · Alerts & settings · pH calibration · Architecture · App view · Assumptions · Logic self-test |
@@ -368,7 +409,7 @@ In every figure caption or table title, add: *"Simulation output (demo data), no
 | The LCD shows an old message | The LCD fault is on (live toggle or scenario). This is deliberate; see the health list. |
 | A perturbation test raised no alert | No operating range is set for that parameter. Load the reference ranges in Alerts & settings. |
 | Turbidity alerts keep flickering | Air bubbles are on (live or scenario). This is the paper's bubbles limitation, shown on purpose. |
-| Want to confirm the logic still works | **Logic self-test** tab → **Run logic self-test** (29 checks, software only), or run `node tests/engine.test.js` |
+| Want to confirm the logic still works | **Logic self-test** tab → **Run logic self-test** (30 checks, software only), or run `node tests/engine.test.js` |
 
 ---
 

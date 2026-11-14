@@ -254,6 +254,20 @@
       return Math.abs(gained - 180 * 60 * MIN) < MIN && e.s.day === 8 && recs(e).length >= 21 || ('gained ' + gained / MIN + ' min, day ' + e.s.day);
     });
 
+    check('Tank upkeep: algae builds with days, resets on cleaning, never touches readings', function () {
+      var a = make(), b = make();
+      a.setSpeed(3600); b.setSpeed(3600); a.start(); b.start();
+      a.advanceTo(a.s.simTime + 6 * DAY, true); b.advanceTo(b.s.simTime + 6 * DAY, true);
+      var u6 = a.upkeep();
+      if (!(u6.glass > 0.3 && u6.glass < 1 && u6.detritus > 0)) return 'growth looks wrong: ' + JSON.stringify(u6);
+      a.cleanTank('glass');
+      if (a.upkeep().glass > 0.001) return 'glass not reset by cleaning';
+      if (a.upkeep().detritus < u6.detritus - 1e-9) return 'gravel changed when only the glass was wiped';
+      a.advanceTo(a.s.simTime + 3 * DAY, true); b.advanceTo(b.s.simTime + 3 * DAY, true);
+      var ra = JSON.stringify(a.s.samples), rb = JSON.stringify(b.s.samples);
+      return ra === rb || 'cleaning changed the simulated readings';
+    });
+
     return results;
   }
 

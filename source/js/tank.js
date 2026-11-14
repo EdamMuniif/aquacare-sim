@@ -25,6 +25,21 @@
     return n;
   }
   function rnd(a, b) { return a + Math.random() * (b - a); }
+  // seeded generator so algae and debris land in the same places on every redraw
+  function prng(seed) {
+    var a = seed >>> 0;
+    return function () { a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  // a tuft of thread/hair algae: a few thin wavy strands from one base point
+  function tuft(parent, x, y, len, color, R, lean) {
+    var d = '', n = 4 + Math.floor(R() * 4);
+    for (var i = 0; i < n; i++) {
+      var dx = (R() - 0.5) * 5, L = len * (0.55 + R() * 0.7), b = (lean || 0) + (R() - 0.5) * 7;
+      d += 'M' + (x + dx).toFixed(1) + ',' + y.toFixed(1) + ' q' + (b * 0.15 + 2).toFixed(1) + ',' + (-L * 0.5).toFixed(1) + ' ' + b.toFixed(1) + ',' + (-L).toFixed(1) + ' ';
+    }
+    el('path', { d: d, stroke: color, 'stroke-width': 0.9, fill: 'none', 'stroke-linecap': 'round' }, parent);
+  }
+  function fadeTo(node, v) { if (node) node.style.opacity = Math.max(0, Math.min(1, v)).toFixed(3); }
 
   function Tank(svg) {
     this.svg = svg;
@@ -58,7 +73,13 @@
       '<radialGradient id="aqCave" cx=".5" cy=".7" r=".6"><stop offset="0" stop-color="#04161c"/><stop offset="1" stop-color="#0b2e38"/></radialGradient>' +
       '<linearGradient id="aqRock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7f8d92"/><stop offset="1" stop-color="#535f64"/></linearGradient>' +
       '<clipPath id="aqClip"><rect x="' + tx + '" y="' + G.water + '" width="' + tw + '" height="' + (BOTTOM - G.water) + '"/></clipPath>' +
-      '<pattern id="aqGrain" width="9" height="7" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".9" fill="#7d6b4b" opacity=".45"/><circle cx="6.5" cy="5" r=".7" fill="#e7d7b2" opacity=".5"/></pattern>';
+      '<pattern id="aqGrain" width="9" height="7" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r=".9" fill="#7d6b4b" opacity=".45"/><circle cx="6.5" cy="5" r=".7" fill="#e7d7b2" opacity=".5"/></pattern>' +
+      // green film on the glass: heaviest near the light at the top and in the corners
+      '<linearGradient id="aqAlgaeV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7aa443" stop-opacity=".46"/><stop offset=".3" stop-color="#5f8f35" stop-opacity=".20"/><stop offset="1" stop-color="#4c7a2c" stop-opacity=".10"/></linearGradient>' +
+      '<linearGradient id="aqAlgaeH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4f7d2b" stop-opacity=".42"/><stop offset=".1" stop-color="#4f7d2b" stop-opacity="0"/><stop offset=".9" stop-color="#4f7d2b" stop-opacity="0"/><stop offset="1" stop-color="#4f7d2b" stop-opacity=".42"/></linearGradient>' +
+      // two spot tiles of unrelated sizes so the green-spot algae doesn't read as a regular grid
+      '<pattern id="aqSpots" width="47" height="37" patternUnits="userSpaceOnUse"><circle cx="5" cy="6" r="1.5" fill="#3f6d22" opacity=".55"/><circle cx="23" cy="3" r="1" fill="#4c7c2a" opacity=".45"/><circle cx="38" cy="17" r="2" fill="#3a661f" opacity=".5"/><circle cx="13" cy="27" r="1.2" fill="#557f2d" opacity=".45"/><circle cx="31" cy="33" r=".8" fill="#3f6d22" opacity=".55"/></pattern>' +
+      '<pattern id="aqSpots2" width="83" height="61" patternUnits="userSpaceOnUse" patternTransform="rotate(17)"><circle cx="11" cy="41" r="2.4" fill="#3a661f" opacity=".45"/><circle cx="52" cy="12" r="1.7" fill="#4c7c2a" opacity=".5"/><circle cx="70" cy="49" r="1.1" fill="#3f6d22" opacity=".55"/><circle cx="36" cy="55" r="3" fill="#4d7b2a" opacity=".25"/></pattern>';
 
     el('line', { x1: 0, y1: BOTTOM + 8, x2: VB_W, y2: BOTTOM + 8, stroke: '#3a4a54', 'stroke-width': 1 }, svg);
 
@@ -96,6 +117,17 @@
       var mx = w0 + 40 + m * 14 + (m % 2) * 4, my = wy - 14 - m * 6.4 + (m > 5 ? (m - 5) * 6 : 0);
       el('ellipse', { cx: mx, cy: my, rx: 6 + (m % 3), ry: 3.6, fill: m % 2 ? '#4f9a4a' : '#3f8a44', opacity: '.95' }, wood);
     }
+    // hair algae on the driftwood (illustrative build-up)
+    this.woodAlgae = el('g', { class: 'aq-fade', 'pointer-events': 'none' }, wood);
+    var Rw = prng(31);
+    for (var wk = 0; wk <= 12; wk++) {
+      var wu = wk / 12;
+      tuft(this.woodAlgae, w0 + 26 + wu * 104, wy - 10 - wu * 50, 6 + Rw() * 5, Rw() < 0.5 ? '#7d9b3c' : '#6a8a31', Rw, -2);
+    }
+    for (var wb = 0; wb <= 6; wb++) {
+      var bu = wb / 6;
+      tuft(this.woodAlgae, w0 + 146 + bu * (w1 - w0 - 146), wy - 64 - bu * 16, 5 + Rw() * 4, '#7d9b3c', Rw, 1);
+    }
     // fern leaves
     var fern = el('g', { class: 'aq-plant', style: 'animation-duration:9s' }, wood);
     [[-28, 54], [-8, 62], [14, 50], [32, 40]].forEach(function (L) {
@@ -110,7 +142,7 @@
     el('ellipse', { cx: X(0.08), cy: sandTop + 14, rx: 14, ry: 7, fill: '#6a777b' }, water);
 
     // --- cave: dark opening behind fish, rock arch in front of fish (a hiding place) ---
-    var cx0 = X(0.60), cw = tw * 0.17, ch = 66, cyb = sandTop + 10;
+    var cx0 = X(0.60), cw = tw * 0.17, ch = 66, cyb = sandTop + 10, self0 = this;
     this.cave = { x: cx0 + cw / 2, y: cyb - ch * 0.38 };
     el('ellipse', { cx: cx0 + cw / 2, cy: cyb - ch * 0.36, rx: cw * 0.30, ry: ch * 0.34, fill: 'url(#aqCave)' }, water);
 
@@ -127,6 +159,17 @@
     el('ellipse', { cx: cx0 - 6, cy: cyb + 2, rx: 14, ry: 8, fill: '#5d6b70' }, caveFront);
     el('ellipse', { cx: cx0 + cw + 8, cy: cyb + 3, rx: 11, ry: 6, fill: '#6a777b' }, caveFront);
     el('ellipse', { cx: cx0 + cw * 0.5, cy: cyb - ch * 1.02, rx: 7, ry: 3, fill: '#4f9a4a' }, caveFront);
+    // algae coating on the rock arch and stones (illustrative build-up)
+    this.rockAlgae = el('g', { class: 'aq-fade', 'pointer-events': 'none' }, caveFront);
+    el('path', { d: caveFront.firstChild.getAttribute('d'), fill: '#5d8a2c', opacity: '.55' }, this.rockAlgae);
+    var Rr = prng(47), mid = cx0 + cw / 2;
+    for (var rk = 0; rk <= 12; rk++) {
+      var ru = -0.86 + rk * (1.72 / 12);
+      tuft(this.rockAlgae, mid + ru * cw * 0.5, cyb - ch * Math.sqrt(1 - ru * ru) * 0.98 + 2, 5 + Rr() * 5, Rr() < 0.5 ? '#7d9b3c' : '#5f7f2e', Rr, ru * 6);
+    }
+    [[cx0 - 6, cyb - 3, 11], [cx0 + cw + 8, cyb - 1, 8]].forEach(function (st) {
+      el('ellipse', { cx: st[0], cy: st[1], rx: st[2], ry: 3, fill: '#5d8a2c', opacity: '.6' }, self0.rockAlgae);
+    });
 
     // --- foreground plants and carpet ---
     var self = this;
@@ -150,6 +193,16 @@
       if (fx > cx0 - 10 && fx < cx0 + cw + 10) continue;
       for (var b = 0; b < 4; b++) el('path', { d: 'M' + (fx + b * 2.4) + ',' + fy + ' q' + (b - 1.5) * 2 + ',-7 ' + (b - 1.5) * 3 + ',-' + (9 + (b * 7 + c) % 5), stroke: c % 2 ? '#6cc06a' : '#58ad5c', 'stroke-width': 1.6, fill: 'none', 'stroke-linecap': 'round' }, carpet);
     }
+
+    // --- mulm / detritus on the gravel: collects in the corners and behind decor (illustrative) ---
+    this.detritus = el('g', { class: 'aq-fade', 'pointer-events': 'none' }, water);
+    var Rd = prng(73);
+    [[0.03, 1.4], [0.97, 1.4], [0.2, 1.1], [0.36, 0.8], [0.57, 1.2], [0.72, 0.9], [0.86, 1]].forEach(function (sp) {
+      for (var j = 0; j < 4; j++) {
+        el('ellipse', { cx: X(Math.max(0.01, Math.min(0.99, sp[0] + (Rd() - 0.5) * 0.07))), cy: sandTop + 3 + Rd() * 13, rx: (7 + Rd() * 16) * sp[1], ry: 1.8 + Rd() * 2.6, fill: Rd() < 0.5 ? '#4a3c28' : '#5b4a33', opacity: (0.35 + Rd() * 0.3).toFixed(2) }, self.detritus);
+      }
+    });
+    for (var dk = 0; dk < 70; dk++) el('circle', { cx: X(Rd()), cy: sandTop + 2 + Rd() * 26, r: (0.6 + Rd() * 0.9).toFixed(2), fill: Rd() < 0.6 ? '#3d3122' : '#6b5a3e', opacity: '.7' }, self.detritus);
 
     // --- shrimp (decorative) ---
     this.shrimpGroup = el('g', {}, water);
@@ -202,6 +255,15 @@
     }
     el('ellipse', { cx: X(0.54) + 3, cy: sandTop + 4, rx: 8, ry: 3.5, fill: '#8e9ca1' }, water);
 
+    // suspended particles: how many drift in the water follows the simulated turbidity reading
+    this.moteFar = el('path', { fill: '#e6efe2', opacity: '.38', 'pointer-events': 'none' }, water);
+    this.moteNear = el('path', { fill: '#f1e7cc', opacity: '.68', 'pointer-events': 'none' }, water);
+    this.motes = [];
+    var Rm = prng(101);
+    for (var mi = 0; mi < 170; mi++) this.motes.push({ x: tx + Rm() * tw, y: G.water + 6 + Rm() * (sandTop - G.water - 4), z: Rm(), r: 0.45 + Rm() * 1.05, ph: Rm() * 6.283, sp: 0.5 + Rm() * 1.5 });
+    this.moteCount = this.moteCount || 28;
+    this.moteScale = this.moteScale || 1;
+
     // turbidity haze (follows simulated turbidity), heater shown only during a heater test
     this.haze = el('rect', { x: tx, y: G.water, width: tw, height: BOTTOM - G.water, fill: '#7a5a34', opacity: 0, 'pointer-events': 'none' }, water);
     this.heater = el('g', { opacity: 0 }, water);
@@ -244,6 +306,7 @@
     // probes (proposed): pH and DS18B20 from the brief; TDS and turbidity from reviewed paper [2]
     var probes = el('g', {}, svg);
     this.probeHeads = {};
+    this.probeFilm = [];
     var self3 = this;
     [{ k: 'tds', x: tx + tw - 124, len: 118, w: 4, tip: 'rect', label: 'TDS', row: 0 },
      { k: 'turb', x: tx + tw - 94, len: 104, w: 6, tip: 'box', label: 'Turbidity', row: 1 },
@@ -255,9 +318,29 @@
       else if (pr.tip === 'rod') el('rect', { x: pr.x - 3, y: top + pr.len - 8, width: 6, height: 16, fill: '#9aa7ad', rx: 2 }, probes);
       else if (pr.tip === 'box') el('rect', { x: pr.x - 6, y: top + pr.len - 4, width: 12, height: 16, fill: '#2d3a42', stroke: '#9aa7ad', rx: 2 }, probes);
       else { el('line', { x1: pr.x - 2, y1: top + pr.len, x2: pr.x - 2, y2: top + pr.len + 10, stroke: '#c0ccd1', 'stroke-width': 1.4 }, probes); el('line', { x1: pr.x + 2, y1: top + pr.len, x2: pr.x + 2, y2: top + pr.len + 10, stroke: '#c0ccd1', 'stroke-width': 1.4 }, probes); }
+      // biofilm on the wetted part of the probe (illustrative build-up)
+      var film = el('g', { class: 'aq-fade', 'pointer-events': 'none' }, probes);
+      el('line', { x1: pr.x, y1: G.water + 3, x2: pr.x, y2: top + pr.len + 5, stroke: '#5f7a35', 'stroke-width': pr.w + 3.4, 'stroke-linecap': 'round', 'stroke-opacity': '.8' }, film);
+      var Rp = prng(200 + pr.len);
+      for (var pf = 0; pf < 5; pf++) tuft(film, pr.x + (Rp() - 0.5) * 3, G.water + 18 + Rp() * (top + pr.len - G.water - 20), 4 + Rp() * 4, '#7d9b3c', Rp, (Rp() - 0.5) * 8);
+      self3.probeFilm.push(film);
       var lb = el('text', { x: pr.x, y: top - (pr.row ? 32 : 48), class: 'aq-label aq-label--probe', 'text-anchor': 'middle' }, probes);
       lb.textContent = pr.label;
     });
+
+    // algae film and spots on the front glass, plus the scum ring at the waterline (illustrative build-up)
+    this.glassAlgae = el('g', { 'clip-path': 'url(#aqClip)', class: 'aq-fade', 'pointer-events': 'none' }, svg);
+    el('rect', { x: tx, y: G.water, width: tw, height: BOTTOM - G.water, fill: 'url(#aqAlgaeV)' }, this.glassAlgae);
+    el('rect', { x: tx, y: G.water, width: tw, height: BOTTOM - G.water, fill: 'url(#aqAlgaeH)' }, this.glassAlgae);
+    el('rect', { x: tx, y: G.water, width: tw, height: BOTTOM - G.water, fill: 'url(#aqSpots)' }, this.glassAlgae);
+    el('rect', { x: tx, y: G.water, width: tw, height: BOTTOM - G.water, fill: 'url(#aqSpots2)' }, this.glassAlgae);
+    var Rg = prng(5);
+    for (var gk = 0; gk < 26; gk++) {
+      var gx = tx + Rg() * tw, gy = G.water + 4 + Math.pow(Rg(), 1.6) * (BOTTOM - G.water - 10);
+      el('ellipse', { cx: gx, cy: gy, rx: 3 + Rg() * 9, ry: 2 + Rg() * 6, fill: '#4d7b2a', opacity: (0.18 + Rg() * 0.3).toFixed(2) }, this.glassAlgae);
+    }
+    el('rect', { x: tx, y: G.water + 1, width: tw, height: 4, fill: '#5d8a2c', opacity: '.7' }, this.glassAlgae);
+    this.scum = el('rect', { x: tx + 1, y: G.water - 4, width: tw - 2, height: 4, fill: '#d6cfae', class: 'aq-fade', 'pointer-events': 'none' }, svg);
 
     // controller enclosure (proposed)
     var ew = Math.min(tw - 24, 470), eh = 92, ex = (VB_W - ew) / 2, ey = BOTTOM + 22;
@@ -356,11 +439,52 @@
     this.veil.setAttribute('opacity', v.power === 'off' ? 0.42 : 0);
     var tb = v.turb == null ? 5 : v.turb;
     this.haze.setAttribute('opacity', Math.max(0, Math.min(0.7, (tb - 5) / 100 * 0.75)).toFixed(3));
+    // more and larger suspended particles as simulated turbidity rises
+    this.moteCount = Math.max(20, Math.min(170, Math.round(36 + (tb - 3) * 2.4)));
+    this.moteScale = 1 + Math.max(0, Math.min(0.7, (tb - 10) / 70));
+    var brown = Math.max(0, Math.min(1, (tb - 8) / 60));
+    this.moteNear.setAttribute('fill', mix('#f1e7cc', '#b98e55', brown));
+    this.moteFar.setAttribute('fill', mix('#e6efe2', '#a8865a', brown));
+    var u = v.upkeep;
+    if (u) {
+      fadeTo(this.glassAlgae, u.glass);
+      fadeTo(this.scum, u.glass * 0.75);
+      fadeTo(this.woodAlgae, u.decor);
+      fadeTo(this.rockAlgae, u.decor * 0.9);
+      fadeTo(this.detritus, u.detritus);
+      var pfv = u.probes * 0.85;
+      this.probeFilm.forEach(function (f) { fadeTo(f, pfv); });
+    }
+    if (!this.animate) this.drawMotes(0, 0);
     this.heater.setAttribute('opacity', v.heater ? 1 : 0);
     this.bubbling = !!v.bubbles;
     this.bubStream.setAttribute('opacity', v.bubbles ? 1 : 0);
     var heads = this.probeHeads;
     if (v.probes) Object.keys(heads).forEach(function (k) { heads[k].setAttribute('fill', v.probes[k] === 'ok' ? '#3b4b55' : '#b3261e'); });
+  };
+
+  function mix(a, b, f) {
+    var pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16), out = '#';
+    [16, 8, 0].forEach(function (sh) { var c = Math.round(((pa >> sh) & 255) * (1 - f) + ((pb >> sh) & 255) * f); out += (c < 16 ? '0' : '') + c.toString(16); });
+    return out;
+  }
+  // Brownian-looking drift with a slow settle; particles that reach the gravel re-enter near the top.
+  Tank.prototype.drawMotes = function (dt, t) {
+    var G = this.g, x0 = G.tx + 3, x1 = G.tx + G.tw - 3, y0 = G.water + 4, y1 = this.sandTop + 2;
+    var n = Math.min(this.moteCount, this.motes.length), sc = this.moteScale, far = '', near = '';
+    for (var i = 0; i < n; i++) {
+      var m = this.motes[i], k = 0.35 + m.z;
+      if (dt) {
+        m.x += (Math.sin(t / 2300 + m.ph) * 3.2 + Math.sin(t / 7100 + m.ph * 2) * 2.2) * dt * k;
+        m.y += (m.sp * 1.1 + Math.cos(t / 1900 + m.ph) * 2.6) * dt * k;
+        if (m.y > y1) { m.y = y0 + Math.random() * 30; m.x = x0 + Math.random() * (x1 - x0); }
+        if (m.x < x0) m.x = x1; else if (m.x > x1) m.x = x0;
+      }
+      var r = m.r * (0.6 + m.z * 0.8) * sc, d = 'M' + (m.x - r).toFixed(1) + ',' + m.y.toFixed(1) + 'a' + r.toFixed(2) + ',' + r.toFixed(2) + ' 0 1,0 ' + (2 * r).toFixed(2) + ',0a' + r.toFixed(2) + ',' + r.toFixed(2) + ' 0 1,0 ' + (-2 * r).toFixed(2) + ',0';
+      if (m.z < 0.55) far += d; else near += d;
+    }
+    this.moteFar.setAttribute('d', far);
+    this.moteNear.setAttribute('d', near);
   };
 
   Tank.prototype.dispense = function (phase, outcome) {
@@ -406,7 +530,8 @@
       else if (q.y < q.rest) { q.y += 28 * dt; q.x += Math.sin(t / 400 + p) * q.drift * dt * 0.4; }
       else q.life += dt;
       q.node.setAttribute('cx', q.x.toFixed(1)); q.node.setAttribute('cy', q.y.toFixed(1));
-      if (q.life > 14) { var o = Math.max(0, 1 - (q.life - 14) / 3); q.node.setAttribute('opacity', o); if (o === 0) { q.node.remove(); this.pellets.splice(p, 1); } }
+      if (q.life > 6 && !q.dark) { q.dark = true; q.node.setAttribute('fill', '#6e5534'); q.node.setAttribute('stroke', '#4a3820'); }
+      if (q.life > 30) { var o = Math.max(0, 1 - (q.life - 30) / 6); q.node.setAttribute('opacity', o); if (o === 0) { q.node.remove(); this.pellets.splice(p, 1); } }
     }
 
     if (!this.animate) return;
@@ -466,6 +591,7 @@
       });
     }
     if (this.heaterCoil) this.heaterCoil.setAttribute('fill', Math.floor(t / 600) % 2 ? '#ff7a3d' : '#ff9a5e');
+    this.drawMotes(dt, t);
     var water = G.water;
     this.bubbles.forEach(function (b) {
       b.y -= b.sp * dt;
