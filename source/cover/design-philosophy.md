@@ -1,0 +1,11 @@
+# Tidal Ledger
+
+A visual philosophy for measured water: the movement treats a living volume of water as something to be observed, sampled and written down, patiently, minute by minute, until the record itself becomes beautiful. Nothing is dramatised. The drama is in the accumulation: a thousand small marks that, read together, describe a day.
+
+**Space and form.** The canvas is a deep, quiet field, close to the colour of water at night, ruled by an almost invisible grid. Form arrives as the smallest possible unit (a tick, a hairline, a single dot) repeated until it carries weight. Large regions are left empty on purpose; the emptiness is the water, and the marks are what the instrument noticed. Every mark sits on a grid that has been placed with meticulous, painstaking care, so the whole composition reads as the work of someone who measured twice and drew once.
+
+**Colour and material.** One cold field, one living teal, one signal yellow borrowed from drawing-office hazard tape, and a warm off-white for the few words. Colour is rationed like reagent: teal for what was observed, yellow only for what must be flagged, white only where language is unavoidable. Opacity does the shading work that gradients usually do, so the surface stays flat, honest and printable, the product of deep expertise in restraint rather than effect.
+
+**Scale and rhythm.** The rhythm is the day itself: a long horizontal run of evenly spaced marks, broken a few times by tall, deliberate verticals that mark the moments something was asked of a person. Big scale is reserved for exactly one word. Everything else is set small, tracked open, and placed like a specimen label, with master-level attention to optical alignment and the spacing between label and mark.
+
+**Composition and hierarchy.** The eye enters at the single large word, travels along the band of accumulated marks, pauses at the vertical events, and exits through a small legend that explains the symbols the way a field notebook would. Text is never explanatory prose; it is annotation. The finished plate should look as though it took countless hours: every hairline aligned, every label breathing, nothing touching the margin, nothing overlapping, and the whole thing quiet enough to hang on a wall.
