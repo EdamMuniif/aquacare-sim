@@ -202,6 +202,35 @@ h1, h2, h3, p { margin: 0; }
 .bay__size { font-size: 12px; font-weight: 600; color: #cfe1e7; background: rgba(13, 26, 34, .82); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(207, 225, 231, .2); }
 .tank { display: block; width: 100%; height: auto; max-height: 62vh; margin: 0 auto; }
 .bay__cap { color: #b7c9cf; font-size: 12.5px; padding: 10px 14px 12px; border-top: 1px solid rgba(255,255,255,.07); }
+.tank3d__viewport {
+  height: clamp(320px, 46vw, 580px);
+  position: relative;
+  touch-action: none;
+  cursor: grab;
+  background: radial-gradient(ellipse at 49% 46%, #244756, #0d1e27 66%, #081219);
+}
+.tank3d__viewport:active { cursor: grabbing; }
+.tank3d__viewport.is-panning { cursor: move; }
+.tank3d__viewport:focus-visible { outline: 2px solid #8bd9e6; outline-offset: -3px; }
+.tank3d__viewport canvas { display: block; width: 100%; height: 100%; }
+.tank3d__tools { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 0; }
+.tank3d__tools button, .tank3d__tools select, .tank3d__toggle {
+  background: #152c39;
+  color: #e2f0f2;
+  border: 1px solid #456271;
+  border-radius: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 9px;
+  font: 600 13px var(--sans);
+}
+.tank3d__tools button[aria-pressed="true"] { color: #0d222b; background: #9cd9e3; }
+.tank3d__tools button:hover, .tank3d__toggle:hover { border-color: #b4e5ed; }
+.tank3d__toggle { margin: 0 8px 3px 0; }
+#tank3dHelp { margin: 6px 12px 10px; color: #c2d5dc; font-size: 12px; }
+@media (max-width: 480px) {
+  .tank3d__viewport { height: clamp(250px, 76vw, 340px); }
+}
 .aq-label { font: 600 12px var(--sans); fill: #d6e5ea; }
 .aq-label--sub { font-size: 11px; font-weight: 500; fill: #9fb4bb; }
 .aq-lcd { font: 600 13px var(--mono); fill: #b9f08a; letter-spacing: .04em; white-space: pre; }

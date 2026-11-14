@@ -133,7 +133,56 @@
   }
 
   // ---------- tank ----------
-  var tank = new window.AquaTank($('tank'));
+  var flatTank = new window.AquaTank($('tank'));
+  var tank3d = null, activeTank = flatTank;
+  var tank = {
+    render: function (size) {
+      flatTank.fishCount = this.fishCount;
+      flatTank.render(size);
+      if (tank3d) tank3d.render(size, this.fishCount);
+    },
+    onButton: function (handler) {
+      flatTank.onButton(handler);
+      if (tank3d) tank3d.buttonHandler = handler;
+    },
+    setAnimate: function (on) {
+      flatTank.setAnimate(on);
+      if (tank3d) tank3d.setAnimate(on);
+    },
+    update: function (state) {
+      flatTank.update(state);
+      if (tank3d) tank3d.update(state);
+    },
+    dispense: function (phase, outcome) { activeTank.dispense(phase, outcome); },
+    pulseButton: function () { activeTank.pulseButton(); }
+  };
+  function showTank(use3d, message) {
+    activeTank = use3d ? tank3d : flatTank;
+    $('tank3d').hidden = !use3d;
+    $('tank').toggleAttribute('hidden', use3d);
+    $('tankMode').textContent = use3d ? 'Switch to 2D' : 'Switch to 3D';
+    $('tank3dStatus').textContent = message || '';
+    if (use3d) tank3d.dirty = true;
+  }
+  if (window.AquaTank3D && window.ResizeObserver && window.IntersectionObserver) {
+    try {
+      tank3d = new window.AquaTank3D($('tank3d'));
+      $('tankMode').hidden = false;
+      $('tankMode').addEventListener('click', function () { showTank(activeTank === flatTank); });
+      tank3d.canvas.addEventListener('webglcontextlost', function (event) {
+        event.preventDefault();
+        showTank(false, '3D graphics were interrupted. The 2D view is active.');
+        $('tankMode').disabled = true;
+      });
+      tank3d.canvas.addEventListener('webglcontextrestored', function () {
+        $('tank3dStatus').textContent = '';
+        $('tankMode').disabled = false;
+      });
+      showTank(true);
+    } catch (error) {
+      $('tank3dStatus').textContent = '3D graphics are unavailable. The 2D view is active.';
+    }
+  }
   tank.fishCount = settings.fishCount;
   tank.render(settings.tankGal);
   tank.onButton(function () { engine.pressTankButton(); render(); });
