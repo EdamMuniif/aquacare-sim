@@ -227,6 +227,33 @@
       return e.s.feeds.counted === 0 && e.s.phase === 'idle' && !e.s.running && e.s.day === 1 && e.s.records.length === 0 || 'reset incomplete';
     });
 
+    check('Resume: replaying the saved journal rebuilds the identical run (page closed and reopened)', function () {
+      function sig(x) { return JSON.stringify({ s: Object.assign({}, x.s, { rand: null, ownerRand: null }), log: x.log, set: x.settings }); }
+      var st = Engine.defaultSettings(); st.startDate = '2026-11-13';
+      var a = new Engine({ settings: st, seed: 7 }); a.enableJournal();
+      st.scenarios = Engine.exampleScenarios(); st.owner.mode = 'simulated'; a.syncScenarios();
+      a.setSpeed(600); a.start();
+      for (var i = 0; i < 1500; i++) {
+        a.tick(80 + (i % 7) * 130);
+        if (i === 100) a.pressTankButton();
+        if (i === 300) a.cutPower();
+        if (i === 304) a.restorePower();
+        if (i === 600) a.startPerturbation('vinegar', 60);
+        if (i === 900) a.setSpeed(3600);
+      }
+      var b = new Engine({ settings: Engine.defaultSettings(), seed: 1 }); b.enableJournal();
+      b.replayJournal(JSON.parse(JSON.stringify(a.journal)), a.s.simTime);
+      if (sig(a) !== sig(b)) return 'replayed run differs';
+      for (var k = 0; k < 200; k++) { a.tick(500); b.tick(500); }
+      return sig(a) === sig(b) || 'runs diverged after resuming';
+    });
+
+    check('Resume: time away is caught up with every event simulated', function () {
+      var e = make(); e.setSpeed(60);
+      var gained = e.catchUp(3 * 3600 * 1000);   // 3 real hours at 60x = 180 simulated hours
+      return Math.abs(gained - 180 * 60 * MIN) < MIN && e.s.day === 8 && recs(e).length >= 21 || ('gained ' + gained / MIN + ' min, day ' + e.s.day);
+    });
+
     return results;
   }
 

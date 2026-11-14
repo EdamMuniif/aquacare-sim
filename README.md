@@ -10,4 +10,4 @@ Browser simulation of the proposed *Intelligent Feeding and Monitoring System fo
 - `HOW-TO-RUN-AND-COLLECT-DATA.md`: how to run it and export data.
 - `source/`: the readable source (engine, UI, tank, tour, self-test) and the cover plate.
 
-The simulation runs in each visitor's browser. A run's data is not stored online; use the CSV exports to keep it.
+The simulation runs in each visitor's browser. A web page can't run while it's closed, so the run is saved in that browser and, when the page is reopened, rebuilt and caught up by the time away (at the chosen speed). Nothing is stored online, and true 24/7 running would need a server or the real ESP32. Use the CSV exports to keep the data.

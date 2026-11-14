@@ -1,4 +1,4 @@
-# AquaCare digital prototype (SIMULATION), v3.1
+# AquaCare digital prototype (SIMULATION), v3.2
 
 An interactive browser simulation of the proposed **Intelligent Feeding and Monitoring System for Small Freshwater Aquariums (2.5–10 Gallons) in Vilimalé'**. It is EE7008 Project 1, Group 2.
 
@@ -18,7 +18,16 @@ python -m http.server 8000
 
 Then open http://localhost:8000.
 
-## What's new in v3.1 (feeding paper [3])
+## What's new in v3.2 (resume after closing)
+
+- **The run survives closing the page.** It's saved in this browser as it runs. When you reopen the page, the same run is rebuilt and moved forward by the time you were away at the chosen speed. Every event in that gap is simulated.
+- **Keep time running while the page is closed** switch in the Run panel (on by default), plus a notice on reopening with a **Start a fresh run** button.
+- Background tabs keep true time. Earlier versions slowed the sim down when the tab was hidden.
+- How it works: the engine is deterministic, so the browser stores only the starting settings and every action with its simulated time, not the readings. Reopening replays that list. A 30-day run rebuilds in well under a second.
+- A closed page still can't run anything. True 24/7 operation needs a server or the real ESP32. Same browser and device only.
+- Self-test now has 29 checks, including replay equivalence and catch-up.
+
+## What was new in v3.1 (feeding paper [3])
 
 - **Feeding mode switch.** AquaCare's ask-then-fallback (the design), plus *Manual only* and *Automatic only*, the two conditions compared in Setiawan et al. (CEPAT 2024).
 - **Compare feeding modes.** Runs the same 30 days three times (same seed, owner model and faults) and reports feeds delivered, missed and late, and how often the owner was at the tank. The result can be exported to CSV. It does not model fish growth, stress, survival or water cloudiness.
@@ -67,7 +76,7 @@ On a phone, the presenter controls open from the button at the bottom of the scr
 | `js/tank.js` | Animated aquarium illustration (SVG). Decorative only. |
 | `js/app.js` | Dashboard, calendar, chart, logs, exports |
 | `js/tour.js` | Guided "Show the project logic" mode |
-| `js/selftest.js` | Logic self-test with 27 checks, including complete 30-day runs and scenarios. It also runs in the *Logic self-test* tab. |
+| `js/selftest.js` | Logic self-test with 29 checks, including complete 30-day runs and scenarios. It also runs in the *Logic self-test* tab. |
 | `tests/engine.test.js` | The same self-test from the command line: `node tests/engine.test.js` |
 | `tools/build_single.py` | Rebuilds the standalone file: `python tools/build_single.py` |
 | `cover/` | Cover plate for the presentation (PNG) and its design notes |
@@ -87,4 +96,4 @@ The **Assumptions** tab lists every rule the brief does not settle. The main one
 
 ## Data and privacy
 
-Everything stays in this browser. Settings (start date, feed times, scenarios, limits) are kept in local storage. A run is regenerated when you reload, so export the CSV files to keep its data.
+Everything stays in this browser. Settings and the current run are kept in local storage, so a reload or reopening continues the same run. Clearing browser data or using a private window removes them, so export the CSV files to keep the data.

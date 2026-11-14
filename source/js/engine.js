@@ -214,7 +214,7 @@
   var P = Engine.prototype;
 
   P.on = function (fn) { this.listeners.push(fn); };
-  P.emit = function (type, data) { for (var i = 0; i < this.listeners.length; i++) this.listeners[i](type, data); };
+  P.emit = function (type, data) { if (this._replaying) return; for (var i = 0; i < this.listeners.length; i++) this.listeners[i](type, data); };
 
   P.firstSlotTime = function () {
     var t = this.slotTimes().filter(function (x) { return x != null; });
@@ -355,6 +355,8 @@
     this.addLog('demo', 'Simulation reset: Day 1 (' + dateLabel(this.settings.startDate, 1, true) + '), ' + hhmm(this.s.simTime) + ', paused', { injected: true });
     this.emit('change');
   };
+  // Clears the event log only (used by the guided tour to start each step clean).
+  P.clearLog = function () { this.log.length = 0; this.emit('change'); };
   P.clearHistory = function () {
     this.log.length = 0;
     this.s.samples.length = 0;
@@ -986,10 +988,20 @@
 
   P.tick = function (realMs) {
     var s = this.s;
+    if (this._j) this._noteSettings();
     if (!s.running || s.finished) return;
-    if (s.boot) { s.boot.realLeft -= realMs; if (s.boot.realLeft <= 0) this.finishBoot(); }
-    if (s.dispense && s.power === 'on') { s.dispense.realElapsed += realMs; this.updateDispense(); }
-    this.advanceTo(s.simTime + realMs * s.speed, false);
+    this._depth = (this._depth || 0) + 1;
+    try {
+      // Real-time completions are journaled so a reload replays them at the same simulated moment.
+      if (s.boot) { s.boot.realLeft -= realMs; if (s.boot.realLeft <= 0) { this._jpush('_boot', []); this.finishBoot(); } }
+      if (s.dispense && s.power === 'on') {
+        s.dispense.realElapsed += realMs;
+        var t0 = s.simTime;
+        this.updateDispense();
+        if (!s.dispense && this._j) this._j.entries.push({ t: t0, m: '_disp', a: [] });
+      }
+      this.advanceTo(s.simTime + realMs * s.speed, false);
+    } finally { this._depth--; }
     this.emit('tick');
   };
 
@@ -1018,6 +1030,111 @@
     return s.phase === 'reminder' ? Math.max(0, s.reminder.deadline - s.simTime) : 0;
   };
   P.dateLabel = function (day, long) { return dateLabel(this.settings.startDate, day || this.s.day, long); };
+
+  // ---------- run journal: lets a closed page resume the same run ----------
+  // The engine is deterministic (seeded RNG, event-driven clock), so a run is fully described by
+  // its starting settings plus every top-level action and the simulated time it happened at.
+  // Replaying that list rebuilds the identical run, including all readings, without storing them.
+  var JOURNALED = ['start', 'pause', 'setSpeed', 'clearHistory', 'clearLog', 'setPassageMode', 'setTarget', 'commitTarget',
+    'setSensorStatus', 'setWifi', 'setAway', 'cutPower', 'restorePower', 'finishBoot', 'pressTankButton', 'injectTrigger',
+    'jumpToNextFeed', 'expireNow', 'fastForwardToDay', 'fastForwardNextDay', 'runToEnd', 'ackFeederFault', 'ackAlert',
+    'addLog', 'raise', 'clear', 'startScenario', 'endScenario', 'syncScenarios', 'setLcdBug', 'setFeedMode', 'setBubbles',
+    'startPerturbation', 'settle', 'advanceTo'];
+  var COALESCE = { setTarget: 1, setSpeed: 1 };
+  Engine.JOURNAL_VERSION = 1;
+
+  P._jbase = function (kind) {
+    var sj = JSON.stringify(this.settings);
+    this._jSet = sj;
+    this._j = { v: Engine.JOURNAL_VERSION, base: kind, seed: this.seed, speed0: this.s ? this.s.speed : 1,
+      nextId0: this.nextId, recId0: this.recId, settings0: sj, entries: [] };
+  };
+  P._noteSettings = function () {
+    var sj = JSON.stringify(this.settings);
+    if (sj !== this._jSet) { this._jSet = sj; this._j.entries.push({ t: this.s.simTime, m: '_set', a: [sj] }); }
+  };
+  P._jpush = function (m, args) {
+    var j = this._j; if (!j || this._replaying) return;
+    var a = Array.prototype.map.call(args, function (x) {
+      if (x && typeof x === 'object' && x.id != null && x.type) return { __sc: x.id };   // a scenario object
+      return x === undefined ? null : x;
+    });
+    var last = j.entries[j.entries.length - 1];
+    if (COALESCE[m] && last && last.m === m && last.t === this.s.simTime && (m !== 'setTarget' || last.a[0] === a[0])) { last.a = a; return; }
+    j.entries.push({ t: this.s.simTime, m: m, a: a });
+  };
+
+  // Call once on the app's engine (not on throwaway engines such as the mode comparison).
+  P.enableJournal = function () {
+    var self = this;
+    this._depth = 0;
+    this._jbase('construct');
+    // Rebase on the state the constructor produced; replay re-runs the constructor's initRun.
+    this._j.nextId0 = 1; this._j.recId0 = 1; this._j.speed0 = 1;
+    JOURNALED.forEach(function (name) {
+      var fn = P[name];
+      self[name] = function () {
+        if (self._depth === 0 && !self._replaying) { self._noteSettings(); self._jpush(name, arguments); }
+        self._depth++;
+        try { return fn.apply(self, arguments); } finally { self._depth--; }
+      };
+    });
+    this.reset = function () {
+      if (self._depth === 0 && !self._replaying) { self._jbase('reset'); }
+      self._depth++;
+      try { return P.reset.apply(self, arguments); } finally { self._depth--; }
+    };
+  };
+  Object.defineProperty(P, 'journal', { get: function () { return this._j; } });
+
+  function applySettingsInPlace(target, json) {
+    var src = JSON.parse(json);
+    Object.keys(target).forEach(function (k) { delete target[k]; });
+    Object.keys(src).forEach(function (k) { target[k] = src[k]; });
+  }
+
+  // Rebuilds the run from a journal, then advances (without real time) to untilT.
+  // Throws if the journal is unusable; the caller should then start a fresh run.
+  P.replayJournal = function (j, untilT) {
+    if (!j || j.v !== Engine.JOURNAL_VERSION || !Array.isArray(j.entries)) throw new Error('journal version');
+    var self = this;
+    this._replaying = true;
+    try {
+      applySettingsInPlace(this.settings, j.settings0);
+      this.seed = j.seed; this.nextId = j.nextId0; this.recId = j.recId0;
+      this.log.length = 0;
+      this.s = { speed: j.speed0 };
+      if (j.base === 'reset') P.reset.call(this); else P.initRun.call(this);
+      j.entries.forEach(function (e) {
+        if (e.t > self.s.simTime) P.advanceTo.call(self, e.t, true);
+        if (e.m === '_set') { applySettingsInPlace(self.settings, e.a[0]); return; }
+        if (e.m === '_boot') { if (self.s.boot) P.finishBoot.call(self); return; }
+        if (e.m === '_disp') { if (self.s.dispense) { self.s.dispense.realElapsed = DISPENSE_REAL_MS; P.updateDispense.call(self); } return; }
+        if (JOURNALED.indexOf(e.m) < 0) throw new Error('unknown journal entry ' + e.m);
+        var args = (e.a || []).map(function (x) {
+          if (x && typeof x === 'object' && x.__sc != null) return (self.settings.scenarios || []).filter(function (sc) { return sc.id === x.__sc; })[0] || null;
+          return x === null ? undefined : x;
+        });
+        if ((e.m === 'startScenario' || e.m === 'endScenario') && !args[0]) return;
+        P[e.m].apply(self, args);
+      });
+      if (untilT != null && untilT > this.s.simTime) P.advanceTo.call(this, untilT, true);
+      this.quiet = false;
+      this._j = JSON.parse(JSON.stringify(j));
+      this._jSet = JSON.stringify(this.settings);
+    } finally { this._replaying = false; }
+    this.emit('change');
+  };
+
+  // Applies time spent away from the page (real ms) as if the page had stayed open.
+  P.catchUp = function (realMs) {
+    if (!this.s.running || this.s.finished || !(realMs > 0)) return 0;
+    var t0 = this.s.simTime;
+    this.quiet = true;
+    try { this.tick(realMs); } finally { this.quiet = false; }
+    this.emit('change');
+    return this.s.simTime - t0;
+  };
 
   // ---------- feeding-mode comparison ----------
   Engine.summarize = function (records) {

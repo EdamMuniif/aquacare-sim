@@ -119,8 +119,7 @@
     A.settings.owner.mode = 'presenter';
     A.settings.awayMode = false;
     A.settings.policy.interruptedReminder = 'missed';
-    E.s.passageMode = 'detect';
-    E.log.length = 0;
+    E.clearLog();   // reset() already sets the next dispense to 'passage detected'
     E.addLog('demo', 'Guided presentation: state rebuilt for this step', { injected: true });
   }
 

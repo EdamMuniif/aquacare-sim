@@ -752,3 +752,9 @@ body.touring .mbar { display: none !important; }
   #pane-modes .table, #pane-sens .grid2 .table { font-size: 13px; }
   .table--cmp th, .table--cmp td { padding: 8px 6px; }
 }
+
+/* resume notice (run restored after the page was closed) */
+.resume { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0 var(--pad) 12px; padding: 10px 14px; background: var(--accent-soft); border: 1px solid #b6d7dc; border-left: 4px solid var(--accent); border-radius: var(--r-sm); color: var(--accent-ink); font-size: 14px; line-height: 1.45; }
+.resume__text { flex: 1 1 320px; }
+.resume__acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn--sm { padding: 6px 12px; font-size: 13px; }

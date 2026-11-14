@@ -1,6 +1,6 @@
 # AquaCare digital prototype: how to run the simulation and collect data
 
-EE7008 Project 1 · Group 2 · Prototype v3.1 (four sensors, feeding modes)
+EE7008 Project 1 · Group 2 · Prototype v3.2 (four sensors, feeding modes, resume after closing)
 
 > **Read this first.** The prototype is a **simulation**. Every reading, alert, feed and CSV row it produces is **demo data** generated in the browser. None of it is a hardware measurement or a test result. The pH ±0.1 and temperature ±0.5 °C figures are **project targets**, not results. Every exported file and every row is labelled `SIMULATION - DEMO DATA`. Keep that label wherever you use the data.
 >
@@ -89,6 +89,27 @@ Shortcuts:
 | **Reset run** | Back to Day 1, paused. The log, feed records and readings are cleared. |
 
 The run stops on its own at the end of Day 30.
+
+### 3.3b Closing the page and coming back
+
+A web page can't run code while it's closed, so the simulation can't truly keep going in the background. Instead it saves the run in this browser every 2 seconds and whenever you close or hide the tab. When you open the page again it rebuilds the same run and catches up on the time you were away.
+
+- With **Keep time running while the page is closed** ticked (the default), a running sim moves forward by *time away × speed*. Away 2 hours at 60× means 120 simulated hours, so about 5 days. Every feed, scenario and fault in that gap is simulated, the same as if the page had stayed open.
+- With it unticked, the run comes back exactly where you left it.
+- A paused run always comes back paused.
+- A notice at the top says what happened. **Start a fresh run** discards the saved run.
+- A background tab keeps true time too. Browsers slow hidden tabs down, and the sim makes up the difference on the next update.
+
+The catch-up stops at the end of Day 30. At 1× a full run still takes 30 real days. For a 30-day run in one sitting, use 600× or faster.
+
+What it can't do:
+
+- It only works in the same browser on the same device. Phone and laptop each keep their own run.
+- Clearing browsing data, or a private/incognito window, removes the saved run.
+- Don't run the sim in two tabs at once. Whichever tab saves last wins.
+- Real 24/7 operation needs something that is always on: a small server, or the actual ESP32 controller.
+
+Export the CSV files before anything you'd hate to lose. The saved run is a convenience, not a backup.
 
 ### 3.4 Show each required flow
 
@@ -339,14 +360,15 @@ In every figure caption or table title, add: *"Simulation output (demo data), no
 | The export button does nothing | On the live link, accept the save prompt. In some embedded viewers downloads are blocked: open the standalone file instead. |
 | A scenario says "Not run: time had passed" | It was added after its time. Press **Reset run**. |
 | Missed-confirmation days look normal | Set **Who presses the tank button** to **Simulated owner** |
-| My run data disappeared | Reload, **Reset run**, **Clear demo history** and **Show the project logic** all replace the run. Export first. |
+| My run data disappeared | **Reset run**, **Start a fresh run**, **Clear demo history** and **Show the project logic** replace the run, and clearing browser data deletes it. A normal reload keeps it. Export first. |
+| The clock jumped ahead when I reopened the page | That's the catch-up (section 3.3b). Untick **Keep time running while the page is closed** to stop it. |
 | Numbers differ from a teammate's | Compare the second comment line in both CSVs. The settings must match, and both runs must start from **Reset run**. |
 | Animation is distracting | Display → untick **Tank animation**. Reduced-motion settings are respected automatically. |
 | Feeds keep showing *Missed, manual-only mode* | Feeding mode is set to Manual only. Switch it back to AquaCare: ask, then fall back. |
 | The LCD shows an old message | The LCD fault is on (live toggle or scenario). This is deliberate; see the health list. |
 | A perturbation test raised no alert | No operating range is set for that parameter. Load the reference ranges in Alerts & settings. |
 | Turbidity alerts keep flickering | Air bubbles are on (live or scenario). This is the paper's bubbles limitation, shown on purpose. |
-| Want to confirm the logic still works | **Logic self-test** tab → **Run logic self-test** (27 checks, software only), or run `node tests/engine.test.js` |
+| Want to confirm the logic still works | **Logic self-test** tab → **Run logic self-test** (29 checks, software only), or run `node tests/engine.test.js` |
 
 ---
 

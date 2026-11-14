@@ -50,7 +50,47 @@
 
   var settings = mergeSettings(store.data && store.data.settings);
   var engine = new Engine({ settings: settings });
-  engine.addLog('system', 'Simulation ready: Day 1 (' + engine.dateLabel(1, true) + '), ' + F.hhmm(engine.s.simTime) + ', paused. All values are demo data.');
+  engine.enableJournal();
+
+  // ---------- run resume: a closed page cannot run, so the run is saved and caught up on reopen ----------
+  var RUN_KEY = 'aquacare-run-v1';
+  var keepRunning = true, restored = null;
+  function readRun() {
+    if (!store.ok) return null;
+    try { var r = JSON.parse(window.localStorage.getItem(RUN_KEY) || 'null'); return r && r.v === 1 && r.j ? r : null; } catch (e) { return null; }
+  }
+  (function restoreRun() {
+    var saved = readRun();
+    if (!saved) return;
+    if (saved.keep === false) keepRunning = false;
+    try {
+      engine.replayJournal(saved.j, saved.simTime);
+      var away = Math.max(0, Date.now() - (+saved.savedAt || Date.now()));
+      var wasRunning = engine.s.running;
+      var gained = keepRunning && wasRunning ? engine.catchUp(away) : 0;
+      restored = { away: away, gained: gained, wasRunning: wasRunning, finished: engine.s.finished };
+    } catch (e) {
+      // unusable journal (older version or damaged): start clean rather than show a half-built run
+      engine = new Engine({ settings: settings });
+      engine.enableJournal();
+      restored = { failed: true };
+    }
+  })();
+  if (!restored || restored.failed) {
+    engine.addLog('system', 'Simulation ready: Day 1 (' + engine.dateLabel(1, true) + '), ' + F.hhmm(engine.s.simTime) + ', paused. All values are demo data.');
+  }
+  var runSaveOk = true;
+  function saveRun() {
+    if (!store.ok || !runSaveOk) return;
+    try {
+      window.localStorage.setItem(RUN_KEY, JSON.stringify({ v: 1, savedAt: Date.now(), simTime: engine.s.simTime, keep: keepRunning, j: engine.journal }));
+    } catch (e) {
+      runSaveOk = false;
+      $('storageNote').textContent = 'Settings kept; this run is too large to save in the browser (export CSV to keep data)';
+    }
+  }
+  window.addEventListener('pagehide', saveRun);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) saveRun(); });
 
   var saveTimer = null;
   function save() {
@@ -61,7 +101,7 @@
       catch (e) { store.ok = false; $('storageNote').textContent = 'In-memory only (browser storage unavailable)'; }
     }, 300);
   }
-  $('storageNote').textContent = store.ok ? 'Settings kept in this browser; run data via CSV export' : 'In-memory only (browser storage unavailable)';
+  $('storageNote').textContent = store.ok ? 'Settings and the current run kept in this browser; export CSV to keep data' : 'In-memory only (browser storage unavailable)';
 
   // ---------- downloads (hosted viewers need the platform's downloads capability) ----------
   var framed = false;
@@ -1323,14 +1363,47 @@
   window.addEventListener('resize', syncBars); syncBars();
 
   // ---------- loop ----------
-  var last = performance.now();
+  // Background tabs throttle timers to about once a minute; the event-driven engine handles the
+  // large step, so the clock keeps true time unless "keep running" is switched off.
+  var last = performance.now(), sinceSave = 0;
   setInterval(function () {
-    var now = performance.now(), dt = Math.min(1000, now - last);
+    var now = performance.now(), dt = now - last;
+    if (!keepRunning) dt = Math.min(1000, dt);
     last = now;
-    engine.tick(dt);
+    if (dt > 5000) engine.catchUp(dt); else engine.tick(dt);
+    sinceSave += dt;
+    if (sinceSave >= 2000) { sinceSave = 0; saveRun(); }
     render();
   }, 100);
   render();
+
+  // ---------- resume notice + keep-running switch ----------
+  $('keepChk').checked = keepRunning;
+  $('keepChk').addEventListener('change', function () { keepRunning = this.checked; saveRun(); });
+  function dur(ms) {
+    var m = Math.round(ms / 60000);
+    if (m < 1) return 'under a minute';
+    var d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60), mm = m % 60, out = [];
+    if (d) out.push(d + ' d'); if (h) out.push(h + ' h'); if (mm && !d) out.push(mm + ' min');
+    return out.join(' ');
+  }
+  if (restored && !restored.failed) {
+    var where = 'Day ' + engine.s.day + ', ' + F.hhmm(engine.s.simTime);
+    var txt;
+    if (!restored.wasRunning) txt = 'Run restored as you left it (paused at ' + where + ').';
+    else if (!keepRunning) txt = 'Run restored at ' + where + '. Time did not advance while the page was closed (keep-running is off).';
+    else if (restored.away < 60000) txt = 'Run restored at ' + where + ' and still running.';
+    else if (restored.gained > 0) txt = 'Run restored. You were away ' + dur(restored.away) + '; the simulation caught up ' + dur(restored.gained) + ' of simulated time and is now at ' + where + '. Every event in between was simulated.';
+    else txt = 'Run restored at ' + where + '.';
+    if (restored.finished) txt += ' The ' + settings.days + '-day run is complete.';
+    $('resumeText').textContent = txt;
+    $('resumeBar').hidden = false;
+  } else if (restored && restored.failed) {
+    $('resumeText').textContent = 'The saved run could not be restored (it came from an older version), so a fresh run has started.';
+    $('resumeBar').hidden = false;
+  }
+  $('resumeOk').addEventListener('click', function () { $('resumeBar').hidden = true; syncBars(); });
+  $('resumeFresh').addEventListener('click', function () { engine.reset(); saveRun(); $('resumeBar').hidden = true; syncBars(); render(); });
 
   window.aquacare = { engine: engine, tank: tank, settings: settings, render: render, selectTab: selectTab, selectDay: selectDay, setRange: setRange, save: save,
     refresh: function () { ui.sigCal = ui.sigFeed = ui.sigLog = ui.sigChart = ui.sigScen = ui.sigAlerts = ''; ui.sigScenList = ''; ui.sigSens = ''; fillSetup(); fillLimits(); render(); } };
