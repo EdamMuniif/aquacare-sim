@@ -113,7 +113,7 @@
             <option value="front">Front</option>
             <option value="surface">Water surface</option>
             <option value="fish">Fish close-up</option>
-            <option value="feeder">Feeder (hopper, arm, chute)</option>
+            <option value="feeder">Feeder (hopper and mini arm)</option>
             <option value="controller">Controller</option>
             <option value="top">Top view</option>
           </select>
@@ -175,7 +175,8 @@
           <h3 class="h3">How it works in this simulation</h3>
           <ul class="camcard__points">
             <li><b>One controller for every tank.</b> The head, display, hopper, arm and camera are the same size on all six tank settings. Two telescoping rails and four clamps stretch to the tank that the phone reports, and the camera field of view follows the same profile.</li>
-            <li><b>Analysis is a rule-based stand-in.</b> It reads the simulated fish positions: how fast they move compared with this tank's own normal (learned in the first seconds), how many are near the surface, and how many come to the feeder after a feed. A real build would need a trained detector on camera frames. None exists or has been tested here.</li>
+            <li><b>Analysis is a rule-based stand-in.</b> It reads the simulated fish positions: how fast they move compared with this tank's own normal (learned in the first seconds), how many are near the surface, and how many come to the food after a feed. A real build would need a trained detector on camera frames. None exists or has been tested here.</li>
+            <li><b>The camera picks where to drop food, not whether.</b> When a feed is approved with the tank button, the mini arm carries the scoop over the spot where the fish are, inside its reach. The pellets then fall, float and sink under simple physics. Proposed upgrade; needs project-team confirmation.</li>
             <li><b>The rule limits are placeholders.</b> The project team has not confirmed any alert limit, so alerts are off until you switch them on, and every line is labelled as a demo rule.</li>
           </ul>
           <div class="field">

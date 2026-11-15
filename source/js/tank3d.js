@@ -24,7 +24,9 @@
   var CM = INCH / 2.54;
   var RAIL = { outer: 2.0 * CM, inner: 1.5 * CM, y: 1.2 * CM };
   var HEAD = { w: 24 * CM, d: 7 * CM, h: 4.5 * CM, bottom: 0, zOver: 1.2 * CM };   // sits on the rim; the rail tubes run inside it
-  var FEED = { hopperX: 0.95, armX: 1.5, chuteX: 1.92, z: 0 };   // housing-local
+  var FEED = { hopperX: -1.15, armX: 0, z: 0 };   // housing-local: arm in the centre, hopper to its left
+  // arm geometry (scene units, about 4.7 + 4.5 cm links) and its folded rest pose [yaw, shoulder, elbow, wrist]
+  var ARM = { sh: 0.24, l1: 0.95, l2: 0.9, l3: 0.22, rest: [Math.PI, 1.35, -2.55, 1.2] };
   var SLEEVE = 10 * CM, CORNER = 3 * CM, TRACK = 0.8 * CM;
   var TOP = HEAD.bottom + HEAD.h;           // top face of the housing
 
@@ -625,7 +627,7 @@
     // feeder on the housing: hopper, servo arm (3D-printed look), funnel, chute and IR beam
     var hopperY = TOP + 0.26;
     [0, 1, 2].forEach(function (k) {
-      var an = k / 3 * TAU + 0.5;
+      var an = Math.PI / 3 + k / 3 * TAU;      // 60, 180, 300 degrees: open toward the arm
       mesh(head, new T.CylinderGeometry(0.03, 0.03, 0.26, 8), metal, FEED.hopperX + Math.cos(an) * 0.26, TOP + 0.13, FEED.z + Math.sin(an) * 0.26);
     });
     mesh(head, new T.CylinderGeometry(0.30, 0.19, 0.11, 20), black, FEED.hopperX, hopperY + 0.055, FEED.z);
@@ -633,41 +635,52 @@
     mesh(head, new T.CylinderGeometry(0.32, 0.32, 0.6, 24, 1, true), new T.MeshStandardMaterial({ color: 0xbfe3ea, transparent: true, opacity: 0.24, roughness: 0.1, metalness: 0.1, side: T.DoubleSide, depthWrite: false }), FEED.hopperX, hopperY + 0.33, FEED.z).renderOrder = 6;
     mesh(head, new T.CylinderGeometry(0.345, 0.345, 0.065, 24), black, FEED.hopperX, hopperY + 0.65, FEED.z);
     mesh(head, new T.SphereGeometry(0.045, 10, 8), metal, FEED.hopperX, hopperY + 0.71, FEED.z);
+    // Mini 4-axis arm in the centre of the housing: turntable (yaw), shoulder, elbow and
+    // wrist servos, printed links and a scoop with an IR gate across its lip. It is posed
+    // from joint angles; Tank3D drives those angles through a servo model (see FeedArm).
     var arm = new T.Group();
     arm.position.set(FEED.armX, TOP, FEED.z);
     head.add(arm);
-    mesh(arm, new T.CylinderGeometry(0.26, 0.28, 0.12, 24), white, 0, 0.06, 0);
-    box(arm, [0.32, 0.2, 0.26], blue, 0, 0.22, -0.02);
-    box(arm, [0.32, 0.06, 0.12], white, 0, 0.25, -0.02);
-    var shoulder = new T.Group(); shoulder.position.set(0, 0.36, 0.17); arm.add(shoulder);
-    mesh(shoulder, new T.CylinderGeometry(0.09, 0.09, 0.1, 18), white).rotation.x = Math.PI / 2;
-    var link1 = new T.Group(); shoulder.add(link1);
-    box(link1, [0.5, 0.12, 0.07], white, 0.25, 0, 0.0);
-    mesh(link1, new T.CylinderGeometry(0.085, 0.085, 0.09, 18), white, 0.5, 0, 0).rotation.x = Math.PI / 2;
-    mesh(link1, new T.CylinderGeometry(0.03, 0.03, 0.115, 8), metal, 0.5, 0, 0).rotation.x = Math.PI / 2;
-    box(link1, [0.26, 0.14, 0.18], blue, 0.5, 0, -0.13);
-    var link2 = new T.Group(); link2.position.set(0.5, 0, 0.03); link1.add(link2);
-    box(link2, [0.5, 0.1, 0.06], white, 0.25, 0, 0);
-    mesh(link2, new T.CylinderGeometry(0.075, 0.075, 0.08, 18), white, 0.5, 0, 0).rotation.x = Math.PI / 2;
-    var scoop = new T.Group(); scoop.position.set(0.5, 0, 0); link2.add(scoop);
-    box(scoop, [0.22, 0.03, 0.14], white, 0, -0.1, 0);
-    box(scoop, [0.03, 0.13, 0.14], white, -0.095, -0.045, 0);
-    box(scoop, [0.03, 0.13, 0.14], white, 0.095, -0.045, 0);
-    box(scoop, [0.22, 0.13, 0.03], white, 0, -0.045, -0.055);
+    mesh(arm, new T.CylinderGeometry(0.25, 0.28, 0.08, 28), black, 0, 0.04, 0);
+    var yawG = new T.Group(); yawG.position.y = 0.08; arm.add(yawG);
+    mesh(yawG, new T.CylinderGeometry(0.23, 0.23, 0.05, 28), white, 0, 0.025, 0);
+    box(yawG, [0.24, 0.13, 0.17], blue, 0, 0.1, 0);
+    [-1, 1].forEach(function (s) { box(yawG, [0.13, 0.2, 0.035], white, 0, 0.15, s * 0.115); });
+    var shoulder = new T.Group(); shoulder.position.y = ARM.sh - 0.08; yawG.add(shoulder);
+    mesh(shoulder, new T.CylinderGeometry(0.07, 0.07, 0.27, 18), white).rotation.x = Math.PI / 2;
+    function link(parent, len, thick) {
+      [-1, 1].forEach(function (s) { box(parent, [len, thick, 0.03], white, len / 2, 0, s * 0.06); });
+      box(parent, [len * 0.7, thick * 0.5, 0.09], white, len / 2, 0, 0);
+      mesh(parent, new T.CylinderGeometry(0.022, 0.022, 0.16, 8), metal, len, 0, 0).rotation.x = Math.PI / 2;
+    }
+    link(shoulder, ARM.l1, 0.11);
+    var elbow = new T.Group(); elbow.position.x = ARM.l1; shoulder.add(elbow);
+    box(elbow, [0.2, 0.12, 0.1], blue, 0, 0, 0.0);
+    mesh(elbow, new T.CylinderGeometry(0.065, 0.065, 0.2, 18), white).rotation.x = Math.PI / 2;
+    link(elbow, ARM.l2, 0.09);
+    var wrist = new T.Group(); wrist.position.x = ARM.l2; elbow.add(wrist);
+    box(wrist, [0.14, 0.1, 0.09], blue, 0.02, 0.0, 0);
+    mesh(wrist, new T.CylinderGeometry(0.05, 0.05, 0.15, 14), white).rotation.x = Math.PI / 2;
+    var scoop = new T.Group(); scoop.position.x = ARM.l3; wrist.add(scoop);
+    box(scoop, [0.24, 0.025, 0.16], white, 0, -0.07, 0);
+    box(scoop, [0.025, 0.11, 0.16], white, -0.11, -0.02, 0);
+    [-1, 1].forEach(function (s) { box(scoop, [0.24, 0.1, 0.022], white, 0, -0.025, s * 0.07); });
+    box(wrist, [ARM.l3 - 0.1, 0.04, 0.05], white, (ARM.l3 - 0.1) / 2 + 0.03, -0.01, 0);
+    // IR gate on the scoop lip: emitter and receiver on the two side walls
+    [-1, 1].forEach(function (s) { box(scoop, [0.04, 0.05, 0.03], black, 0.1, 0.0, s * 0.085); });
+    out.ir = mesh(scoop, new T.BoxGeometry(0.008, 0.008, 0.15), new T.MeshBasicMaterial(), 0.1, 0.0, 0);
     var load = new T.Group(); scoop.add(load);
     var pel = standard(0x9f6837, { flatShading: true });
-    for (var q = 0; q < 6; q++) mesh(load, new T.IcosahedronGeometry(0.032, 0), pel, -0.06 + (q % 3) * 0.06, -0.06 + Math.floor(q / 3) * 0.04, 0.0);
+    for (var q = 0; q < 9; q++) mesh(load, new T.IcosahedronGeometry(0.03, 0), pel, -0.07 + (q % 3) * 0.06, -0.035 + Math.floor(q / 3) * 0.012, -0.04 + Math.floor(q / 3) * 0.04);
     load.visible = false;
     [0xc47a2c, 0xa5251f, 0x2a1d14].forEach(function (c, i) {
-      tube(arm, [[-0.04 + i * 0.04, 0.2, -0.15], [-0.08 + i * 0.03, 0.12, -0.32], [-0.14 + i * 0.03, -0.01, -0.42]], 0.011, standard(c), 8);
+      tube(yawG, [[-0.1, 0.04 + i * 0.02, -0.08 + i * 0.03], [-0.2, 0.1, 0.0], [-0.12, 0.2, 0.1 - i * 0.02]], 0.01, standard(c), 8);
     });
-    out.arm = { group: arm, link1: link1, link2: link2, scoop: scoop, load: load, shoulder: new T.Vector2(0, 0.36) };
-    mesh(head, new T.CylinderGeometry(0.19, 0.065, 0.15, 18, 1, true), new T.MeshStandardMaterial({ color: 0xa5afb3, metalness: 0.75, roughness: 0.3, side: T.DoubleSide }), FEED.chuteX, TOP + 0.075, FEED.z);
-    var outY = -0.02;  // outlet just under the housing, about 1.2 cm above the waterline
-    mesh(head, new T.CylinderGeometry(0.065, 0.065, Math.max(0.04, HEAD.bottom - outY + 0.06), 14), standard(0x20282c, { roughness: 0.4, metalness: 0.3 }), FEED.chuteX, (HEAD.bottom + outY) / 2 + 0.01, FEED.z);
-    out.outlet = new T.Vector3(FEED.chuteX, outY, out.headZ + FEED.z);
-    [-1, 1].forEach(function (s) { box(head, [0.07, 0.1, 0.07], black, FEED.chuteX + s * 0.18, outY - 0.05, FEED.z); });
-    out.ir = mesh(head, new T.BoxGeometry(0.29, 0.012, 0.012), new T.MeshBasicMaterial(), FEED.chuteX, outY - 0.05, FEED.z);
+    out.arm = { group: arm, yaw: yawG, shoulder: shoulder, elbow: elbow, wrist: wrist, scoop: scoop, load: load };
+    setArmJoints(out.arm, ARM.rest);
+    // the hopper chute stub (food falls from the hopper into the scoop underneath)
+    mesh(head, new T.CylinderGeometry(0.06, 0.04, 0.06, 12), black, FEED.hopperX, TOP + 0.235, FEED.z);
+    out.outlet = new T.Vector3(0, -0.02, out.headZ - 1.3);
     // camera view volume (hidden until asked for)
     out.cone = new T.Group();
     out.cone.visible = false;
@@ -678,8 +691,8 @@
       ['Display', new T.Vector3(-0.42, hy + 0.4, hz + fz)],
       ['Tank button', new T.Vector3(1.95, hy - 0.35, hz + fz + 0.1)],
       ['Feed hopper', new T.Vector3(FEED.hopperX, TOP + 1.05, hz)],
-      ['Servo arm', new T.Vector3(FEED.armX + 0.15, TOP + 0.62, hz + 0.17)],
-      ['Chute + IR beam', new T.Vector3(FEED.chuteX, 0.02, hz)],
+      ['Mini robot arm', new T.Vector3(0.2, TOP + 0.95, hz)],
+      ['Scoop IR gate', new T.Vector3(-0.55, TOP + 0.55, hz)],
       ['Top camera', new T.Vector3(0, podY - 0.26, out.camZ)],
       ['Extending rail', new T.Vector3(-(HEAD.w / 2 + (w / 2 - HEAD.w / 2) / 2), RY + 0.18, zf)],
       ['Probe cable cover', new T.Vector3(xs - 0.3, RY + 0.2, -d * 0.25)],
@@ -689,18 +702,39 @@
     return out;
   }
 
-  // two-link arm: put the scoop at (tx, ty) relative to the shoulder
-  function poseArm(arm, tx, ty, tip) {
-    var L1 = 0.5, L2 = 0.5, sx = arm.shoulder.x, sy = arm.shoulder.y;
-    var dx = tx - sx, dy = ty - sy, dist = Math.min(Math.hypot(dx, dy), L1 + L2 - 0.001);
-    var base = Math.atan2(dy, dx), delta = Math.acos(T.MathUtils.clamp((L1 * L1 + dist * dist - L2 * L2) / (2 * L1 * dist), -1, 1));
-    var a1 = Math.cos(base) >= 0 ? base + delta : base - delta;
-    var ex = L1 * Math.cos(a1), ey = L1 * Math.sin(a1);
-    var a2 = Math.atan2(dy - ey, dx - ex);
-    arm.link1.rotation.z = a1;
-    arm.link2.rotation.z = a2 - a1;
-    arm.scoop.rotation.z = -a2 - tip * 1.9;
+  // ---- mini arm kinematics (arm-local frame: origin on the housing top, y up) ----
+  function setArmJoints(arm, q) {
+    arm.yaw.rotation.y = q[0];
+    arm.shoulder.rotation.z = q[1];
+    arm.elbow.rotation.z = q[2];
+    arm.wrist.rotation.z = q[3];
   }
+  // scoop centre from joint angles
+  function armForward(q) {
+    var a1 = q[1], a2 = a1 + q[2], a3 = a2 + q[3];
+    var r = ARM.l1 * Math.cos(a1) + ARM.l2 * Math.cos(a2) + ARM.l3 * Math.cos(a3);
+    var y = ARM.sh + ARM.l1 * Math.sin(a1) + ARM.l2 * Math.sin(a2) + ARM.l3 * Math.sin(a3);
+    return new T.Vector3(r * Math.cos(q[0]), y, -r * Math.sin(q[0]));
+  }
+  // joint angles that put the level scoop at (x, y, z), then tip it forward by `tip` radians
+  function armInverse(x, y, z, tip, yawNear) {
+    var yaw = Math.atan2(-z, x);
+    if (yawNear !== undefined) { while (yaw - yawNear > Math.PI) yaw -= TAU; while (yaw - yawNear < -Math.PI) yaw += TAU; }
+    var r = Math.hypot(x, z) - ARM.l3, h = y - ARM.sh;
+    var d = T.MathUtils.clamp(Math.hypot(r, h), Math.abs(ARM.l1 - ARM.l2) + 0.02, ARM.l1 + ARM.l2 - 0.02);
+    var c2 = T.MathUtils.clamp((d * d - ARM.l1 * ARM.l1 - ARM.l2 * ARM.l2) / (2 * ARM.l1 * ARM.l2), -1, 1);
+    var e = Math.acos(c2);                              // elbow up
+    var a1 = Math.atan2(h, r) + Math.atan2(ARM.l2 * Math.sin(e), ARM.l1 + ARM.l2 * Math.cos(e));
+    var a2 = -e;
+    return [yaw, a1, a2, -(a1 + a2) - (tip || 0)];
+  }
+  // largest horizontal reach of the scoop at height y
+  function armReach(y) {
+    var h = y - ARM.sh, d = ARM.l1 + ARM.l2 - 0.06;
+    return Math.sqrt(Math.max(0, d * d - h * h)) + ARM.l3;
+  }
+
+
 
   function disposeTree(root3) {
     root3.traverse(function (o) {
@@ -745,7 +779,7 @@
     this.behaviour = 'normal';
     this.finish = 'black';
     this.showTags = false;
-    this.armP = 0; this.armTip = 0; this.armPhase = 'rest';
+    this.armPhase = 'rest';
     this.lastFeedAt = 0;
     this.feed = null;
     this.scene.add(new T.HemisphereLight(0xd5edfc, 0x4d3c29, 2.0));
@@ -874,6 +908,7 @@
     this.lightStrip = this.ctrl.lightStrip;
     this.ir = this.ctrl.ir;
     this.arm = this.ctrl.arm;
+    this.resetArm();
     this.chute = this.ctrl.outlet.clone().add(new T.Vector3(0, H, 0));
     this.lens = this.ctrl.lens.clone().add(new T.Vector3(0, H, 0));
     this.buildCone();
@@ -1035,7 +1070,7 @@
       front: [0, 0.075, 0.96, 0, cy, 0],
       surface: [0.22, 0.86, 0.74, 0, SURFACE * 0.78, 0],
       fish: [-0.16, 0.10, 0.55, -W * 0.03, SURFACE * 0.5, D * 0.12],
-      feeder: [0.46, 0.24, 0.36, fx, H + 0.9, fz],
+      feeder: [2.55, 0.5, 0.62, fx, H + 0.1, fz - 0.9],
       controller: [0.3, 0.2, 0.5, 0, H + 0.6, fz * 0.6],
       top: [0, 1.36, 0.82, 0, H * 0.5, 0]
     };
@@ -1197,7 +1232,7 @@
     this.clearPellets();
     this.beam = 'idle';
     this.beamUntil = 0;
-    this.armPhase = 'rest';
+    this.resetArm();
     this.dirty = true;
   };
 
@@ -1239,30 +1274,176 @@
     this.pellets.length = 0;
   };
 
-  // The servo arm scoops from the hopper, swings to the funnel and tips. The chute
-  // outcome (food passes the IR beam, or does not) comes from the simulation logic.
+  // ---- camera-guided feeding with a servo-driven mini arm ----
+  // The tank button still decides WHETHER to feed (simulation logic). The top camera only
+  // picks WHERE: the scoop is carried over the spot where the fish are, inside the arm's
+  // reach and behind the housing. Pellets then fall, float and sink under simple physics.
+  var SERVO = { kp: 170, kd: 23, vmax: 5.5 };     // stiffness, damping, rad/s limit (illustrative)
+  var G = 9.81 * 100 * INCH / 2.54;              // gravity in scene units per s^2
+  var SINK = 1.4 * INCH / 2.54;                  // pellet sinking speed, about 1.4 cm/s (illustrative)
+
+  Tank3D.prototype.resetArm = function () {
+    this.servo = ARM.rest.map(function (q) { return { q: q, v: 0, t: q }; });
+    this.fd = { phase: 'rest', t: 0, outcome: null, queue: 0, tip: 0, released: 0, jam: false };
+    this.armPhase = 'rest';
+    if (this.arm) { this.arm.load.visible = false; setArmJoints(this.arm, ARM.rest); }
+  };
+
+  // camera step: where are the fish, and where can the arm drop food near them?
+  Tank3D.prototype.chooseFeedSpot = function () {
+    var fish = this.fishStates(), n = fish.length, cx = 0, cz = 0;
+    fish.forEach(function (f) { cx += f.x; cz += f.z; });
+    var hz = this.ctrl.headZ, yDrop = -TOP + 0.3, reach = armReach(yDrop) - 0.08;
+    var dx = n ? cx / n : 0, dz = n ? cz / n - hz : -1.3, zMax = -(HEAD.d / 2 + 0.28), clamped = false;
+    if (dz > zMax) { dz = zMax; clamped = true; }
+    var r = Math.hypot(dx, dz);
+    if (r > reach) { dx *= reach / r; dz *= reach / r; clamped = true; }
+    if (dz > zMax) { dz = zMax; dx = Math.sign(dx || 1) * Math.sqrt(Math.max(0, reach * reach - dz * dz)) * 0.98; }
+    var xLim = W / 2 - 0.4, zMin = -D / 2 + 0.4 - hz;
+    if (Math.abs(dx) > xLim) { dx = Math.sign(dx) * xLim; clamped = true; }
+    if (dz < zMin) { dz = zMin; clamped = true; }
+    var spot = new T.Vector3(dx, SURFACE, hz + dz), near = 0;
+    fish.forEach(function (f) { if (Math.hypot(f.x - spot.x, f.z - spot.z) < 1.4) near++; });
+    this.feedSpot = spot;
+    this.feedPlan = { fish: n, near: near, clamped: clamped, at: performance.now(),
+      local: new T.Vector3(dx - FEED.armX, yDrop, dz) };
+    return spot;
+  };
+
   Tank3D.prototype.dispense = function (phase, outcome) {
+    var fd = this.fd;
     if (phase === 'start') {
-      this.beamUntil = 0;
-      this.beam = 'active';
-      this.armPhase = 'swing';
+      if (fd.phase === 'rest') {
+        this.chooseFeedSpot();
+        fd.phase = 'toHopper'; fd.t = 0; fd.outcome = null; fd.tip = 0; fd.released = 0; fd.jam = false;
+        this.beam = 'active'; this.beamUntil = 0;
+      } else fd.queue = Math.min(2, fd.queue + 1);
     }
-    if (phase === 'chute') {
-      this.beam = outcome === 'detect' ? 'passed' : 'blocked';
-      this.armPhase = 'tip';
-      this.dropOutcome = outcome;
-      this.lastFeedAt = performance.now();
-      if (outcome === 'detect' && this.animate && this.pellets.length < 18) {
-        for (var i = 0; i < 6; i++) {
-          var pellet = mesh(this.world, this.pelletGeometry, this.pelletMaterial, this.chute.x + (i % 3 - 1) * 0.03, this.chute.y, this.chute.z);
-          pellet.userData = { age: -i * 0.095 - 0.35, sway: (i % 3 - 1) * 0.5 };
-          pellet.visible = false;
-          this.pellets.push(pellet);
-        }
-      }
-    }
-    if (phase === 'end') { this.beamUntil = performance.now() + 1600; this.armPhase = 'return'; }
+    if (phase === 'chute') fd.outcome = outcome;     // the arm acts on it when it gets there
+    this.armPhase = fd.phase;
+    this.armLast = 0;
     this.dirty = true;
+  };
+
+  function servoStep(s, dt) {
+    for (var k = 0; k < 4; k++) {
+      var h = dt / 4, acc = SERVO.kp * (s.t - s.q) - SERVO.kd * s.v;
+      s.v = T.MathUtils.clamp(s.v + acc * h, -SERVO.vmax, SERVO.vmax);
+      s.q += s.v * h;
+    }
+  }
+
+  Tank3D.prototype.spawnPellet = function (from, vel) {
+    if (this.pellets.length > 60) return;
+    var local = this.world.worldToLocal(from.clone());
+    var p = mesh(this.world, this.pelletGeometry, this.pelletMaterial, local.x, local.y, local.z);
+    p.userData = { v: vel.clone(), state: 'air', t: 0, floatFor: 0.5 + Math.random() * 2.2, seed: Math.random() * 10 };
+    this.pellets.push(p);
+  };
+
+  Tank3D.prototype.animateArm = function () {
+    var now = performance.now(), dt = this.armLast ? Math.min(0.05, (now - this.armLast) / 1000) : 0.016;
+    this.armLast = now;
+    var fd = this.fd, sv = this.servo, arm = this.arm, plan = this.feedPlan;
+    if (!fd || !sv) return;
+    fd.t += dt;
+    var q = sv.map(function (s) { return s.q; }), target = null, tip = 0, joints = null;
+    var hop = new T.Vector3(FEED.hopperX - FEED.armX, 0, 0);
+    var drop = plan ? plan.local : new T.Vector3(0, -TOP + 0.3, -1.3);
+    switch (fd.phase) {
+      case 'toHopper': target = hop.clone().setX(hop.x + 0.55).setY(0.14); break;   // beside the hopper, low
+      case 'dip': target = hop.clone().setY(0.14); break;                            // slide in under the outlet
+      case 'lift': target = fd.t < 0.5 ? hop.clone().setX(hop.x + 0.55).setY(0.16) : hop.clone().setX(hop.x + 0.6).setY(0.6); break;
+      case 'carry': target = drop.clone().setY(0.45); break;
+      case 'lower': target = drop.clone(); break;
+      case 'pour': target = drop.clone(); tip = fd.jam ? 0.95 + Math.sin(fd.t * 30) * 0.12 : Math.min(1.7, fd.t * 3.2); break;
+      case 'back': target = drop.clone().setY(0.45); break;
+      case 'unload': target = fd.t < 0.7 ? hop.clone().setX(hop.x + 0.55).setY(0.4) : hop.clone().setX(hop.x + 0.55).setY(0.14); tip = fd.t > 1.0 ? 0.9 : 0; break;
+      case 'home': joints = ARM.rest; break;
+      default: joints = null;
+    }
+    if (target) joints = armInverse(target.x, target.y, target.z, tip, sv[0].q);
+    if (joints) sv.forEach(function (s, i) { s.t = joints[i]; });
+    sv.forEach(function (s) { servoStep(s, dt); });
+    q = sv.map(function (s) { return s.q; });
+    setArmJoints(arm, q);
+    var settled = sv.every(function (s) { return Math.abs(s.t - s.q) < 0.035 && Math.abs(s.v) < 0.5; }) || fd.t > 3.2;
+    var next = function (p) { fd.phase = p; fd.t = 0; };
+    switch (fd.phase) {
+      case 'toHopper': if (settled) next('dip'); break;
+      case 'dip': if (settled && fd.t > 0.35) { arm.load.visible = true; next('lift'); } break;
+      case 'lift': if (settled && fd.t > 0.6 && fd.outcome) next('carry'); break;
+      case 'carry': if (settled) next('lower'); break;
+      case 'lower': if (settled) {
+        fd.jam = fd.outcome !== 'detect';
+        this.beam = fd.jam ? 'blocked' : 'passed';
+        this.dropOutcome = fd.outcome; this.lastFeedAt = now;
+        next('pour');
+      } break;
+      case 'pour':
+        if (!fd.jam && fd.t > 0.22 && fd.released < 9 && fd.t > 0.22 + fd.released * 0.045) {
+          var tipPos = arm.scoop.localToWorld(new T.Vector3(0.11, -0.03, (fd.released % 3 - 1) * 0.04));
+          var vel = new T.Vector3((Math.random() - 0.5) * 0.4, -0.2, (Math.random() - 0.5) * 0.4);
+          if (this.animate) this.spawnPellet(tipPos, vel);
+          fd.released++;
+          if (fd.released >= 9) arm.load.visible = false;
+        }
+        if (fd.t > (fd.jam ? 1.1 : 1.0)) { this.beamUntil = now + 1600; next('back'); }
+        break;
+      case 'back': if (settled) next(fd.jam ? 'unload' : 'home'); break;
+      case 'unload': if (fd.t > 1.6) { arm.load.visible = false; next('home'); } break;
+      case 'home': if (settled) {
+        next('rest');
+        if (fd.queue > 0) { fd.queue--; this.dispense('start'); }
+      } break;
+    }
+    this.armPhase = fd.phase;
+  };
+
+  // falling, floating, sinking and settling; fish eat what they reach
+  Tank3D.prototype.stepPellets = function (dt) {
+    var xl = W / 2 - 0.12, zl = D / 2 - 0.12;
+    for (var i = this.pellets.length - 1; i >= 0; i--) {
+      var p = this.pellets[i], d = p.userData, pos = p.position;
+      d.t += dt;
+      if (d.state === 'air') {
+        d.v.y -= G * dt;
+        pos.addScaledVector(d.v, dt);
+        if (pos.y <= SURFACE) { pos.y = SURFACE; d.state = 'float'; d.t = 0; d.v.multiplyScalar(0.15); d.v.y = 0; }
+      } else if (d.state === 'float') {
+        d.v.x += (Math.sin(d.t * 1.3 + d.seed) * 0.05 - d.v.x) * dt * 2;
+        d.v.z += (Math.cos(d.t * 1.1 + d.seed) * 0.05 - d.v.z) * dt * 2;
+        pos.addScaledVector(d.v, dt);
+        pos.y = SURFACE + Math.sin(this.time * 3 + d.seed) * 0.006;
+        if (d.t > d.floatFor) { d.state = 'sink'; d.t = 0; d.v.y = 0; }
+      } else if (d.state === 'sink') {
+        d.v.y += (-SINK - d.v.y) * dt * 3;
+        d.v.x = Math.sin(d.t * 2.1 + d.seed) * 0.05; d.v.z = Math.cos(d.t * 1.7 + d.seed) * 0.05;
+        pos.addScaledVector(d.v, dt);
+        var floor = this.bedDepth(pos.x, pos.z) + 0.04;
+        if (pos.y <= floor) { pos.y = floor; d.state = 'bed'; d.t = 0; }
+      } else if (d.t > 90) { p.removeFromParent(); this.pellets.splice(i, 1); continue; }
+      pos.x = T.MathUtils.clamp(pos.x, -xl, xl);
+      pos.z = T.MathUtils.clamp(pos.z, -zl, zl);
+      p.rotation.x += dt * (d.state === 'air' ? 9 : d.state === 'sink' ? 1.5 : 0.2);
+      p.rotation.y += dt * 0.7;
+    }
+  };
+
+  Tank3D.prototype.nearestPellet = function (pos) {
+    var best = null, bd = Infinity;
+    for (var i = 0; i < this.pellets.length; i++) {
+      var p = this.pellets[i];
+      if (p.userData.state === 'air') continue;
+      var dd = p.position.distanceToSquared(pos);
+      if (dd < bd) { bd = dd; best = p; }
+    }
+    return best;
+  };
+
+  Tank3D.prototype.eatPellet = function (pellet) {
+    var i = this.pellets.indexOf(pellet);
+    if (i >= 0) { this.pellets.splice(i, 1); pellet.removeFromParent(); this.eaten = (this.eaten || 0) + 1; }
   };
 
   Tank3D.prototype.fishStates = function () {
@@ -1297,8 +1478,10 @@
       var y = altitude + Math.sin(a * 1.49 + fish.phase) * 0.26 * (this.behaviour === 'normal' ? 1 : 0.35) + Math.sin(t * 2.9 + fish.phase) * 0.026;
       var z = (0.62 + Math.cos(a) * (0.68 + fish.lane * 0.16)) * sz;
       var destination = fish.direction.set(x, y, z);
-      if (feedAt && i % 3 !== 2) {
-        destination.lerp(new T.Vector3(this.chute.x - 0.55 + Math.sin(a * 3) * 0.5, SURFACE - 0.7 + Math.cos(a * 3) * 0.28, this.chute.z + Math.cos(a * 2) * 0.4), 0.62);
+      var food = feedAt && i % 4 !== 3 ? this.nearestPellet(fish.node.position) : null;
+      if (food) {
+        destination.lerp(food.position, 0.85);
+        if (fish.node.position.distanceTo(food.position) < 0.2) this.eatPellet(food);
       }
       destination.x = T.MathUtils.clamp(destination.x, -box_.x, box_.x);
       destination.y = T.MathUtils.clamp(destination.y, box_.y0, box_.y1);
@@ -1339,21 +1522,7 @@
       var y = 0.42 + (t * bubble.speed + bubble.phase) % (SURFACE - 0.45);
       bubble.mesh.position.set(this.airX + Math.sin(y * 7 + bubble.phase) * 0.10, y, this.airZ + Math.cos(y * 5 + bubble.phase) * 0.10);
     }, this);
-    for (i = this.pellets.length - 1; i >= 0; i--) {
-      var pellet = this.pellets[i], data = pellet.userData;
-      data.age += dt;
-      pellet.visible = data.age >= 0;
-      if (pellet.visible) {
-        var floor = this.bedDepth(this.chute.x, this.chute.z) + 0.1;
-        pellet.position.y = Math.max(floor, this.chute.y - data.age * 0.95);
-        pellet.position.x = this.chute.x + Math.sin(data.age * 2.7) * data.sway * Math.min(1, data.age);
-        pellet.rotation.x += dt * 1.6;
-      }
-      if (data.age > 7) {
-        pellet.removeFromParent();
-        this.pellets.splice(i, 1);
-      }
-    }
+    this.stepPellets(dt);
     if (this.beamUntil && now >= this.beamUntil) {
       this.beam = 'idle';
       this.beamUntil = 0;
@@ -1363,26 +1532,7 @@
     this.panel.led.material.color.setHex(color);
     this.panel.button.scale.y = now < this.pulseUntil ? 0.58 : 1;
     this.ir.material.color.setHex(this.beam === 'passed' ? 0x91ed88 : this.beam === 'blocked' ? 0xf77958 : this.beam === 'active' ? 0xffbb5b : 0x39535a);
-    this.animateArm(dt);
-  };
-
-  // arm choreography: pick = under the hopper, drop = over the funnel
-  Tank3D.prototype.animateArm = function (dt) {
-    var ph = this.armPhase, step = dt || 0.016;
-    if (ph === 'swing') { this.armP = Math.min(1, this.armP + step * 1.3); this.arm.load.visible = this.armP > 0.12; }
-    else if (ph === 'tip') {
-      this.armP = Math.min(1, this.armP + step * 2);
-      this.armTip = Math.min(1, this.armTip + step * 2.6);
-      if (this.armTip > 0.55) this.arm.load.visible = false;
-    } else if (ph === 'return') {
-      this.armTip = Math.max(0, this.armTip - step * 2.6);
-      if (this.armTip < 0.4) this.armP = Math.max(0, this.armP - step * 1.1);
-      if (this.armP <= 0 && this.armTip <= 0) this.armPhase = 'rest';
-    }
-    var p = this.armP, ax = FEED.armX;
-    var pick = [FEED.hopperX - ax, 0.30], drop = [FEED.chuteX - ax, 0.42];
-    var tx = pick[0] + (drop[0] - pick[0]) * p, ty = pick[1] + (drop[1] - pick[1]) * p + Math.sin(Math.PI * p) * 0.2;
-    poseArm(this.arm, tx, ty, this.armTip);
+    if (this.fd && this.fd.phase !== 'rest') this.animateArm();
   };
 
   Tank3D.prototype.frame = function (now) {

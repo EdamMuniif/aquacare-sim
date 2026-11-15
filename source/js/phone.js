@@ -82,7 +82,8 @@
   function say(el, text) { $(el).textContent = text; }
 
   function classify(f, ctx) {
-    if (ctx.pellets && Math.hypot(f.x - tank.chute.x, f.z - tank.chute.z) < DEMO.feederReach && f.y > tank.dims.SURFACE - 1.7) return 'feeding';
+    var spot = tank.feedSpot || tank.chute;
+    if (ctx.pellets && Math.hypot(f.x - spot.x, f.z - spot.z) < DEMO.feederReach) return 'feeding';
     if (f.y > tank.dims.SURFACE - 0.75) return 'surface';
     if (st.baseline && f.speed < st.baseline * DEMO.lowActivity) return 'slow';
     return 'swimming';
@@ -146,6 +147,17 @@
       octx.fillStyle = 'rgba(5,10,12,.8)'; octx.fillRect(cx - bw / 2, ty, tw, 18);
       octx.fillStyle = COLORS[state]; octx.textBaseline = 'middle'; octx.fillText(label, cx - bw / 2 + 4, ty + 9.5);
     });
+    // feed spot chosen from this camera view (shown while a feed is running and for a while after)
+    var plan = tank.feedPlan, busy = tank.fd && tank.fd.phase !== 'rest';
+    if (show && plan && tank.feedSpot && (busy || performance.now() - plan.at < 20000)) {
+      var fp = tank.feedProject(tank.feedSpot.x, tank.feedSpot.y, tank.feedSpot.z), fx = fp[0] * W2, fy = fp[1] * H2;
+      octx.strokeStyle = '#ffb547'; octx.lineWidth = 2.5;
+      octx.beginPath(); octx.arc(fx, fy, 16, 0, Math.PI * 2); octx.moveTo(fx - 26, fy); octx.lineTo(fx + 26, fy); octx.moveTo(fx, fy - 26); octx.lineTo(fx, fy + 26); octx.stroke();
+      octx.font = 'bold 14px ui-monospace, Menlo, Consolas, monospace';
+      var lab = 'FEED SPOT · ' + plan.near + ' fish near', lw = octx.measureText(lab).width + 8;
+      octx.fillStyle = 'rgba(5,10,12,.8)'; octx.fillRect(fx + 20, fy + 14, lw, 18);
+      octx.fillStyle = '#ffb547'; octx.textBaseline = 'middle'; octx.fillText(lab, fx + 24, fy + 23.5);
+    }
     var activity = st.baseline ? mean / st.baseline : null;
     // rules
     if (st.baseline && activity < DEMO.lowActivity) st.lowRun++; else st.lowRun = 0;
@@ -156,10 +168,10 @@
       var since = (performance.now() - tank.lastFeedAt) / 1000;
       if (counts.feeding >= Math.max(1, Math.round(n / 3))) {
         st.fedHandled = tank.lastFeedAt;
-        notify('fed' + tank.lastFeedAt, 'Feeding response seen: ' + counts.feeding + ' of ' + n + ' fish came to the feeder.', false);
+        notify('fed' + tank.lastFeedAt, 'Feeding response seen: ' + counts.feeding + ' of ' + n + ' fish came to the food.', false);
       } else if (since > 14) {
         st.fedHandled = tank.lastFeedAt;
-        if (tank.dropOutcome === 'detect') notify('nofed' + tank.lastFeedAt, 'Food was dispensed but few fish came to the feeder. Check the tank.', true);
+        if (tank.dropOutcome === 'detect') notify('nofed' + tank.lastFeedAt, 'Food was dispensed but few fish came to the food. Check the tank.', true);
       }
     }
     lastAnalysis = { n: n, counts: counts, activity: activity };
@@ -176,10 +188,12 @@
       ['Swimming', String(a.counts.swimming)],
       ['Slow', String(a.counts.slow)],
       ['Near surface', String(a.counts.surface)],
-      ['At the feeder', String(a.counts.feeding)]
+      ['At the food', String(a.counts.feeding)],
+      ['Feed spot', tank.feedPlan ? (tank.feedPlan.near + ' fish near' + (tank.feedPlan.clamped ? ', edge of arm reach' : '')) : 'not used yet'],
+      ['Food left (camera count)', String(tank.pellets.length)]
     ];
     var chip = learning ? 'Learning normal' : (warn ? 'Check tank' : 'Looks normal');
-    var key = chip + rows.map(function (r) { return r[1]; }).join('|');
+    var key = chip + (tank.fd ? tank.fd.phase : '') + rows.map(function (r) { return r[1]; }).join('|');
     if (key === panelKey) return; panelKey = key;
     var p = $('aiPanel'); p.textContent = '';
     var head = document.createElement('div'); head.className = 'ai__head';
