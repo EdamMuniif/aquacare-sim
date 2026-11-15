@@ -416,7 +416,13 @@
       power: s.power,
       led: s.power !== 'on' ? 'off' : (s.phase === 'reminder' ? 'blink' : (anyAlert ? 'fault' : 'ok')),
       buzzer: s.power === 'on' && (s.phase === 'reminder' || anyAlert),
-      lcd: lcdLines(s.power === 'off' ? ['', ''] : (s.power === 'booting' ? ['AquaCare  SIM', 'Booting...'] : [l1, l2])),
+      lcd: lcdLines(s.power === 'off' ? ['', ''] : (s.power === 'booting' ? ['AquaCare  SIM', 'Booting...'] : [l1, l2,
+        F.hhmm(s.simTime),
+        sv.temp.value == null ? '--.-' : sv.temp.value.toFixed(1),
+        sv.ph.value == null ? '--' : sv.ph.value.toFixed(2),
+        sv.tds.value == null ? '--' : String(Math.round(sv.tds.value)),
+        sv.turb.value == null ? '--' : sv.turb.value.toFixed(0),
+        'FEEDS ' + f.counted + '/' + CAP])),
       turb: sv.turb.water == null ? 5 : sv.turb.water,
       heater: s.perts.some(function (p) { return p.kind === 'heater' && s.simTime <= p.end; }),
       bubbles: bub || s.bubblesScn > 0,
@@ -1626,6 +1632,6 @@
   $('resumeOk').addEventListener('click', function () { $('resumeBar').hidden = true; syncBars(); });
   $('resumeFresh').addEventListener('click', function () { engine.reset(); saveRun(); $('resumeBar').hidden = true; syncBars(); render(); });
 
-  window.aquacare = { engine: engine, tank: tank, settings: settings, render: render, selectTab: selectTab, setView: setView, revealEl: revealEl, view: function () { return curView; }, selectDay: selectDay, setRange: setRange, save: save,
+  window.aquacare = { engine: engine, tank: tank, tank3d: function () { return tank3d; }, saveFile: saveFile, sizeLabel: sizeLabel, settings: settings, render: render, selectTab: selectTab, setView: setView, revealEl: revealEl, view: function () { return curView; }, selectDay: selectDay, setRange: setRange, save: save,
     refresh: function () { ui.sigCal = ui.sigFeed = ui.sigLog = ui.sigChart = ui.sigScen = ui.sigAlerts = ''; ui.sigScenList = ''; ui.sigSens = ''; fillSetup(); fillLimits(); render(); } };
 })();

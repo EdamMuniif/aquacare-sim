@@ -113,19 +113,103 @@
             <option value="front">Front</option>
             <option value="surface">Water surface</option>
             <option value="fish">Fish close-up</option>
-            <option value="feeder">Feeder and probes</option>
+            <option value="feeder">Feeder (hopper, arm, chute)</option>
+            <option value="controller">Controller</option>
+            <option value="top">Top view</option>
           </select>
           <button type="button" data-camera="in" aria-label="Zoom in">+</button>
           <button type="button" data-camera="out" aria-label="Zoom out">−</button>
           <button type="button" data-camera="pan" aria-pressed="false">Pan</button>
           <button type="button" data-camera="reset">Reset view</button>
           <button type="button" data-camera="button">Press tank button</button>
+          <button type="button" id="tagsBtn" aria-pressed="false">Labels</button>
+          <button type="button" id="coneBtn" aria-pressed="false">Camera view</button>
+          <label class="sr-only" for="finishSel">Controller finish</label>
+          <select id="finishSel"><option value="black">Black finish</option><option value="white">White finish</option></select>
         </div>
         <p id="tank3dHelp">Drag to rotate. Scroll or pinch to zoom. Right-drag, drag with two fingers, or turn on Pan to move the view. Keyboard: arrows to rotate, Shift + arrows to pan, + / − to zoom.</p>
       </div>
       <svg id="tank" class="tank" role="img" aria-label="Animated illustration of a small freshwater aquarium with plants, driftwood, a rock cave, decorative fish and shrimp, the proposed feeder, four sensor probes (pH, DS18B20, TDS, turbidity) and the controller enclosure. Water haze follows simulated turbidity. Decorative; animals are not monitored."></svg>
       <figcaption id="bayCap" class="bay__cap"><button class="tank3d__toggle" id="tankMode" type="button" hidden>Switch to 2D</button><span id="tank3dStatus" role="status"></span> Dust in the water follows the simulated turbidity. Fish and tank upkeep are illustrative. The IR sensor checks whether food passes through the chute.</figcaption>
     </figure>
+  <section class="card camcard" id="camCard" data-views="tank" hidden aria-labelledby="camTitle">
+      <header class="card__head"><h2 class="card__title" id="camTitle">Top camera and phone app</h2><span class="simtag">SIM</span></header>
+      <p class="camcard__lede">Proposed upgrade, not in the original brief: the controller carries a camera that looks straight down into the tank. The phone app shows that picture, sets the tank size, and can send behaviour notifications. Everything on this card is simulated.</p>
+      <div class="camcard__grid">
+        <div class="phone" role="group" aria-label="Simulated phone app">
+          <div class="phone__notch" aria-hidden="true"></div>
+          <div class="phone__screen">
+            <div class="phone__bar"><b>AquaCare</b><span class="simtag">SIM</span></div>
+            <div class="phone__sec">
+              <label class="phone__label" for="appSize">Tank profile</label>
+              <select id="appSize">
+                <option value="2.5">2.5 US gal</option>
+                <option value="3">3 US gal</option>
+                <option value="5" selected>5 US gal</option>
+                <option value="7.5">7.5 US gal</option>
+                <option value="10">10 US gal</option>
+                <option value="p3">36 &times; 22 &times; 26 cm (paper [3] tank)</option>
+              </select>
+              <p class="phone__fit" id="appFit">Controller fitted.</p>
+            </div>
+            <div class="phone__sec">
+              <div class="phone__feedwrap">
+                <canvas id="camFeed" width="480" height="270" aria-label="Simulated live picture from the top camera"></canvas>
+                <canvas id="camOver" width="960" height="540" aria-hidden="true"></canvas>
+              </div>
+              <div class="phone__row">
+                <label class="phone__check"><input type="checkbox" id="camAI" checked> Show analysis</label>
+                <button class="btn btn--sm" type="button" id="camSnap">Save snapshot</button>
+              </div>
+              <p class="phone__msg" id="camMsg" role="status"></p>
+            </div>
+            <div class="phone__sec" id="aiPanel" aria-live="off"></div>
+            <div class="phone__sec">
+              <label class="phone__check"><input type="checkbox" id="notifOn"> Behaviour alerts to this phone</label>
+              <p class="phone__fit" id="notifState">Not configured. Alerts stay off until you turn them on.</p>
+              <ul class="phone__list" id="notifList" aria-label="Notifications"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="camcard__side">
+          <h3 class="h3">How it works in this simulation</h3>
+          <ul class="camcard__points">
+            <li><b>One controller for every tank.</b> The head, display, hopper, arm and camera are the same size on all six tank settings. Two telescoping rails and four clamps stretch to the tank that the phone reports, and the camera field of view follows the same profile.</li>
+            <li><b>Analysis is a rule-based stand-in.</b> It reads the simulated fish positions: how fast they move compared with this tank's own normal (learned in the first seconds), how many are near the surface, and how many come to the feeder after a feed. A real build would need a trained detector on camera frames. None exists or has been tested here.</li>
+            <li><b>The rule limits are placeholders.</b> The project team has not confirmed any alert limit, so alerts are off until you switch them on, and every line is labelled as a demo rule.</li>
+          </ul>
+          <div class="field">
+            <label class="field__label" for="behSel">Fish behaviour (demo scenario)</label>
+            <select id="behSel">
+              <option value="normal">Normal swimming</option>
+              <option value="lethargic">Fish barely moving (injected)</option>
+              <option value="surface">Fish gathered at the surface (injected)</option>
+            </select>
+            <p class="fine">Injected for demonstration. It changes how the simulated fish move, not the water readings.</p>
+          </div>
+          <div class="phone__row">
+            <button class="btn btn--sm" type="button" id="camLook">Look from above in 3D</button>
+          </div>
+        </div>
+      </div>
+  </section>
+  <section class="card viewscard" id="viewsCard" data-views="tank" hidden aria-labelledby="viewsTitle">
+      <header class="card__head"><h2 class="card__title" id="viewsTitle">Controller from every side</h2><span class="simtag">SIM</span></header>
+      <p class="camcard__lede">The same controller, rendered from six sides at the current tank size. The display shows the live simulated readings. Model only: not a product drawing, rating or approval.</p>
+      <div class="viewsgrid" id="viewsGrid">
+        <figure><canvas id="cv-front" aria-label="Controller, front"></canvas><figcaption>Front: display, tank button, status LED</figcaption></figure>
+        <figure><canvas id="cv-back" aria-label="Controller, back"></canvas><figcaption>Back: label and vents</figcaption></figure>
+        <figure><canvas id="cv-left" aria-label="Controller, left end"></canvas><figcaption>Left end: power and service ports</figcaption></figure>
+        <figure><canvas id="cv-right" aria-label="Controller, right end"></canvas><figcaption>Right end: speaker grille, feeder side</figcaption></figure>
+        <figure><canvas id="cv-top" aria-label="Controller, top"></canvas><figcaption>Top: hopper, servo arm, funnel, touch keys</figcaption></figure>
+        <figure><canvas id="cv-under" aria-label="Controller, underside"></canvas><figcaption>Underneath: camera, light bars, chute, probe sockets</figcaption></figure>
+      </div>
+      <div class="phone__row">
+        <button class="btn btn--sm" type="button" id="viewsRefresh">Update views</button>
+        <button class="btn btn--sm" type="button" id="viewsSave">Download sheet (PNG)</button>
+        <span class="phone__msg" id="viewsMsg" role="status"></span>
+      </div>
+  </section>
   <article class="card feed" id="feedCard" data-state="idle" aria-labelledby="feedTitle" data-views="tank feeding">
       <div class="feed__top">
         <div>
@@ -855,5 +939,6 @@
 <script src="js/tank3d.js"></script>
 <script src="js/app.js"></script>
 <script src="js/tour.js"></script>
+<script src="js/phone.js"></script>
 </body>
 </html>

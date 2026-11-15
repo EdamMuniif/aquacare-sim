@@ -16,4 +16,14 @@ Open the **Tank** tab. Drag to orbit, scroll or pinch to zoom, and right-drag or
 
 The aquarium uses the same simulated turbidity, probe faults, LCD, tank button, and feeder events as the dashboard. Fish and water movement are visual approximations. The 3D renderer is bundled into the standalone file, so it can run offline.
 
+### What the 3D model shows (v5)
+
+- **Tank follows the Tank size setting** (2.5, 3, 5, 7.5, 10 US gal and the paper [3] 36×22×26 cm tank). Proportions for the US-gallon sizes are illustrative, not measured. Plants and hardscape are kept inside the glass at every size.
+- **One universal controller** sits on telescoping rails with four corner clamps, so the same unit spans every size. It carries the display (clock, temperature, pH, TDS, turbidity, feeds), the red tank button, a status LED, light bars, a downward camera and probe sockets. This is a design proposal for the project team to confirm, not a product.
+- **Auto-feeder:** hopper, servo arm, funnel, chute and an IR beam. It follows the same ask-then-fallback loop, tank button only, cap of 3 per day.
+- **Dirt and algae over time:** glass film, algae on rock and wood, probe film, detritus and waterline scum build over simulated days and reset with the Clean buttons. A 30-day run shows it clearly.
+- **Top camera and phone app:** the Tank tab has a phone mock showing the camera view with fish boxes and behaviour labels. The analysis is a rule-based stand-in with placeholder limits, not a trained model. Notifications stay off until you turn them on.
+- **Controller from every side:** six rendered views plus a downloadable sheet (PNG).
+- Toggles: **Labels**, **Camera view**, **Black / White** finish.
+
 The simulation runs in each visitor's browser. A web page can't run while it's closed, so the run is saved in that browser and, when the page is reopened, rebuilt and caught up by the time away (at the chosen speed). Nothing is stored online, and true 24/7 running would need a server or the real ESP32. Use the CSV exports to keep the data.
