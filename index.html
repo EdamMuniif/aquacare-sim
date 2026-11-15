@@ -4188,7 +4188,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   // rail tube with a 1.5 cm inner bar sliding in it. Proposal only, for team confirmation.
   var CM = INCH / 2.54;
   var RAIL = { outer: 2.0 * CM, inner: 1.5 * CM, y: 1.2 * CM };
-  var HEAD = { w: 24 * CM, d: 7 * CM, h: 4.5 * CM, bottom: 2.2 * CM, zOver: 1.2 * CM };
+  var HEAD = { w: 24 * CM, d: 7 * CM, h: 4.5 * CM, bottom: 0, zOver: 1.2 * CM };   // sits on the rim; the rail tubes run inside it
   var FEED = { hopperX: 0.95, armX: 1.5, chuteX: 1.92, z: 0 };   // housing-local
   var SLEEVE = 10 * CM, CORNER = 3 * CM, TRACK = 0.8 * CM;
   var TOP = HEAD.bottom + HEAD.h;           // top face of the housing
@@ -4828,11 +4828,11 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     });
     out.arm = { group: arm, link1: link1, link2: link2, scoop: scoop, load: load, shoulder: new T.Vector2(0, 0.36) };
     mesh(head, new T.CylinderGeometry(0.19, 0.065, 0.15, 18, 1, true), new T.MeshStandardMaterial({ color: 0xa5afb3, metalness: 0.75, roughness: 0.3, side: T.DoubleSide }), FEED.chuteX, TOP + 0.075, FEED.z);
-    var outY = 0.14;   // outlet about 2 cm above the waterline (the water sits 0.27 below the rim)
-    mesh(head, new T.CylinderGeometry(0.065, 0.065, HEAD.bottom - outY, 14), standard(0x20282c, { roughness: 0.4, metalness: 0.3 }), FEED.chuteX, (HEAD.bottom + outY) / 2, FEED.z);
+    var outY = -0.02;  // outlet just under the housing, about 1.2 cm above the waterline
+    mesh(head, new T.CylinderGeometry(0.065, 0.065, Math.max(0.04, HEAD.bottom - outY + 0.06), 14), standard(0x20282c, { roughness: 0.4, metalness: 0.3 }), FEED.chuteX, (HEAD.bottom + outY) / 2 + 0.01, FEED.z);
     out.outlet = new T.Vector3(FEED.chuteX, outY, out.headZ + FEED.z);
-    [-1, 1].forEach(function (s) { box(head, [0.07, 0.12, 0.07], black, FEED.chuteX + s * 0.18, outY + 0.05, FEED.z); });
-    out.ir = mesh(head, new T.BoxGeometry(0.29, 0.012, 0.012), new T.MeshBasicMaterial(), FEED.chuteX, outY + 0.05, FEED.z);
+    [-1, 1].forEach(function (s) { box(head, [0.07, 0.1, 0.07], black, FEED.chuteX + s * 0.18, outY - 0.05, FEED.z); });
+    out.ir = mesh(head, new T.BoxGeometry(0.29, 0.012, 0.012), new T.MeshBasicMaterial(), FEED.chuteX, outY - 0.05, FEED.z);
     // camera view volume (hidden until asked for)
     out.cone = new T.Group();
     out.cone.visible = false;
