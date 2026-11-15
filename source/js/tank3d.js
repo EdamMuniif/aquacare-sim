@@ -984,7 +984,7 @@
     while (cone.children.length) { var o = cone.children.pop(); disposeTree(o); }
     var floorY = -H + 0.2 - 0, fw = c.footW / 2, fd = c.footD / 2;
     var apex = [lens.x, lens.y, lens.z];
-    var corners = [[-fw, floorY, -fd], [fw, floorY, -fd], [fw, floorY, fd], [-fw, floorY, fd]];
+    var lz = lens.z, corners = [[-fw, floorY, lz - fd], [fw, floorY, lz - fd], [fw, floorY, lz + fd], [-fw, floorY, lz + fd]];
     var lines = [];
     corners.forEach(function (p, i) { lines.push(apex[0], apex[1], apex[2], p[0], p[1], p[2]); var q = corners[(i + 1) % 4]; lines.push(p[0], p[1], p[2], q[0], q[1], q[2]); });
     var lg = new T.BufferGeometry(); lg.setAttribute('position', new T.Float32BufferAttribute(lines, 3));
@@ -996,12 +996,34 @@
     m.renderOrder = 7; cone.add(m);
   };
 
+  // One fixed lens for every tank (the controller is universal). The lens sits in air just
+  // above the water, so refraction at the surface narrows the view under water (Snell's law).
+  // Together with the lens being behind the housing, that leaves blind spots near the surface
+  // at the ends and sides. The feed camera is set to the coverage the lens has at the floor.
+  var LENS = { hfovAir: 120, aspect: 4 / 3, n: 1.333 };   // proposed wide lens, illustrative
   Tank3D.prototype.feedFov = function () {
-    var aspect = T.MathUtils.clamp(W / D, 1.33, 1.8);
-    var height = H + this.ctrl.lens.y - 0.2;
-    var footW = W * 1.05, half = Math.atan(footW / 2 / height);
-    var v = 2 * Math.atan(Math.tan(half) / aspect);
-    return { aspect: aspect, fov: T.MathUtils.radToDeg(v), footW: footW, footD: footW / aspect, hfov: T.MathUtils.radToDeg(half * 2) };
+    var hA = T.MathUtils.degToRad(LENS.hfovAir / 2), vA = Math.atan(Math.tan(hA) / LENS.aspect);
+    var hW = Math.asin(Math.sin(hA) / LENS.n), vW = Math.asin(Math.sin(vA) / LENS.n);
+    var lens = this.ctrl.lens, air = Math.max(0.02, lens.y + 0.27), depth = SURFACE - 0.2;
+    var footW = 2 * (air * Math.tan(hA) + depth * Math.tan(hW)), footD = 2 * (air * Math.tan(vA) + depth * Math.tan(vW));
+    var nearW = 2 * (air * Math.tan(hA) + 0.4 * Math.tan(hW)), nearD = 2 * (air * Math.tan(vA) + 0.4 * Math.tan(vW));
+    function share(fw, fd) {
+      var x = Math.max(0, Math.min(fw / 2, W / 2) * 2), z0 = Math.max(-D / 2, lens.z - fd / 2), z1 = Math.min(D / 2, lens.z + fd / 2);
+      return Math.min(1, x / W) * Math.max(0, z1 - z0) / D;
+    }
+    return { aspect: footW / footD, fov: T.MathUtils.radToDeg(2 * Math.atan(footD / 2 / (air + depth))), footW: footW, footD: footD,
+      hfov: LENS.hfovAir, hfovWater: T.MathUtils.radToDeg(2 * hW), floorSeen: share(footW, footD), surfaceSeen: share(nearW, nearD) };
+  };
+  Tank3D.prototype.aimFeedCamera = function () {
+    var c = this.feedFov(), cam = this.feedCamera;
+    cam.fov = c.fov; cam.aspect = c.aspect; cam.updateProjectionMatrix();
+    cam.position.copy(this.lens); cam.up.set(0, 0, -1); cam.lookAt(this.lens.x, 0, this.lens.z); cam.updateMatrixWorld();
+    return c;
+  };
+  // true when a point is inside what the top camera can see (rocks and plants not modelled)
+  Tank3D.prototype.inCameraView = function (x, y, z) {
+    var v = new T.Vector3(x, y, z).project(this.feedCamera);
+    return v.z < 1 && Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1;
   };
 
   Tank3D.prototype.buildTags = function () {
@@ -1291,7 +1313,8 @@
 
   // camera step: where are the fish, and where can the arm drop food near them?
   Tank3D.prototype.chooseFeedSpot = function () {
-    var fish = this.fishStates(), n = fish.length, cx = 0, cz = 0;
+    this.aimFeedCamera();
+    var self = this, fish = this.fishStates().filter(function (f) { return self.inCameraView(f.x, f.y, f.z); }), n = fish.length, cx = 0, cz = 0;
     fish.forEach(function (f) { cx += f.x; cz += f.z; });
     var hz = this.ctrl.headZ, yDrop = -TOP + 0.3, reach = armReach(yDrop) - 0.08;
     var dx = n ? cx / n : 0, dz = n ? cz / n - hz : -1.3, zMax = -(HEAD.d / 2 + 0.28), clamped = false;
@@ -1581,13 +1604,7 @@
   };
 
   Tank3D.prototype.renderFeed = function () {
-    var f = this.feed, c = this.feedFov();
-    var cam = this.feedCamera;
-    cam.fov = c.fov; cam.aspect = c.aspect; cam.updateProjectionMatrix();
-    cam.position.copy(this.lens);
-    cam.up.set(0, 0, -1);
-    cam.lookAt(this.lens.x, 0, this.lens.z);
-    cam.updateMatrixWorld();
+    var f = this.feed, c = this.aimFeedCamera(), cam = this.feedCamera;
     var pr = this.pixelRatio || 1, bw = Math.min(this.canvas.width, 480), bh = Math.round(bw / c.aspect);
     if (bh > this.canvas.height) { bh = this.canvas.height; bw = Math.round(bh * c.aspect); }
     if (bw < 40 || bh < 30) return;

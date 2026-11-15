@@ -30,7 +30,8 @@
     var inch = d.W / 0.513, dIn = d.D / 0.513, hIn = (d.H) / 0.513;
     var dimText = size === 'p3' ? '36 × 22 × 26 cm' : inch.toFixed(1) + ' × ' + dIn.toFixed(1) + ' × ' + hIn.toFixed(1) + ' in (illustrative proportions)';
     $('appFit').textContent = 'Controller fitted to ' + A.sizeLabel(size).replace('Tank: ', '') + '. Tank ' + dimText +
-      '. Rails extend to the tank edge. Camera field of view set to ' + Math.round(f.hfov) + '° across the tank.';
+      '. Rails extend to the tank edge. Camera: one ' + f.hfov + '° lens for every tank, about ' + Math.round(f.hfovWater) + '° under water after refraction. It sees about ' +
+      Math.round(f.floorSeen * 100) + '% of the floor and ' + Math.round(f.surfaceSeen * 100) + '% of the water just under the surface. Blind spots: the ends and sides near the surface, and fish under plants, wood or the cave.';
   }
   tank.onFit = function () {
     $('appSize').value = tank.size;
@@ -121,7 +122,9 @@
     ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, cw, 22 * u);
     ctx.fillStyle = '#f3c735'; ctx.font = 'bold ' + 12 * u + 'px ui-monospace, Menlo, Consolas, monospace'; ctx.textBaseline = 'middle';
     ctx.fillText('SIMULATION  TOP CAMERA  ' + simClock(), 8 * u, 11 * u);
-    var fish = tank.fishStates(), n = fish.length, pellets = tank.pellets.length > 0;
+    var all = tank.fishStates(), pellets = tank.pellets.length > 0;
+    var fish = all.filter(function (fi) { return tank.inCameraView(fi.x, fi.y, fi.z); }), n = fish.length;
+    var hidden = all.length - n;
     var normal = tank.behaviour === 'normal';
     var mean = n ? fish.reduce(function (a, b) { return a + b.speed; }, 0) / n : 0;
     if (!st.baseline && normal && !pellets && n) {
@@ -158,9 +161,9 @@
       octx.fillStyle = 'rgba(5,10,12,.8)'; octx.fillRect(fx + 20, fy + 14, lw, 18);
       octx.fillStyle = '#ffb547'; octx.textBaseline = 'middle'; octx.fillText(lab, fx + 24, fy + 23.5);
     }
-    var activity = st.baseline ? mean / st.baseline : null;
+    var activity = st.baseline && n ? mean / st.baseline : null;
     // rules
-    if (st.baseline && activity < DEMO.lowActivity) st.lowRun++; else st.lowRun = 0;
+    if (st.baseline && n && activity < DEMO.lowActivity) st.lowRun++; else st.lowRun = 0;
     if (n && counts.surface / n >= DEMO.surfaceShare && !pellets) st.surfRun++; else st.surfRun = 0;
     if (st.lowRun === DEMO.holdSamples) notify('low', 'Low fish activity: about ' + Math.round(activity * 100) + '% of this tank’s normal. Check the tank.', true);
     if (st.surfRun === DEMO.holdSamples) notify('surface', counts.surface + ' of ' + n + ' fish are near the surface and not feeding. Check the tank.', true);
@@ -174,17 +177,18 @@
         if (tank.dropOutcome === 'detect') notify('nofed' + tank.lastFeedAt, 'Food was dispensed but few fish came to the food. Check the tank.', true);
       }
     }
-    lastAnalysis = { n: n, counts: counts, activity: activity };
+    lastAnalysis = { n: n, hidden: hidden, counts: counts, activity: activity };
     renderPanel(lastAnalysis);
   }
   tank.onFeedFrame = analyse;
 
   var panelKey = '';
   function renderPanel(a) {
-    var learning = !st.baseline, warn = st.baseline && (a.activity < DEMO.lowActivity || (a.n && a.counts.surface / a.n >= DEMO.surfaceShare && !tank.pellets.length));
+    var learning = !st.baseline, warn = st.baseline && ((a.activity !== null && a.activity < DEMO.lowActivity) || (a.n && a.counts.surface / a.n >= DEMO.surfaceShare && !tank.pellets.length));
     var rows = [
-      ['Fish seen', a.n + ' of ' + a.n],
-      ['Activity vs this tank’s normal', learning ? 'learning ' + Math.min(100, Math.round(st.samples / DEMO.learnSamples * 100)) + '%' : Math.round(a.activity * 100) + '%'],
+      ['Fish in view', String(a.n)],
+      ['In a blind spot (sim only)', String(a.hidden || 0)],
+      ['Activity vs this tank’s normal', learning ? 'learning ' + Math.min(100, Math.round(st.samples / DEMO.learnSamples * 100)) + '%' : (a.activity === null ? 'no fish in view' : Math.round(a.activity * 100) + '%')],
       ['Swimming', String(a.counts.swimming)],
       ['Slow', String(a.counts.slow)],
       ['Near surface', String(a.counts.surface)],
@@ -207,10 +211,10 @@
     });
     p.appendChild(dl);
     var note = document.createElement('p'); note.className = 'ai__note';
-    note.textContent = 'SIMULATION. Rule-based stand-in on simulated fish, not a trained or validated model. Limits are placeholders for the project team to set.';
+    note.textContent = 'SIMULATION. Rule-based stand-in on simulated fish, not a trained or validated model. Limits are placeholders for the project team to set. The blind-spot count comes from the simulation; a real camera cannot know what it does not see. Hiding behind plants or rocks is not modelled.';
     p.appendChild(note);
   }
-  renderPanel({ n: 0, counts: { swimming: 0, slow: 0, surface: 0, feeding: 0 }, activity: null });
+  renderPanel({ n: 0, hidden: 0, counts: { swimming: 0, slow: 0, surface: 0, feeding: 0 }, activity: null });
 
   tank.attachFeed(feed, function (visible) { if (visible) panelKey = ''; });
 

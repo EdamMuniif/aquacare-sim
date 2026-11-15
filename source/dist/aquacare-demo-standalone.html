@@ -5150,7 +5150,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     while (cone.children.length) { var o = cone.children.pop(); disposeTree(o); }
     var floorY = -H + 0.2 - 0, fw = c.footW / 2, fd = c.footD / 2;
     var apex = [lens.x, lens.y, lens.z];
-    var corners = [[-fw, floorY, -fd], [fw, floorY, -fd], [fw, floorY, fd], [-fw, floorY, fd]];
+    var lz = lens.z, corners = [[-fw, floorY, lz - fd], [fw, floorY, lz - fd], [fw, floorY, lz + fd], [-fw, floorY, lz + fd]];
     var lines = [];
     corners.forEach(function (p, i) { lines.push(apex[0], apex[1], apex[2], p[0], p[1], p[2]); var q = corners[(i + 1) % 4]; lines.push(p[0], p[1], p[2], q[0], q[1], q[2]); });
     var lg = new T.BufferGeometry(); lg.setAttribute('position', new T.Float32BufferAttribute(lines, 3));
@@ -5162,12 +5162,34 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     m.renderOrder = 7; cone.add(m);
   };
 
+  // One fixed lens for every tank (the controller is universal). The lens sits in air just
+  // above the water, so refraction at the surface narrows the view under water (Snell's law).
+  // Together with the lens being behind the housing, that leaves blind spots near the surface
+  // at the ends and sides. The feed camera is set to the coverage the lens has at the floor.
+  var LENS = { hfovAir: 120, aspect: 4 / 3, n: 1.333 };   // proposed wide lens, illustrative
   Tank3D.prototype.feedFov = function () {
-    var aspect = T.MathUtils.clamp(W / D, 1.33, 1.8);
-    var height = H + this.ctrl.lens.y - 0.2;
-    var footW = W * 1.05, half = Math.atan(footW / 2 / height);
-    var v = 2 * Math.atan(Math.tan(half) / aspect);
-    return { aspect: aspect, fov: T.MathUtils.radToDeg(v), footW: footW, footD: footW / aspect, hfov: T.MathUtils.radToDeg(half * 2) };
+    var hA = T.MathUtils.degToRad(LENS.hfovAir / 2), vA = Math.atan(Math.tan(hA) / LENS.aspect);
+    var hW = Math.asin(Math.sin(hA) / LENS.n), vW = Math.asin(Math.sin(vA) / LENS.n);
+    var lens = this.ctrl.lens, air = Math.max(0.02, lens.y + 0.27), depth = SURFACE - 0.2;
+    var footW = 2 * (air * Math.tan(hA) + depth * Math.tan(hW)), footD = 2 * (air * Math.tan(vA) + depth * Math.tan(vW));
+    var nearW = 2 * (air * Math.tan(hA) + 0.4 * Math.tan(hW)), nearD = 2 * (air * Math.tan(vA) + 0.4 * Math.tan(vW));
+    function share(fw, fd) {
+      var x = Math.max(0, Math.min(fw / 2, W / 2) * 2), z0 = Math.max(-D / 2, lens.z - fd / 2), z1 = Math.min(D / 2, lens.z + fd / 2);
+      return Math.min(1, x / W) * Math.max(0, z1 - z0) / D;
+    }
+    return { aspect: footW / footD, fov: T.MathUtils.radToDeg(2 * Math.atan(footD / 2 / (air + depth))), footW: footW, footD: footD,
+      hfov: LENS.hfovAir, hfovWater: T.MathUtils.radToDeg(2 * hW), floorSeen: share(footW, footD), surfaceSeen: share(nearW, nearD) };
+  };
+  Tank3D.prototype.aimFeedCamera = function () {
+    var c = this.feedFov(), cam = this.feedCamera;
+    cam.fov = c.fov; cam.aspect = c.aspect; cam.updateProjectionMatrix();
+    cam.position.copy(this.lens); cam.up.set(0, 0, -1); cam.lookAt(this.lens.x, 0, this.lens.z); cam.updateMatrixWorld();
+    return c;
+  };
+  // true when a point is inside what the top camera can see (rocks and plants not modelled)
+  Tank3D.prototype.inCameraView = function (x, y, z) {
+    var v = new T.Vector3(x, y, z).project(this.feedCamera);
+    return v.z < 1 && Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1;
   };
 
   Tank3D.prototype.buildTags = function () {
@@ -5457,7 +5479,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
   // camera step: where are the fish, and where can the arm drop food near them?
   Tank3D.prototype.chooseFeedSpot = function () {
-    var fish = this.fishStates(), n = fish.length, cx = 0, cz = 0;
+    this.aimFeedCamera();
+    var self = this, fish = this.fishStates().filter(function (f) { return self.inCameraView(f.x, f.y, f.z); }), n = fish.length, cx = 0, cz = 0;
     fish.forEach(function (f) { cx += f.x; cz += f.z; });
     var hz = this.ctrl.headZ, yDrop = -TOP + 0.3, reach = armReach(yDrop) - 0.08;
     var dx = n ? cx / n : 0, dz = n ? cz / n - hz : -1.3, zMax = -(HEAD.d / 2 + 0.28), clamped = false;
@@ -5747,13 +5770,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   };
 
   Tank3D.prototype.renderFeed = function () {
-    var f = this.feed, c = this.feedFov();
-    var cam = this.feedCamera;
-    cam.fov = c.fov; cam.aspect = c.aspect; cam.updateProjectionMatrix();
-    cam.position.copy(this.lens);
-    cam.up.set(0, 0, -1);
-    cam.lookAt(this.lens.x, 0, this.lens.z);
-    cam.updateMatrixWorld();
+    var f = this.feed, c = this.aimFeedCamera(), cam = this.feedCamera;
     var pr = this.pixelRatio || 1, bw = Math.min(this.canvas.width, 480), bh = Math.round(bw / c.aspect);
     if (bh > this.canvas.height) { bh = this.canvas.height; bw = Math.round(bh * c.aspect); }
     if (bw < 40 || bh < 30) return;
@@ -7697,7 +7714,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var inch = d.W / 0.513, dIn = d.D / 0.513, hIn = (d.H) / 0.513;
     var dimText = size === 'p3' ? '36 × 22 × 26 cm' : inch.toFixed(1) + ' × ' + dIn.toFixed(1) + ' × ' + hIn.toFixed(1) + ' in (illustrative proportions)';
     $('appFit').textContent = 'Controller fitted to ' + A.sizeLabel(size).replace('Tank: ', '') + '. Tank ' + dimText +
-      '. Rails extend to the tank edge. Camera field of view set to ' + Math.round(f.hfov) + '° across the tank.';
+      '. Rails extend to the tank edge. Camera: one ' + f.hfov + '° lens for every tank, about ' + Math.round(f.hfovWater) + '° under water after refraction. It sees about ' +
+      Math.round(f.floorSeen * 100) + '% of the floor and ' + Math.round(f.surfaceSeen * 100) + '% of the water just under the surface. Blind spots: the ends and sides near the surface, and fish under plants, wood or the cave.';
   }
   tank.onFit = function () {
     $('appSize').value = tank.size;
@@ -7788,7 +7806,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, cw, 22 * u);
     ctx.fillStyle = '#f3c735'; ctx.font = 'bold ' + 12 * u + 'px ui-monospace, Menlo, Consolas, monospace'; ctx.textBaseline = 'middle';
     ctx.fillText('SIMULATION  TOP CAMERA  ' + simClock(), 8 * u, 11 * u);
-    var fish = tank.fishStates(), n = fish.length, pellets = tank.pellets.length > 0;
+    var all = tank.fishStates(), pellets = tank.pellets.length > 0;
+    var fish = all.filter(function (fi) { return tank.inCameraView(fi.x, fi.y, fi.z); }), n = fish.length;
+    var hidden = all.length - n;
     var normal = tank.behaviour === 'normal';
     var mean = n ? fish.reduce(function (a, b) { return a + b.speed; }, 0) / n : 0;
     if (!st.baseline && normal && !pellets && n) {
@@ -7825,9 +7845,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       octx.fillStyle = 'rgba(5,10,12,.8)'; octx.fillRect(fx + 20, fy + 14, lw, 18);
       octx.fillStyle = '#ffb547'; octx.textBaseline = 'middle'; octx.fillText(lab, fx + 24, fy + 23.5);
     }
-    var activity = st.baseline ? mean / st.baseline : null;
+    var activity = st.baseline && n ? mean / st.baseline : null;
     // rules
-    if (st.baseline && activity < DEMO.lowActivity) st.lowRun++; else st.lowRun = 0;
+    if (st.baseline && n && activity < DEMO.lowActivity) st.lowRun++; else st.lowRun = 0;
     if (n && counts.surface / n >= DEMO.surfaceShare && !pellets) st.surfRun++; else st.surfRun = 0;
     if (st.lowRun === DEMO.holdSamples) notify('low', 'Low fish activity: about ' + Math.round(activity * 100) + '% of this tank’s normal. Check the tank.', true);
     if (st.surfRun === DEMO.holdSamples) notify('surface', counts.surface + ' of ' + n + ' fish are near the surface and not feeding. Check the tank.', true);
@@ -7841,17 +7861,18 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
         if (tank.dropOutcome === 'detect') notify('nofed' + tank.lastFeedAt, 'Food was dispensed but few fish came to the food. Check the tank.', true);
       }
     }
-    lastAnalysis = { n: n, counts: counts, activity: activity };
+    lastAnalysis = { n: n, hidden: hidden, counts: counts, activity: activity };
     renderPanel(lastAnalysis);
   }
   tank.onFeedFrame = analyse;
 
   var panelKey = '';
   function renderPanel(a) {
-    var learning = !st.baseline, warn = st.baseline && (a.activity < DEMO.lowActivity || (a.n && a.counts.surface / a.n >= DEMO.surfaceShare && !tank.pellets.length));
+    var learning = !st.baseline, warn = st.baseline && ((a.activity !== null && a.activity < DEMO.lowActivity) || (a.n && a.counts.surface / a.n >= DEMO.surfaceShare && !tank.pellets.length));
     var rows = [
-      ['Fish seen', a.n + ' of ' + a.n],
-      ['Activity vs this tank’s normal', learning ? 'learning ' + Math.min(100, Math.round(st.samples / DEMO.learnSamples * 100)) + '%' : Math.round(a.activity * 100) + '%'],
+      ['Fish in view', String(a.n)],
+      ['In a blind spot (sim only)', String(a.hidden || 0)],
+      ['Activity vs this tank’s normal', learning ? 'learning ' + Math.min(100, Math.round(st.samples / DEMO.learnSamples * 100)) + '%' : (a.activity === null ? 'no fish in view' : Math.round(a.activity * 100) + '%')],
       ['Swimming', String(a.counts.swimming)],
       ['Slow', String(a.counts.slow)],
       ['Near surface', String(a.counts.surface)],
@@ -7874,10 +7895,10 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     });
     p.appendChild(dl);
     var note = document.createElement('p'); note.className = 'ai__note';
-    note.textContent = 'SIMULATION. Rule-based stand-in on simulated fish, not a trained or validated model. Limits are placeholders for the project team to set.';
+    note.textContent = 'SIMULATION. Rule-based stand-in on simulated fish, not a trained or validated model. Limits are placeholders for the project team to set. The blind-spot count comes from the simulation; a real camera cannot know what it does not see. Hiding behind plants or rocks is not modelled.';
     p.appendChild(note);
   }
-  renderPanel({ n: 0, counts: { swimming: 0, slow: 0, surface: 0, feeding: 0 }, activity: null });
+  renderPanel({ n: 0, hidden: 0, counts: { swimming: 0, slow: 0, surface: 0, feeding: 0 }, activity: null });
 
   tank.attachFeed(feed, function (visible) { if (visible) panelKey = ''; });
 
