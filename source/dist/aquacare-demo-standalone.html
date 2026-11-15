@@ -1311,12 +1311,12 @@ button, a, input, select, label { touch-action: manipulation; }
       <header class="card__head"><h2 class="card__title" id="viewsTitle">Controller from every side</h2><span class="simtag">SIM</span></header>
       <p class="camcard__lede">The same controller, rendered from six sides at the current tank size. The display shows the live simulated readings. Model only: not a product drawing, rating or approval.</p>
       <div class="viewsgrid" id="viewsGrid">
-        <figure><canvas id="cv-front" aria-label="Controller, front"></canvas><figcaption>Front: display, tank button, status LED</figcaption></figure>
-        <figure><canvas id="cv-back" aria-label="Controller, back"></canvas><figcaption>Back: label and vents</figcaption></figure>
-        <figure><canvas id="cv-left" aria-label="Controller, left end"></canvas><figcaption>Left end: power and service ports</figcaption></figure>
-        <figure><canvas id="cv-right" aria-label="Controller, right end"></canvas><figcaption>Right end: speaker grille, feeder side</figcaption></figure>
-        <figure><canvas id="cv-top" aria-label="Controller, top"></canvas><figcaption>Top: hopper, servo arm, funnel, touch keys</figcaption></figure>
-        <figure><canvas id="cv-under" aria-label="Controller, underside"></canvas><figcaption>Underneath: camera, light bars, chute, probe sockets</figcaption></figure>
+        <figure><canvas id="cv-front" aria-label="Controller, front"></canvas><figcaption>Front: 24 cm housing with display, tank button and LED; rails slide out of both ends</figcaption></figure>
+        <figure><canvas id="cv-back" aria-label="Controller, back"></canvas><figcaption>Back: label plate only, so no cable crosses the water</figcaption></figure>
+        <figure><canvas id="cv-left" aria-label="Controller, left end"></canvas><figcaption>Left end: 12 V DC IN, ON/OFF, USB-C; the lead is clipped to the rail and drops outside the glass</figcaption></figure>
+        <figure><canvas id="cv-right" aria-label="Controller, right end"></canvas><figcaption>Right end: speaker grille and the probe cable cover on the side rail</figcaption></figure>
+        <figure><canvas id="cv-top" aria-label="Controller, top"></canvas><figcaption>Top: extending rails with 1 cm scale, crossbar, hopper and servo arm</figcaption></figure>
+        <figure><canvas id="cv-under" aria-label="Controller, underside"></canvas><figcaption>Underneath: camera, light bars, chute with IR beam, probe clips</figcaption></figure>
       </div>
       <div class="phone__row">
         <button class="btn btn--sm" type="button" id="viewsRefresh">Update views</button>
@@ -4184,9 +4184,14 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   function setDims(d) { W = d.W; H = d.H; D = d.D; SURFACE = d.SURFACE; }
 
   // Controller geometry (local y = 0 is the top edge of the glass).
-  var HEAD = { w: 5.3, d: 2.3, h: 0.62, bottom: 0.78 };
-  var FEED = { hopperX: 1.35, armX: 1.95, chuteX: 2.4, z: 0.78 };
-  var TOP = HEAD.bottom + HEAD.h;           // top face of the head, 1.40
+  // Concept dimensions: fixed 24 x 7 x 4.5 cm housing on the front rim, 2.0 cm square outer
+  // rail tube with a 1.5 cm inner bar sliding in it. Proposal only, for team confirmation.
+  var CM = INCH / 2.54;
+  var RAIL = { outer: 2.0 * CM, inner: 1.5 * CM, y: 1.2 * CM };
+  var HEAD = { w: 24 * CM, d: 7 * CM, h: 4.5 * CM, bottom: 2.2 * CM, zOver: 1.2 * CM };
+  var FEED = { hopperX: 0.95, armX: 1.5, chuteX: 1.92, z: 0 };   // housing-local
+  var SLEEVE = 10 * CM, CORNER = 3 * CM, TRACK = 0.8 * CM;
+  var TOP = HEAD.bottom + HEAD.h;           // top face of the housing
 
   function randomGenerator(seed) {
     return function () {
@@ -4646,121 +4651,159 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var blue = standard(0x2b66cc, { roughness: 0.35 });
     var black = standard(0x0b0e10, { roughness: 0.5 });
     var glass = standard(0x0a1013, { roughness: 0.08, metalness: 0.4 });
+    var RY = RAIL.y;                                     // rail centre height above the glass top
 
-    // telescoping rails: a fixed sleeve with two sliders that run out to the tank edge
-    var tickGeo = new T.BoxGeometry(0.018, 0.006, 0.16), ticks = [];
-    function telescope(axis, total, fixedLen, cx, cz, y) {
-      var sleeve = axis === 'x' ? box(g, [fixedLen, 0.24, 0.27], railMat, cx, y, cz) : box(g, [0.27, 0.24, fixedLen], railMat, cx, y, cz);
-      sleeve.userData.sleeve = true;
+    // Frame. Each run has a fixed part (the housing or a centre sleeve) and two inner bars
+    // that slide out of it to the corner blocks. The scale ticks on the inner bars are 1 cm.
+    var tickGeo = new T.BoxGeometry(0.014, 0.006, 0.12), ticks = [];
+    out.extension = {};
+    function slides(axis, total, fixedLen, cx, cz, name, offset) {
+      var from = fixedLen / 2 - 0.25, to = total / 2 - CORNER / 2, len = Math.max(0.12, to - from);
+      out.extension[name] = Math.max(0, (to - fixedLen / 2)) / CM;   // cm each bar sticks out
+      var cz0 = cz;
       [-1, 1].forEach(function (side) {
-        var from = fixedLen / 2 - 0.5, to = total / 2, len = Math.max(0.2, to - from), mid = side * (from + len / 2);
-        if (axis === 'x') box(g, [len, 0.17, 0.2], metal, cx + mid, y, cz); else box(g, [0.2, 0.17, len], metal, cx, y, cz + mid);
-        for (var k = 0.2; k < len - 0.1; k += 0.25) {
-          var o = side * (from + k);
-          ticks.push(axis === 'x' ? [cx + o, y + 0.09, cz, 0] : [cx, y + 0.09, cz + o, 1]);
+        var mid = side * (from + len / 2), cz = cz0 + (offset ? side * offset : 0);
+        if (axis === 'x') box(g, [len, RAIL.inner, RAIL.inner], metal, cx + mid, RY, cz);
+        else box(g, [RAIL.inner, RAIL.inner, len], metal, cx, RY, cz + mid);
+        for (var k = 0.25 + CM; k < len; k += CM) {
+          var o = side * (from + k), major = Math.round((k - 0.25) / CM) % 5 === 0;
+          ticks.push(axis === 'x' ? [cx + o, RY + RAIL.inner / 2, cz, 0, major] : [cx, RY + RAIL.inner / 2, cz + o, 1, major]);
         }
       });
     }
-    var L = w + 0.32, Ld = d + 0.32;
-    [-1, 1].forEach(function (s) {
-      telescope('x', L, Math.min(4.4, L - 0.5), 0, s * (d / 2 + 0.1), 0.11);
-      telescope('z', Ld, Math.min(1.6, Ld - 0.5), s * (w / 2 + 0.1), 0, 0.11);
-    });
+    function sleeve(axis, len, cx, cz) {
+      return axis === 'x' ? box(g, [len, RAIL.outer, RAIL.outer], railMat, cx, RY, cz) : box(g, [RAIL.outer, RAIL.outer, len], railMat, cx, RY, cz);
+    }
+    var zf = d / 2, zr = -d / 2, xs = w / 2;
+    // front run: the housing is the fixed part. The two bars run on offset tracks (left bar
+    // in front, right bar behind) so they can pass each other inside the 24 cm housing.
+    slides('x', w, HEAD.w, 0, zf, 'front', TRACK);
+    // rear run and the camera crossbar: short centre sleeves
+    sleeve('x', SLEEVE, 0, zr); slides('x', w, SLEEVE, 0, zr, 'rear');
+    out.camZ = Math.min(0, zf - HEAD.zOver - HEAD.d - 0.45);
+    sleeve('x', SLEEVE, 0, out.camZ); slides('x', w, SLEEVE, 0, out.camZ, 'cross');
+    // side runs, front to back
+    [-1, 1].forEach(function (s) { sleeve('z', 1.2, s * xs, 0); slides('z', d, 1.2, s * xs, 0, 'side'); });
+    // crossbar ends ride on the side rails
+    [-1, 1].forEach(function (s) { box(g, [0.36, RAIL.outer + 0.06, 0.42], body, s * xs, RY + 0.02, out.camZ); });
     var tickMesh = new T.InstancedMesh(tickGeo, standard(0x2a3236, { roughness: 0.6 }), ticks.length), pose = new T.Object3D();
     ticks.forEach(function (t, i) {
-      pose.position.set(t[0], t[1], t[2]); pose.rotation.set(0, t[3] ? Math.PI / 2 : 0, 0); pose.updateMatrix();
+      pose.position.set(t[0], t[1], t[2]); pose.rotation.set(0, t[3] ? Math.PI / 2 : 0, 0);
+      pose.scale.set(1, 1, t[4] ? 1.6 : 1); pose.updateMatrix();
       tickMesh.setMatrixAt(i, pose.matrix);
     });
     g.add(tickMesh);
-    // clamps that hold the rails to the glass, with a thumbscrew each
+    // corner blocks: a U-channel over the glass rim, a thumbscrew and a lock knob for the slides
     [-1, 1].forEach(function (sx) {
       [-1, 1].forEach(function (sz) {
-        box(g, [0.38, 0.56, 0.38], body, sx * (w / 2 + 0.1), -0.13, sz * (d / 2 + 0.1));
-        var screw = mesh(g, new T.CylinderGeometry(0.055, 0.055, 0.2, 10), metal, sx * (w / 2 + 0.34), -0.1, sz * (d / 2 + 0.1));
-        screw.rotation.z = Math.PI / 2;
-        mesh(g, new T.CylinderGeometry(0.11, 0.11, 0.05, 14), metal, sx * (w / 2 + 0.47), -0.1, sz * (d / 2 + 0.1)).rotation.z = Math.PI / 2;
+        var cx = sx * xs, cz = sz * d / 2;
+        box(g, [CORNER, 0.34, CORNER], body, cx, RY + 0.02, cz);
+        box(g, [CORNER, 0.42, 0.07], body, cx, -0.16, cz + sz * 0.13);       // outer lip
+        box(g, [CORNER, 0.30, 0.07], body, cx, -0.10, cz - sz * 0.13);       // inner lip
+        var screw = mesh(g, new T.CylinderGeometry(0.045, 0.045, 0.2, 10), metal, cx, -0.22, cz + sz * 0.22);
+        screw.rotation.x = Math.PI / 2;
+        mesh(g, new T.CylinderGeometry(0.1, 0.1, 0.05, 14), metal, cx, -0.22, cz + sz * 0.34).rotation.x = Math.PI / 2;
+        mesh(g, new T.CylinderGeometry(0.075, 0.075, 0.08, 12), metal, cx, RY + 0.23, cz);
       });
     });
-    // cross-bridges that carry the head, legs, head
-    [-1, 1].forEach(function (s) {
-      box(g, [0.2, 0.14, d + 0.5], railMat, s * 1.85, 0.33, 0);
-      [-1, 1].forEach(function (k) { mesh(g, new T.CylinderGeometry(0.075, 0.075, HEAD.bottom - 0.4, 12), legMat, s * 1.85, 0.4 + (HEAD.bottom - 0.4) / 2, k * 0.8); });
-    });
-
-    // head
-    var hy = HEAD.bottom + HEAD.h / 2;
-    box(g, [HEAD.w, HEAD.h, HEAD.d], body, 0, hy, 0);
-    box(g, [HEAD.w - 0.1, 0.03, HEAD.d - 0.1], topMat, 0, TOP + 0.005, 0);
-    box(g, [HEAD.w + 0.02, 0.05, HEAD.d + 0.02], standard(0x05080a, { roughness: 0.3 }), 0, HEAD.bottom + 0.025, 0);
-    out.panel = displayPanel(g, -0.55, hy, HEAD.d / 2 + 0.014);
-    box(g, [4.2, 0.58, 0.02], glass, -0.55, hy, HEAD.d / 2 - 0.006);
-    // touch keys on the top edge
-    for (var i = 0; i < 5; i++) {
-      var key = mesh(g, new T.RingGeometry(0.07, 0.095, 24), new T.MeshBasicMaterial({ color: 0x5d6a70 }), -1.55 + i * 0.5, TOP + 0.024, HEAD.d / 2 - 0.2);
-      key.rotation.x = -Math.PI / 2;
-      mesh(g, new T.CircleGeometry(0.022, 10), new T.MeshBasicMaterial({ color: 0x8fa2a8 }), -1.55 + i * 0.5, TOP + 0.025, HEAD.d / 2 - 0.2).rotation.x = -Math.PI / 2;
-    }
-    // red physical tank button and status LED on the front, right of the display
-    out.panel.button = mesh(g, new T.CylinderGeometry(0.165, 0.165, 0.1, 22), standard(0xa42d1c, { roughness: 0.4 }), 2.12, hy, HEAD.d / 2 + 0.05);
-    out.panel.button.rotation.x = Math.PI / 2;
-    mesh(g, new T.TorusGeometry(0.19, 0.022, 8, 24), metal, 2.12, hy, HEAD.d / 2 + 0.012);
-    out.panel.led = mesh(g, new T.SphereGeometry(0.05, 12, 8), new T.MeshBasicMaterial(), 1.72, hy + 0.17, HEAD.d / 2 + 0.01);
-    // speaker grille (right end), ports (left end, back)
-    var grille = mesh(g, new T.PlaneGeometry(1.9, 0.48), new T.MeshBasicMaterial({ map: grilleTexture() }), HEAD.w / 2 + 0.002, hy, 0);
-    grille.rotation.y = Math.PI / 2;
-    var ports = mesh(g, new T.PlaneGeometry(2.0, 0.5), new T.MeshBasicMaterial({ map: labelTexture([
-      { text: 'DC IN  5V', y: 20, size: 17, color: '#d8e4e7', bold: true }, { text: 'USB-C   SERVICE', y: 44, size: 15 }], 256, 64, 1) }), -HEAD.w / 2 - 0.002, hy, 0);
-    ports.rotation.y = -Math.PI / 2;
-    mesh(g, new T.BoxGeometry(0.01, 0.1, 0.34), black, -HEAD.w / 2 - 0.004, hy - 0.04, -0.62);
-    mesh(g, new T.BoxGeometry(0.01, 0.1, 0.18), black, -HEAD.w / 2 - 0.004, hy - 0.04, -0.2);
-    var back = mesh(g, new T.PlaneGeometry(4.6, 0.5), new T.MeshBasicMaterial({ map: labelTexture([
-      { text: 'AquaCare  universal controller', y: 22, size: 25, color: '#e9f2f4', bold: true },
-      { text: 'SIMULATION MODEL  -  not a product, rating or approval', y: 52, size: 17, color: '#f3c735' },
-      { text: 'Fits 2.5 to 10 US gal.  Tank size is set in the phone app.', y: 80, size: 17 }], 1100, 100, 1) }),
-    0, hy, -HEAD.d / 2 - 0.002);
-    back.rotation.y = Math.PI;
-    for (var v = 0; v < 6; v++) box(g, [0.5, 0.02, 0.012], black, 1.7, hy + 0.2 - v * 0.07 - 0.12, -HEAD.d / 2 - 0.012);
-    // underside plate, light bars and their glow
-    var under = mesh(g, new T.PlaneGeometry(2.2, 0.8), new T.MeshBasicMaterial({ map: labelTexture([
-      { text: 'AquaCare  SIM', y: 28, size: 26, color: '#e9f2f4', bold: true }, { text: 'Camera  Light  Chute  Probes', y: 64, size: 20 },
-      { text: 'Rails fitted to tank profile', y: 96, size: 18 }], 440, 130, 1) }), -1.4, HEAD.bottom - 0.002, -0.2);
-    under.rotation.x = Math.PI / 2; under.rotation.z = 0;
+    // light bars under the crossbar and the rear rail
     out.lightStrip = new T.MeshBasicMaterial({ color: 0xffe2a8 });
-    [-1, 1].forEach(function (s) {
-      mesh(g, new T.BoxGeometry(4.4, 0.045, 0.2), out.lightStrip, 0, HEAD.bottom - 0.03, s * 0.78);
+    [out.camZ - 0.16, out.camZ + 0.16, zr + 0.12].forEach(function (z) {
+      mesh(g, new T.BoxGeometry(Math.max(1, w - 0.8), 0.03, 0.09), out.lightStrip, 0, RY - RAIL.outer / 2 - 0.02, z);
     });
-    out.glow = mesh(g, new T.PlaneGeometry(5.0, 2.2), new T.MeshBasicMaterial({ map: glowTexture(), transparent: true, opacity: 0.20,
-      depthWrite: false, blending: T.AdditiveBlending, color: 0xffe2a8 }), 0, HEAD.bottom - 0.12, 0);
+    out.glow = mesh(g, new T.PlaneGeometry(w, d), new T.MeshBasicMaterial({ map: glowTexture(), transparent: true, opacity: 0.18,
+      depthWrite: false, blending: T.AdditiveBlending, color: 0xffe2a8 }), 0, RY - 0.2, (out.camZ + zr) / 2);
     out.glow.rotation.x = Math.PI / 2;
-    // camera pod looking straight down
-    var podY = HEAD.bottom - 0.12;
-    mesh(g, new T.CylinderGeometry(0.3, 0.3, 0.24, 24), black, 0, podY, 0);
-    mesh(g, new T.SphereGeometry(0.16, 18, 12), standard(0x0a1622, { roughness: 0.05, metalness: 0.6 }), 0, podY - 0.14, 0);
-    mesh(g, new T.SphereGeometry(0.05, 10, 8), new T.MeshBasicMaterial({ color: 0x6fb2ff }), 0.05, podY - 0.2, 0.05);
-    for (var n = 0; n < 8; n++) {
-      var an = n / 8 * TAU;
-      mesh(g, new T.SphereGeometry(0.024, 6, 5), new T.MeshBasicMaterial({ color: 0xff4a3a }), Math.cos(an) * 0.23, podY - 0.1, Math.sin(an) * 0.23);
-    }
-    out.lens = new T.Vector3(0, podY - 0.2, 0);
+    // camera, recessed under the crossbar centre, looking straight down
+    var podY = RY - RAIL.outer / 2 + 0.02;   // lens about level with the rim, ~1.3 cm above the water
+    mesh(g, new T.CylinderGeometry(0.2, 0.2, 0.14, 24), black, 0, podY, out.camZ);
+    mesh(g, new T.SphereGeometry(0.11, 18, 12), standard(0x0a1622, { roughness: 0.05, metalness: 0.6 }), 0, podY - 0.07, out.camZ);
+    mesh(g, new T.SphereGeometry(0.035, 10, 8), new T.MeshBasicMaterial({ color: 0x6fb2ff }), 0.035, podY - 0.13, out.camZ + 0.03);
+    out.lens = new T.Vector3(0, podY - 0.13, out.camZ);  // used for the camera feed
+    // probe cable cover along the right side rail, four clipped drops
+    var coverLen = d - 0.7;
+    box(g, [0.26, 0.2, coverLen], body, xs - 0.3, RY - 0.02, 0);
+    out.jacks = [0x3b82f6, 0xef4444, 0x22c55e, 0xeab308].map(function (c, k) {
+      var jz = T.MathUtils.clamp(d * (0.26 - k * 0.17), -coverLen / 2 + 0.1, coverLen / 2 - 0.1);
+      mesh(g, new T.CylinderGeometry(0.045, 0.045, 0.05, 10), new T.MeshBasicMaterial({ color: c }), xs - 0.3, RY - 0.13, jz);
+      box(g, [0.1, 0.06, 0.12], black, xs - 0.3, RY - 0.17, jz);   // strain-relief clip
+      return new T.Vector3(xs - 0.3, RY - 0.18, jz);
+    });
 
-    // feeder: hopper, servo arm (3D-printed look), chute and IR beam
-    var hopperY = TOP + 0.30;
+    // ---- housing: fixed 24 cm unit on the front rim, overhanging the glass by HEAD.zOver ----
+    var head = new T.Group();
+    out.headZ = zf + HEAD.zOver - HEAD.d / 2;
+    head.position.z = out.headZ;
+    g.add(head);
+    out.head = head;
+    var hy = HEAD.bottom + HEAD.h / 2, fz = HEAD.d / 2;
+    box(head, [HEAD.w, HEAD.h, HEAD.d], body, 0, hy, 0);
+    box(head, [HEAD.w - 0.08, 0.025, HEAD.d - 0.08], topMat, 0, TOP + 0.004, 0);
+    box(head, [HEAD.w + 0.02, 0.04, HEAD.d + 0.02], standard(0x05080a, { roughness: 0.3 }), 0, HEAD.bottom + 0.02, 0);
+    // rail sockets in both ends of the housing (the front bars slide out of these)
+    [-1, 1].forEach(function (s) { box(head, [0.02, RAIL.outer, RAIL.outer], black, s * (HEAD.w / 2 + 0.006), RY, zf - out.headZ + s * TRACK); });
+    out.panel = displayPanel(head, -0.42, hy + 0.05, fz + 0.012);
+    out.panel.face.scale.set(3.5 / 4.1, 0.86, 1);
+    box(head, [3.62, 0.5, 0.02], glass, -0.42, hy + 0.05, fz - 0.006);
+    out.panel.button = mesh(head, new T.CylinderGeometry(0.15, 0.15, 0.09, 22), standard(0xa42d1c, { roughness: 0.4 }), 1.95, hy, fz + 0.045);
+    out.panel.button.rotation.x = Math.PI / 2;
+    mesh(head, new T.TorusGeometry(0.172, 0.02, 8, 24), metal, 1.95, hy, fz + 0.01);
+    out.panel.led = mesh(head, new T.SphereGeometry(0.045, 12, 8), new T.MeshBasicMaterial(), 1.58, hy + 0.2, fz + 0.01);
+    // rear face: label plate only (it sits over the water, so no cables leave from here)
+    var rz = -fz - 0.004;
+    var rear = mesh(head, new T.PlaneGeometry(3.6, 0.6), new T.MeshBasicMaterial({ map: labelTexture([
+      { text: 'AquaCare  universal controller   SIMULATION MODEL', y: 22, size: 19, color: '#e9f2f4', bold: true },
+      { text: 'Not a product, rating or approval.  Fits 31-50 cm rims.', y: 50, size: 16, color: '#f3c735' },
+      { text: 'Tank size is set in the phone app.', y: 76, size: 16 }], 820, 96, 1) }), -0.3, hy, rz);
+    rear.rotation.y = Math.PI;
+    // left end: 12 V DC IN jack, ON/OFF rocker and USB-C service port. The lead runs along
+    // the front rail to the corner and drops outside the front glass with a drip loop.
+    var lx = -HEAD.w / 2 - 0.004, jz = 0.42;
+    var jack = mesh(head, new T.CylinderGeometry(0.075, 0.075, 0.06, 18), black, lx - 0.02, hy, jz); jack.rotation.z = Math.PI / 2;
+    mesh(head, new T.CylinderGeometry(0.025, 0.025, 0.065, 8), metal, lx - 0.022, hy, jz).rotation.z = Math.PI / 2;
+    box(head, [0.05, 0.3, 0.2], black, lx - 0.02, hy, 0.0);
+    out.rocker = box(head, [0.05, 0.12, 0.14], standard(0x2f9e8f, { roughness: 0.4 }), lx - 0.04, hy + 0.06, 0.0);
+    out.rocker.rotation.z = 0.25;
+    box(head, [0.01, 0.06, 0.18], black, lx - 0.004, hy, -0.42);
+    var plate = mesh(head, new T.PlaneGeometry(1.25, 0.2), new T.MeshBasicMaterial({ map: labelTexture([
+      { text: '12V DC IN  ON/OFF  USB-C', y: 20, size: 18, color: '#7fe3d2', bold: true }], 330, 40, 1) }), lx, hy - 0.3, 0);
+    plate.rotation.y = -Math.PI / 2;
+    var cx0 = -HEAD.w / 2 - 0.05, zl = out.headZ + jz, xc = -w / 2;
+    tube(g, [[cx0, hy, zl], [cx0 - 0.25, RY + 0.12, zf + 0.05], [xc + 0.4, RY + 0.12, zf + 0.05], [xc - 0.05, RY + 0.05, zf + 0.25],
+      [xc - 0.1, -1.2, zf + 0.35], [xc + 0.2, -1.9, zf + 0.6], [xc - 0.1, -1.5, zf + 1.0], [xc - 0.5, -2.6, zf + 1.5]], 0.028, black, 40);
+    for (var cl = 0; cl < 3; cl++) {           // cable clips on the front rail
+      box(g, [0.06, 0.08, 0.12], body, cx0 - 0.3 - cl * ((w / 2 - HEAD.w / 2 - 0.5) / 3), RY + 0.12, zf + 0.05);
+    }
+    // right end: speaker grille
+    var grille = mesh(head, new T.PlaneGeometry(1.1, 0.5), new T.MeshBasicMaterial({ map: grilleTexture() }), HEAD.w / 2 + 0.002, hy + 0.1, -0.1);
+    grille.rotation.y = Math.PI / 2;
+    // touch keys along the top front edge
+    for (var i = 0; i < 4; i++) {
+      var key = mesh(head, new T.RingGeometry(0.055, 0.075, 24), new T.MeshBasicMaterial({ color: 0x5d6a70 }), -1.9 + i * 0.42, TOP + 0.02, fz - 0.16);
+      key.rotation.x = -Math.PI / 2;
+    }
+    var under = mesh(head, new T.PlaneGeometry(2.0, 0.7), new T.MeshBasicMaterial({ map: labelTexture([
+      { text: 'AquaCare  SIM', y: 26, size: 24, color: '#e9f2f4', bold: true }, { text: 'Chute  IR beam', y: 58, size: 19 },
+      { text: 'Rails: 24 cm fixed', y: 88, size: 17 }], 400, 116, 1) }), -0.9, HEAD.bottom - 0.002, 0);
+    under.rotation.x = Math.PI / 2;
+
+    // feeder on the housing: hopper, servo arm (3D-printed look), funnel, chute and IR beam
+    var hopperY = TOP + 0.26;
     [0, 1, 2].forEach(function (k) {
       var an = k / 3 * TAU + 0.5;
-      mesh(g, new T.CylinderGeometry(0.035, 0.035, 0.30, 8), metal, FEED.hopperX + Math.cos(an) * 0.3, TOP + 0.15, FEED.z + Math.sin(an) * 0.3);
+      mesh(head, new T.CylinderGeometry(0.03, 0.03, 0.26, 8), metal, FEED.hopperX + Math.cos(an) * 0.26, TOP + 0.13, FEED.z + Math.sin(an) * 0.26);
     });
-    mesh(g, new T.CylinderGeometry(0.32, 0.20, 0.12, 20), black, FEED.hopperX, hopperY + 0.06, FEED.z);
-    out.hopperFill = mesh(g, new T.CylinderGeometry(0.31, 0.22, 0.46, 20), standard(0x8b5a2b, { roughness: 0.9, flatShading: true }), FEED.hopperX, hopperY + 0.35, FEED.z);
-    mesh(g, new T.CylinderGeometry(0.345, 0.345, 0.64, 24, 1, true), new T.MeshStandardMaterial({ color: 0xbfe3ea, transparent: true, opacity: 0.24, roughness: 0.1, metalness: 0.1, side: T.DoubleSide, depthWrite: false }), FEED.hopperX, hopperY + 0.36, FEED.z).renderOrder = 6;
-    mesh(g, new T.CylinderGeometry(0.37, 0.37, 0.07, 24), black, FEED.hopperX, hopperY + 0.70, FEED.z);
-    mesh(g, new T.SphereGeometry(0.05, 10, 8), metal, FEED.hopperX, hopperY + 0.77, FEED.z);
-    // arm
+    mesh(head, new T.CylinderGeometry(0.30, 0.19, 0.11, 20), black, FEED.hopperX, hopperY + 0.055, FEED.z);
+    out.hopperFill = mesh(head, new T.CylinderGeometry(0.29, 0.21, 0.42, 20), standard(0x8b5a2b, { roughness: 0.9, flatShading: true }), FEED.hopperX, hopperY + 0.32, FEED.z);
+    mesh(head, new T.CylinderGeometry(0.32, 0.32, 0.6, 24, 1, true), new T.MeshStandardMaterial({ color: 0xbfe3ea, transparent: true, opacity: 0.24, roughness: 0.1, metalness: 0.1, side: T.DoubleSide, depthWrite: false }), FEED.hopperX, hopperY + 0.33, FEED.z).renderOrder = 6;
+    mesh(head, new T.CylinderGeometry(0.345, 0.345, 0.065, 24), black, FEED.hopperX, hopperY + 0.65, FEED.z);
+    mesh(head, new T.SphereGeometry(0.045, 10, 8), metal, FEED.hopperX, hopperY + 0.71, FEED.z);
     var arm = new T.Group();
     arm.position.set(FEED.armX, TOP, FEED.z);
-    g.add(arm);
-    mesh(arm, new T.CylinderGeometry(0.30, 0.32, 0.14, 24), white, 0, 0.07, 0);
-    box(arm, [0.34, 0.2, 0.28], blue, 0, 0.24, -0.02);
-    box(arm, [0.34, 0.06, 0.12], white, 0, 0.27, -0.02);
+    head.add(arm);
+    mesh(arm, new T.CylinderGeometry(0.26, 0.28, 0.12, 24), white, 0, 0.06, 0);
+    box(arm, [0.32, 0.2, 0.26], blue, 0, 0.22, -0.02);
+    box(arm, [0.32, 0.06, 0.12], white, 0, 0.25, -0.02);
     var shoulder = new T.Group(); shoulder.position.set(0, 0.36, 0.17); arm.add(shoulder);
     mesh(shoulder, new T.CylinderGeometry(0.09, 0.09, 0.1, 18), white).rotation.x = Math.PI / 2;
     var link1 = new T.Group(); shoulder.add(link1);
@@ -4781,36 +4824,31 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     for (var q = 0; q < 6; q++) mesh(load, new T.IcosahedronGeometry(0.032, 0), pel, -0.06 + (q % 3) * 0.06, -0.06 + Math.floor(q / 3) * 0.04, 0.0);
     load.visible = false;
     [0xc47a2c, 0xa5251f, 0x2a1d14].forEach(function (c, i) {
-      tube(arm, [[-0.04 + i * 0.04, 0.2, -0.16], [-0.1 + i * 0.03, 0.12, -0.45], [-0.3 + i * 0.02, 0.02, -0.75 - i * 0.02]], 0.012, standard(c), 8);
+      tube(arm, [[-0.04 + i * 0.04, 0.2, -0.15], [-0.08 + i * 0.03, 0.12, -0.32], [-0.14 + i * 0.03, -0.01, -0.42]], 0.011, standard(c), 8);
     });
     out.arm = { group: arm, link1: link1, link2: link2, scoop: scoop, load: load, shoulder: new T.Vector2(0, 0.36) };
-    // funnel and chute
-    mesh(g, new T.CylinderGeometry(0.2, 0.07, 0.16, 18, 1, true), new T.MeshStandardMaterial({ color: 0xa5afb3, metalness: 0.75, roughness: 0.3, side: T.DoubleSide }), FEED.chuteX, TOP + 0.08, FEED.z);
-    mesh(g, new T.CylinderGeometry(0.07, 0.07, HEAD.bottom + 0.14, 14), standard(0x20282c, { roughness: 0.4, metalness: 0.3 }), FEED.chuteX, (HEAD.bottom - 0.14) / 2, FEED.z);
-    out.outlet = new T.Vector3(FEED.chuteX, -0.14, FEED.z);
-    [-1, 1].forEach(function (s) { box(g, [0.08, 0.13, 0.08], black, FEED.chuteX + s * 0.2, -0.08, FEED.z); });
-    out.ir = mesh(g, new T.BoxGeometry(0.32, 0.014, 0.014), new T.MeshBasicMaterial(), FEED.chuteX, -0.08, FEED.z);
-    // probe sockets under the head, colour coded
-    out.jacks = [0x3b82f6, 0xef4444, 0x22c55e, 0xeab308].map(function (c, k) {
-      var jz = -0.12 - k * 0.22;
-      mesh(g, new T.CylinderGeometry(0.05, 0.05, 0.05, 10), new T.MeshBasicMaterial({ color: c }), 2.45, HEAD.bottom - 0.04, jz);
-      return new T.Vector3(2.45, HEAD.bottom - 0.06, jz);
-    });
+    mesh(head, new T.CylinderGeometry(0.19, 0.065, 0.15, 18, 1, true), new T.MeshStandardMaterial({ color: 0xa5afb3, metalness: 0.75, roughness: 0.3, side: T.DoubleSide }), FEED.chuteX, TOP + 0.075, FEED.z);
+    var outY = 0.14;   // outlet about 2 cm above the waterline (the water sits 0.27 below the rim)
+    mesh(head, new T.CylinderGeometry(0.065, 0.065, HEAD.bottom - outY, 14), standard(0x20282c, { roughness: 0.4, metalness: 0.3 }), FEED.chuteX, (HEAD.bottom + outY) / 2, FEED.z);
+    out.outlet = new T.Vector3(FEED.chuteX, outY, out.headZ + FEED.z);
+    [-1, 1].forEach(function (s) { box(head, [0.07, 0.12, 0.07], black, FEED.chuteX + s * 0.18, outY + 0.05, FEED.z); });
+    out.ir = mesh(head, new T.BoxGeometry(0.29, 0.012, 0.012), new T.MeshBasicMaterial(), FEED.chuteX, outY + 0.05, FEED.z);
     // camera view volume (hidden until asked for)
     out.cone = new T.Group();
     out.cone.visible = false;
     g.add(out.cone);
 
-    // callout anchors, in controller coordinates
+    var hz = out.headZ;
     out.labels = [
-      ['Display', new T.Vector3(-0.55, hy + 0.34, HEAD.d / 2)],
-      ['Tank button', new T.Vector3(2.12, hy - 0.34, HEAD.d / 2 + 0.1)],
-      ['Feed hopper', new T.Vector3(FEED.hopperX, TOP + 1.12, FEED.z)],
-      ['Servo arm', new T.Vector3(FEED.armX + 0.15, TOP + 0.62, FEED.z + 0.17)],
-      ['Chute + IR beam', new T.Vector3(FEED.chuteX, -0.2, FEED.z)],
-      ['Top camera', new T.Vector3(0, podY - 0.34, 0)],
-      ['Light bar', new T.Vector3(-1.7, HEAD.bottom - 0.08, 0.8)],
-      ['Telescoping rail', new T.Vector3(-1.2, 0.3, d / 2 + 0.1)]
+      ['Display', new T.Vector3(-0.42, hy + 0.4, hz + fz)],
+      ['Tank button', new T.Vector3(1.95, hy - 0.35, hz + fz + 0.1)],
+      ['Feed hopper', new T.Vector3(FEED.hopperX, TOP + 1.05, hz)],
+      ['Servo arm', new T.Vector3(FEED.armX + 0.15, TOP + 0.62, hz + 0.17)],
+      ['Chute + IR beam', new T.Vector3(FEED.chuteX, 0.02, hz)],
+      ['Top camera', new T.Vector3(0, podY - 0.26, out.camZ)],
+      ['Extending rail', new T.Vector3(-(HEAD.w / 2 + (w / 2 - HEAD.w / 2) / 2), RY + 0.18, zf)],
+      ['Probe cable cover', new T.Vector3(xs - 0.3, RY + 0.2, -d * 0.25)],
+      ['12 V DC IN + ON/OFF', new T.Vector3(-HEAD.w / 2 - 0.1, hy + 0.4, hz)]
     ];
     ticks.length = 0;
     return out;
@@ -5156,14 +5194,14 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   };
 
   Tank3D.prototype.presetFor = function (name) {
-    var cy = (H + 1.5) / 2, fx = FEED.armX, fz = FEED.z;
+    var cy = (H + 1.5) / 2, fx = FEED.armX, fz = this.ctrl ? this.ctrl.headZ : 0;
     var presets = {
       reset: [0.17, 0.19, 1, 0, cy, 0],
       front: [0, 0.075, 0.96, 0, cy, 0],
       surface: [0.22, 0.86, 0.74, 0, SURFACE * 0.78, 0],
       fish: [-0.16, 0.10, 0.55, -W * 0.03, SURFACE * 0.5, D * 0.12],
       feeder: [0.46, 0.24, 0.36, fx, H + 0.9, fz],
-      controller: [0.3, 0.2, 0.52, 0, H + 0.75, 0],
+      controller: [0.3, 0.2, 0.5, 0, H + 0.6, fz * 0.6],
       top: [0, 1.36, 0.82, 0, H * 0.5, 0]
     };
     return presets[name] || presets.reset;
@@ -5606,11 +5644,12 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     scene.add(studio.group);
     var wanted = this.finish;
     var cam = new T.PerspectiveCamera(30, w / h, 0.1, 120);
-    // [yaw, pitch, distance, target x, y, z]: framed on the head and feeder, not on the rails
+    // [yaw, pitch, distance, target x, y, z]: the whole assembly, rails included, at this tank size
+    var span = Math.max(this.dims.W, this.dims.D * 1.6), far = span * 1.95 + 1.6, hz = studio.headZ;
     var views = {
-      front: [0.0, 0.05, 8.4, 0.0, 1.3, 0.0], back: [Math.PI, 0.05, 8.4, 0.0, 1.3, 0.0],
-      left: [-Math.PI / 2, 0.06, 8.0, 0.0, 1.25, 0.2], right: [Math.PI / 2, 0.06, 8.0, 0.0, 1.25, 0.2],
-      top: [0.0, 1.22, 8.4, 0.2, 1.0, 0.0], under: [0.5, -0.75, 7.2, 0.0, 0.85, 0.0]
+      front: [0.0, 0.10, far * 0.8, 0.0, 0.2, 0.0], back: [Math.PI, 0.10, far * 0.8, 0.0, 0.2, 0.0],
+      left: [-Math.PI / 2, 0.12, far * 0.72, 0.0, 0.35, 0.0], right: [Math.PI / 2, 0.12, far * 0.72, 0.0, 0.35, 0.0],
+      top: [0.0, 1.45, far * 0.78, 0.0, 0.3, 0.0], under: [0.6, -0.7, far * 0.85, 0.0, 0.2, hz * 0.4]
     };
     Object.keys(views).forEach(function (id) {
       var v = views[id], tgt = new T.Vector3(v[3], v[4], v[5]), dist = v[2];
