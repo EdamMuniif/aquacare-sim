@@ -1133,3 +1133,4 @@ button, a, input, select, label { touch-action: manipulation; }
 .filt__hist time { font: 600 11.5px var(--mono); color: var(--muted); margin-right: 4px; }
 .tank3d__tag--filter { border-color: rgba(111, 200, 255, .75); }
 .tank3d__tag--filter::before { background: #6fc8ff; }
+.filtQuick[aria-pressed="true"] { border-color: #6fc8ff; color: #bfe9ff; background: rgba(43, 111, 158, .35); }

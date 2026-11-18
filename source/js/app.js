@@ -560,6 +560,9 @@
     if (sig === ui.sigFilt) return;
     ui.sigFilt = sig;
     $('filtOn').checked = f.enabled;
+    var fq = $('filtQuick');
+    fq.textContent = 'Filter: ' + (f.enabled ? (f.state === 'FAULT' ? 'fault' : f.state === 'WARNING' ? 'clean sponge' : 'on') : 'off');
+    fq.setAttribute('aria-pressed', f.enabled ? 'true' : 'false');
     $('filtCtl').hidden = !f.enabled;
     var pb = $('filtPump');
     pb.textContent = f.pumpCmd ? 'Stop pump' : 'Start pump';
@@ -578,6 +581,14 @@
     $('filtStats').innerHTML = rows.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
     $('filtHist').innerHTML = f.history.length ? f.history.map(function (h) { return '<li><time>Day ' + (Math.floor(h.t / 86400000) + 1) + ' ' + F.hhmm(h.t) + '</time> ' + esc(h.text) + '</li>'; }).join('') : '<li>No entries yet</li>';
   }
+  $('filtQuick').addEventListener('click', function () {
+    var f = engine.s.filter; if (!f) return;
+    var on = !f.enabled;
+    engine.setFilter(on); save(); ui.sigFilt = ''; render();
+    var sel = document.querySelector('#tank3d select');
+    if (sel) { sel.value = on ? 'filter' : 'reset'; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    $('liveState').textContent = on ? 'Filter on. Camera moved to the filter unit beside the tank.' : 'Filter off.';
+  });
   $('filtOn').addEventListener('change', function () { engine.setFilter(this.checked); save(); ui.sigFilt = ''; render(); });
   $('filtPump').addEventListener('click', function () { var f = engine.s.filter; if (f) engine.filterPump(!f.pumpCmd); ui.sigFilt = ''; render(); });
   $('filtClean').addEventListener('click', function () { engine.cleanFilter(); ui.sigFilt = ''; render(); });

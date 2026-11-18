@@ -1143,6 +1143,7 @@ button, a, input, select, label { touch-action: manipulation; }
 .filt__hist time { font: 600 11.5px var(--mono); color: var(--muted); margin-right: 4px; }
 .tank3d__tag--filter { border-color: rgba(111, 200, 255, .75); }
 .tank3d__tag--filter::before { background: #6fc8ff; }
+.filtQuick[aria-pressed="true"] { border-color: #6fc8ff; color: #bfe9ff; background: rgba(43, 111, 158, .35); }
 
 </style>
 </head>
@@ -1262,6 +1263,7 @@ button, a, input, select, label { touch-action: manipulation; }
           <button type="button" data-camera="button">Press tank button</button>
           <button type="button" id="tagsBtn" aria-pressed="false">Labels</button>
           <button type="button" id="coneBtn" aria-pressed="false">Camera view</button>
+          <button type="button" id="filtQuick" class="filtQuick" aria-pressed="false" title="Mechanical filter (proposal): pump and sponge beside the tank">Filter: off</button>
           <label class="sr-only" for="finishSel">Controller finish</label>
           <select id="finishSel"><option value="black">Black finish</option><option value="white">White finish</option></select>
         </div>
@@ -6862,6 +6864,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     if (sig === ui.sigFilt) return;
     ui.sigFilt = sig;
     $('filtOn').checked = f.enabled;
+    var fq = $('filtQuick');
+    fq.textContent = 'Filter: ' + (f.enabled ? (f.state === 'FAULT' ? 'fault' : f.state === 'WARNING' ? 'clean sponge' : 'on') : 'off');
+    fq.setAttribute('aria-pressed', f.enabled ? 'true' : 'false');
     $('filtCtl').hidden = !f.enabled;
     var pb = $('filtPump');
     pb.textContent = f.pumpCmd ? 'Stop pump' : 'Start pump';
@@ -6880,6 +6885,14 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     $('filtStats').innerHTML = rows.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
     $('filtHist').innerHTML = f.history.length ? f.history.map(function (h) { return '<li><time>Day ' + (Math.floor(h.t / 86400000) + 1) + ' ' + F.hhmm(h.t) + '</time> ' + esc(h.text) + '</li>'; }).join('') : '<li>No entries yet</li>';
   }
+  $('filtQuick').addEventListener('click', function () {
+    var f = engine.s.filter; if (!f) return;
+    var on = !f.enabled;
+    engine.setFilter(on); save(); ui.sigFilt = ''; render();
+    var sel = document.querySelector('#tank3d select');
+    if (sel) { sel.value = on ? 'filter' : 'reset'; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    $('liveState').textContent = on ? 'Filter on. Camera moved to the filter unit beside the tank.' : 'Filter off.';
+  });
   $('filtOn').addEventListener('change', function () { engine.setFilter(this.checked); save(); ui.sigFilt = ''; render(); });
   $('filtPump').addEventListener('click', function () { var f = engine.s.filter; if (f) engine.filterPump(!f.pumpCmd); ui.sigFilt = ''; render(); });
   $('filtClean').addEventListener('click', function () { engine.cleanFilter(); ui.sigFilt = ''; render(); });
