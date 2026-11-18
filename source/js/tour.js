@@ -12,6 +12,13 @@
   function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
   function clearTimers() { timers.forEach(clearTimeout); timers = []; }
   function openReminder() { E.jumpToNextFeed(); E.advanceTo(E.s.simTime + 5000, true); }
+  // Moves the 3D view only. It never changes the run, the filter or any setting.
+  function show3d(view) {
+    var t = A.tank3d && A.tank3d(), sel = $('tankView');
+    if (!t) return;
+    if (sel) sel.value = view;
+    t.setCamera(view);
+  }
 
   var STEPS = [
     {
@@ -105,8 +112,28 @@
     },
     {
       title: 'Feed log and CSV export',
-      body: '<p>Every feed event is one row: reminder, button press, automatic attempt, IR result, outcome and the count after it. You can search and filter it.</p><p>The <b>CSV exports</b> (feed log, raw and smoothed readings, event log, perturbation tests) are all marked <b>SIMULATION - DEMO DATA</b> for analysis and slides.</p><p>Exit to keep exploring this run, or use Reset run to start fresh.</p>',
+      body: '<p>Every feed event is one row: reminder, button press, automatic attempt, IR result, outcome and the count after it. You can search and filter it.</p><p>The <b>CSV exports</b> (feed log, raw and smoothed readings, event log, perturbation tests) are all marked <b>SIMULATION - DEMO DATA</b> for analysis and slides.</p>',
       tab: 'feed', target: '#pane-feed', act: function () {}
+    },
+    {
+      title: 'Proposal: one controller for every tank',
+      body: '<p>The next four steps are <b>proposals that need project-team confirmation</b>. They are simulated only, and nothing has been built.</p><p>A fixed 24 cm housing rests on the front rim. Rails slide out of both ends to corner clamps, so one controller spans all six tank settings: <b>31.4&ndash;49.9 cm wide and 15.7&ndash;24.9 cm deep</b>.</p>',
+      target: '#bay', act: function (live) { if (live) show3d('controller'); }
+    },
+    {
+      title: 'Proposal: mini 4-axis feeder arm',
+      body: '<p>A turntable, shoulder, elbow and wrist carry a scoop from the hopper to the water, with a reach of about <b>8.7 cm</b> from the housing centre. An IR gate on the scoop lip confirms the drop, and no passage is a fault.</p><p><b>The feeding loop does not change.</b> The tank button still decides whether to feed, with the same cap of 3 a day. The camera only picks where to pour. Needs project-team confirmation.</p>',
+      target: '#bay', act: function (live) { if (live) show3d('feeder'); }
+    },
+    {
+      title: 'Proposal: top camera and its blind spots',
+      body: '<p>One fixed <b>120&deg; lens</b> sees only about <b>81&deg; under water</b>, because light bends at the surface. It covers about 100% of the floor but only about <b>3&ndash;8% of the water just under the surface</b>, so fish at the upper ends and sides can be out of view.</p><p>The behaviour analysis is a rule-based stand-in, not a trained model. Press <b>Camera view</b> to see the cone. Needs project-team confirmation.</p>',
+      target: '#bay', act: function (live) { if (live) show3d('top'); }
+    },
+    {
+      title: 'Proposal: mechanical filter',
+      body: '<p>A pump and sponge loop beside the tank, <b>off by default</b>. It changes <b>turbidity only</b>, never pH, temperature, TDS or feeding. The sponge clogs over time: below 60% of set flow it warns, and below 30% it makes a protective stop until the sponge is cleaned.</p><p>All constants are illustrative, to confirm by measurement. Needs project-team confirmation. Press <b>Filter: off</b> under the tank to try it.</p><p>Exit to keep exploring this run, or use Reset run to start fresh.</p>',
+      target: '#bay', act: function (live) { if (live) show3d('reset'); }
     }
   ];
 

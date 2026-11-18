@@ -855,6 +855,7 @@ button, a, input, select, label { touch-action: manipulation; }
 .stage[data-view="feeding"] > .panel { order: 4; }
 .stage[data-view="feeding"] > #trendSec { order: 5; }
 .stage[data-view="project"] > #projHero { order: 1; }
+.stage[data-view="project"] > #upgradeNote { order: 1; }
 .stage[data-view="project"] > .panel { order: 2; }
 .stage[data-view="project"] > .titleblock { order: 3; }
 
