@@ -6864,6 +6864,13 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     if (sig === ui.sigFilt) return;
     ui.sigFilt = sig;
     $('filtOn').checked = f.enabled;
+    // The Filter camera view only makes sense with the unit on: disable it while the filter is off.
+    var camSel = document.querySelector('#tank3d select'), fOpt = camSel && camSel.querySelector('option[value="filter"]');
+    if (fOpt) {
+      fOpt.disabled = !f.enabled;
+      fOpt.textContent = f.enabled ? 'Filter (proposal)' : 'Filter (tap \u201cFilter: off\u201d first)';
+      if (!f.enabled && camSel.value === 'filter') { camSel.value = 'reset'; camSel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }
     var fq = $('filtQuick');
     fq.textContent = 'Filter: ' + (f.enabled ? (f.state === 'FAULT' ? 'fault' : f.state === 'WARNING' ? 'clean sponge' : 'on') : 'off');
     fq.setAttribute('aria-pressed', f.enabled ? 'true' : 'false');
