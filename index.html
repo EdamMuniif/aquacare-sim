@@ -865,6 +865,7 @@ button, a, input, select, label { touch-action: manipulation; }
 .stage[data-view="feeding"] > .panel { order: 4; }
 .stage[data-view="feeding"] > #trendSec { order: 5; }
 .stage[data-view="project"] > #projHero { order: 1; }
+.stage[data-view="project"] > #upgradeNote { order: 1; }
 .stage[data-view="project"] > .panel { order: 2; }
 .stage[data-view="project"] > .titleblock { order: 3; }
 
@@ -1236,6 +1237,16 @@ button, a, input, select, label { touch-action: manipulation; }
       <button class="btn btn--tour" type="button" data-tour-open><span class="btn--tour__icon" aria-hidden="true"></span>Show the project logic</button>
     </div>
   </section>
+  <section class="card" id="upgradeNote" data-views="project" aria-labelledby="upgradeTitle">
+    <header class="card__head"><h2 class="card__title" id="upgradeTitle">Proposed upgrades</h2><span class="simtag">SIM</span></header>
+    <p class="camcard__lede">These go beyond the original brief. Each one is a proposal that needs project-team confirmation. None has been built or tested, and every value shown for them is simulation / demo data.</p>
+    <ul class="camcard__points">
+      <li><b>Universal controller.</b> A fixed 24 &times; 7 &times; 4.5 cm housing rests on the front rim. Rails slide out of both ends to corner clamps, spanning 31.4&ndash;49.9 cm wide and 15.7&ndash;24.9 cm deep across the six tank settings.</li>
+      <li><b>Mini 4-axis feeder arm.</b> Turntable, shoulder, elbow and wrist, with a reach of about 8.7 cm from the housing centre. An IR gate on the scoop lip confirms the drop, and no passage is a fault. The tank button still decides whether to feed, with the same cap of 3 a day. The camera only picks where to pour.</li>
+      <li><b>Top camera and blind spots.</b> One fixed 120&deg; lens sees about 81&deg; under water. It covers about 100&nbsp;% of the floor but only about 3&ndash;8&nbsp;% of the water just under the surface, so the upper ends and sides are blind. The behaviour analysis is a rule-based stand-in, not a trained model.</li>
+      <li><b>Mechanical filter.</b> Off by default. A pump and sponge loop that changes turbidity only. It warns below 60&nbsp;% of set flow and makes a protective stop below 30&nbsp;% until the sponge is cleaned. All constants are illustrative, to confirm by measurement.</li>
+    </ul>
+  </section>
   <section class="sensorrow" id="sensorRow" data-views="tank water" aria-label="Water quality readings"></section>
   <figure class="bay" id="bay" aria-labelledby="bayCap" data-views="tank">
       <div class="bay__chips">
@@ -1274,7 +1285,7 @@ button, a, input, select, label { touch-action: manipulation; }
     </figure>
   <section class="card camcard" id="camCard" data-views="tank" hidden aria-labelledby="camTitle">
       <header class="card__head"><h2 class="card__title" id="camTitle">Top camera and phone app</h2><span class="simtag">SIM</span></header>
-      <p class="camcard__lede">Proposed upgrade, not in the original brief: the controller carries a camera that looks straight down into the tank. The phone app shows that picture, sets the tank size, and can send behaviour notifications. Everything on this card is simulated.</p>
+      <p class="camcard__lede">Proposed upgrade, not in the original brief: the controller carries a camera that looks straight down into the tank. The phone app shows that picture, sets the tank size, and can send behaviour notifications. It needs project-team confirmation. Everything on this card is simulated.</p>
       <div class="camcard__grid">
         <div class="phone" role="group" aria-label="Simulated phone app">
           <div class="phone__notch" aria-hidden="true"></div>
@@ -1314,7 +1325,7 @@ button, a, input, select, label { touch-action: manipulation; }
         <div class="camcard__side">
           <h3 class="h3">How it works in this simulation</h3>
           <ul class="camcard__points">
-            <li><b>One controller for every tank.</b> The head, display, hopper, arm and camera are the same size on all six tank settings. Two telescoping rails and four clamps stretch to the tank that the phone reports, and the camera field of view follows the same profile.</li>
+            <li><b>One controller for every tank.</b> The head, display, hopper, arm and camera are the same size on all six tank settings. Two telescoping rails and four clamps stretch to the tank that the phone reports. The camera keeps one fixed 120&deg; lens on every size, about 81&deg; under water, so it has blind spots near the surface.</li>
             <li><b>Analysis is a rule-based stand-in.</b> It reads the simulated fish positions: how fast they move compared with this tank's own normal (learned in the first seconds), how many are near the surface, and how many come to the food after a feed. A real build would need a trained detector on camera frames. None exists or has been tested here.</li>
             <li><b>The camera picks where to drop food, not whether.</b> When a feed is approved with the tank button, the mini arm carries the scoop over the spot where the fish are, inside its reach. The pellets then fall, float and sink under simple physics. Proposed upgrade; needs project-team confirmation.</li>
             <li><b>The rule limits are placeholders.</b> The project team has not confirmed any alert limit, so alerts are off until you switch them on, and every line is labelled as a demo rule.</li>
@@ -8018,6 +8029,13 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
   function clearTimers() { timers.forEach(clearTimeout); timers = []; }
   function openReminder() { E.jumpToNextFeed(); E.advanceTo(E.s.simTime + 5000, true); }
+  // Moves the 3D view only. It never changes the run, the filter or any setting.
+  function show3d(view) {
+    var t = A.tank3d && A.tank3d(), sel = $('tankView');
+    if (!t) return;
+    if (sel) sel.value = view;
+    t.setCamera(view);
+  }
 
   var STEPS = [
     {
@@ -8111,8 +8129,28 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     },
     {
       title: 'Feed log and CSV export',
-      body: '<p>Every feed event is one row: reminder, button press, automatic attempt, IR result, outcome and the count after it. You can search and filter it.</p><p>The <b>CSV exports</b> (feed log, raw and smoothed readings, event log, perturbation tests) are all marked <b>SIMULATION - DEMO DATA</b> for analysis and slides.</p><p>Exit to keep exploring this run, or use Reset run to start fresh.</p>',
+      body: '<p>Every feed event is one row: reminder, button press, automatic attempt, IR result, outcome and the count after it. You can search and filter it.</p><p>The <b>CSV exports</b> (feed log, raw and smoothed readings, event log, perturbation tests) are all marked <b>SIMULATION - DEMO DATA</b> for analysis and slides.</p>',
       tab: 'feed', target: '#pane-feed', act: function () {}
+    },
+    {
+      title: 'Proposal: one controller for every tank',
+      body: '<p>The next four steps are <b>proposals that need project-team confirmation</b>. They are simulated only, and nothing has been built.</p><p>A fixed 24 cm housing rests on the front rim. Rails slide out of both ends to corner clamps, so one controller spans all six tank settings: <b>31.4&ndash;49.9 cm wide and 15.7&ndash;24.9 cm deep</b>.</p>',
+      target: '#bay', act: function (live) { if (live) show3d('controller'); }
+    },
+    {
+      title: 'Proposal: mini 4-axis feeder arm',
+      body: '<p>A turntable, shoulder, elbow and wrist carry a scoop from the hopper to the water, with a reach of about <b>8.7 cm</b> from the housing centre. An IR gate on the scoop lip confirms the drop, and no passage is a fault.</p><p><b>The feeding loop does not change.</b> The tank button still decides whether to feed, with the same cap of 3 a day. The camera only picks where to pour. Needs project-team confirmation.</p>',
+      target: '#bay', act: function (live) { if (live) show3d('feeder'); }
+    },
+    {
+      title: 'Proposal: top camera and its blind spots',
+      body: '<p>One fixed <b>120&deg; lens</b> sees only about <b>81&deg; under water</b>, because light bends at the surface. It covers about 100% of the floor but only about <b>3&ndash;8% of the water just under the surface</b>, so fish at the upper ends and sides can be out of view.</p><p>The behaviour analysis is a rule-based stand-in, not a trained model. Press <b>Camera view</b> to see the cone. Needs project-team confirmation.</p>',
+      target: '#bay', act: function (live) { if (live) show3d('top'); }
+    },
+    {
+      title: 'Proposal: mechanical filter',
+      body: '<p>A pump and sponge loop beside the tank, <b>off by default</b>. It changes <b>turbidity only</b>, never pH, temperature, TDS or feeding. The sponge clogs over time: below 60% of set flow it warns, and below 30% it makes a protective stop until the sponge is cleaned.</p><p>All constants are illustrative, to confirm by measurement. Needs project-team confirmation. Press <b>Filter: off</b> under the tank to try it.</p><p>Exit to keep exploring this run, or use Reset run to start fresh.</p>',
+      target: '#bay', act: function (live) { if (live) show3d('reset'); }
     }
   ];
 
