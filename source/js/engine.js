@@ -16,7 +16,9 @@
   var REMINDER_WINDOW = 10 * MIN;   // project requirement
   var DAILY_CAP = 3;                // project requirement
   var SAMPLE_EVERY = MIN;           // demo sampling interval
-  var DISPENSE_REAL_MS = 3400;      // animation length at slow speeds (not a hardware timing)
+  var DISPENSE_REAL_MS = 3400;
+  // Optional mechanical filter (proposal). Loaded before this file in the browser; required in Node.
+  var Filt = root.AquaFilter || (typeof require === 'function' ? (function () { try { return require('./filter.js'); } catch (e) { return null; } })() : null);      // animation length at slow speeds (not a hardware timing)
   var DISPENSE_SIM_MS = 60 * SEC;   // upper bound in simulated time, so fast runs stay exact
   var BOOT_REAL_MS = 1500, BOOT_SIM_MS = 30 * SEC;
   var DISPENSE_STEPS = [
@@ -126,6 +128,7 @@
       dailyPattern: true,                              // synthetic day/night shape in demo readings
       owner: { mode: 'presenter', respondPct: 60 },    // who presses the tank button
       policy: { interruptedReminder: 'missed', countAfterRestart: 'retain' },
+      filter: { enabled: false, flowLph: null },       // mechanical filter proposal; off by default
       scenarios: []
     };
   }
@@ -230,6 +233,7 @@
     this.s.simTime = this.dayStartOffset();
     var lived = this.s.simTime - UPKEEP.startAgeDays * DAY;      // the tank starts lived-in, not spotless
     this.s.maint = { glass: lived, gravel: lived, probes: lived };
+    this.s.filter = Filt ? Filt.create(this.settings.filter, Filt.volumeL(this.settings.tankGal), this.s.simTime) : null;
     this.s.nextSampleAt = Math.floor(this.s.simTime / MIN) * MIN;
     var scn = this.s.scn;
     (this.settings.scenarios || []).forEach(function (sc) { scn[sc.id] = 'pending'; });
@@ -343,6 +347,65 @@
     this.emit('change');
   };
 
+  // ---------- mechanical filter (proposal) ----------
+  P.filterVolume = function () { return Filt ? Filt.volumeL(this.settings.tankGal) : 0; };
+  P.filterStep = function () {
+    var s = this.s, F = s.filter, t = s.simTime;
+    if (!F || !F.enabled) return;
+    var dtMin = (t - F.t) / MIN;
+    F.t = t;
+    if (!(dtMin > 0)) return;
+    var V = this.filterVolume();
+    var ev = Filt.step(F, dtMin, { power: s.power, V: V, t: t });
+    var k = Filt.removalPerMin(F, V);
+    if (k > 0) {
+      var before = this.pertEffect('turb', t), keep = Math.exp(-k * dtMin);
+      s.perts.forEach(function (p) { if (PERTURB[p.kind].param === 'turb' && t >= p.start) p.f = (p.f == null ? 1 : p.f) * keep; });
+      Filt.capture(F, Math.max(0, before - this.pertEffect('turb', t)) * V);
+    }
+    this.filterEvents(ev);
+  };
+  P.filterEvents = function (ev) {
+    var s = this.s, F = s.filter, self = this;
+    (ev || []).forEach(function (e) {
+      if (e.type === 'state') {
+        self.addLog('logic', 'Filter (proposal): ' + (e.from ? e.from + ' \u2192 ' : '') + e.to + '. ' + e.why);
+        if (e.to === 'WARNING') { Filt.note(F, s.simTime, 'Warning: ' + e.why); self.raise('filter', 'equipment', 'Filter (proposal): ' + e.why); }
+        else if (e.to === 'FAULT') {
+          Filt.note(F, s.simTime, 'Fault: ' + e.why);
+          var a = self.findAlert('filter');
+          if (a) a.text = 'Filter (proposal): ' + e.why; else self.raise('filter', 'equipment', 'Filter (proposal): ' + e.why);
+        } else if (e.to === 'RUNNING' || (e.to === 'OFF' && !F.enabled)) self.clear('filter');
+      }
+      if (e.type === 'cleaned') self.clear('filter', 'Alert cleared: filter sponge cleaned');
+    });
+  };
+  P.setFilter = function (on) {
+    var s = this.s, F = s.filter; if (!F) return;
+    this.settings.filter = { enabled: !!on, flowLph: F.flowSet };
+    F.t = s.simTime;
+    this.filterEvents(Filt.setEnabled(F, on, s.simTime));
+    this.addLog('demo', 'Filter (proposal) ' + (on ? 'enabled, ' + F.flowSet + ' L/h set flow' : 'disabled') + '. Mechanical stage only; affects turbidity, never pH or TDS.', { injected: true });
+    this.emit('change');
+  };
+  P.filterPump = function (on) {
+    var s = this.s, F = s.filter; if (!F || !F.enabled) return;
+    this.filterEvents(Filt.setPump(F, on, s.simTime));
+    this.emit('change');
+  };
+  P.setFilterFlow = function (q) {
+    var s = this.s, F = s.filter; if (!F) return;
+    Filt.setFlow(F, +q, this.filterVolume(), s.simTime);
+    this.settings.filter = { enabled: F.enabled, flowLph: F.flowSet };
+    this.emit('change');
+  };
+  P.cleanFilter = function () {
+    var s = this.s, F = s.filter; if (!F) return;
+    this.filterEvents(Filt.clean(F, s.simTime, s.power === 'on'));
+    this.addLog('demo', 'Filter (proposal): sponge rinsed. Flow recovers; the water is not cleaned by this action.', { injected: true });
+    this.emit('change');
+  };
+
   // ---------- records ----------
   P.newRecord = function (slot, label, source) {
     var s = this.s;
@@ -362,6 +425,7 @@
     if (!r) return;
     r.outcome = outcome;
     r.countAfter = this.s.feeds.counted;
+    if (this.s.filter && (outcome === 'manual' || outcome === 'auto_ok')) Filt.feed(this.s.filter);
     if (this.s.curRec === r) this.s.curRec = null;
     this.emit('record', r);
   };
@@ -803,9 +867,9 @@
     this.s.perts.forEach(function (p) {
       var d = PERTURB[p.kind];
       if (d.param !== key || t < p.start) return;
-      var upMs = d.up * MIN, downMs = d.down * MIN;
-      if (t <= p.end) sum += d.mag * (1 - Math.exp(-(t - p.start) / upMs));
-      else sum += d.mag * (1 - Math.exp(-(p.end - p.start) / upMs)) * Math.exp(-(t - p.end) / downMs);
+      var upMs = d.up * MIN, downMs = d.down * MIN, f = p.f == null ? 1 : p.f;   // p.f: share the filter has not yet removed
+      if (t <= p.end) sum += f * d.mag * (1 - Math.exp(-(t - p.start) / upMs));
+      else sum += f * d.mag * (1 - Math.exp(-(p.end - p.start) / upMs)) * Math.exp(-(t - p.end) / downMs);
     });
     return sum;
   };
@@ -970,6 +1034,7 @@
     if (s.boot && t >= s.boot.simEnd) this.finishBoot();
     if (t >= s.nextSampleAt) {
       if (s.power === 'on' && s.wifi) s.appLastSync = t;
+      this.filterStep();
       this.sample();
       s.nextSampleAt = Math.floor(t / SAMPLE_EVERY) * SAMPLE_EVERY + SAMPLE_EVERY;
     }
@@ -1077,8 +1142,8 @@
     'setSensorStatus', 'setWifi', 'setAway', 'cutPower', 'restorePower', 'finishBoot', 'pressTankButton', 'injectTrigger',
     'jumpToNextFeed', 'expireNow', 'fastForwardToDay', 'fastForwardNextDay', 'runToEnd', 'ackFeederFault', 'ackAlert',
     'addLog', 'raise', 'clear', 'startScenario', 'endScenario', 'syncScenarios', 'setLcdBug', 'setFeedMode', 'setBubbles',
-    'startPerturbation', 'settle', 'advanceTo', 'cleanTank'];
-  var COALESCE = { setTarget: 1, setSpeed: 1 };
+    'startPerturbation', 'settle', 'advanceTo', 'cleanTank', 'setFilter', 'filterPump', 'setFilterFlow', 'cleanFilter'];
+  var COALESCE = { setTarget: 1, setSpeed: 1, setFilterFlow: 1 };
   Engine.JOURNAL_VERSION = 1;
 
   P._jbase = function (kind) {

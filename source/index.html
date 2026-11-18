@@ -115,6 +115,7 @@
             <option value="fish">Fish close-up</option>
             <option value="feeder">Feeder (hopper and mini arm)</option>
             <option value="controller">Controller</option>
+            <option value="filter">Filter (proposal)</option>
             <option value="top">Top view</option>
           </select>
           <button type="button" data-camera="in" aria-label="Zoom in">+</button>
@@ -876,6 +877,24 @@
       </div>
     </fieldset>
 
+    <fieldset class="grp" id="filtGrp">
+      <legend>Filter <small>(proposal, needs project-team confirmation)</small></legend>
+      <p class="fine">Mechanical stage only. A pump pushes tank water through a sponge that traps suspended matter, so turbidity clears faster. It never changes pH, temperature or TDS. Flow, clogging and capture constants are illustrative, to confirm by measurement.</p>
+      <label class="switch"><input type="checkbox" id="filtOn"><span>Filter enabled</span></label>
+      <div class="filt__ctl" id="filtCtl">
+        <div class="row2">
+          <button class="btn" type="button" id="filtPump" aria-pressed="false">Stop pump</button>
+          <button class="btn" type="button" id="filtClean">Clean sponge</button>
+        </div>
+        <div class="field">
+          <label class="field__label" for="filtFlow">Set flow <output id="filtFlowOut" for="filtFlow">95 L/h</output></label>
+          <input type="range" id="filtFlow" min="0" max="190" step="5" value="95">
+        </div>
+        <dl class="filt" id="filtStats"></dl>
+        <details class="filt__hist"><summary>Maintenance history</summary><ol id="filtHist"></ol></details>
+      </div>
+    </fieldset>
+
     <fieldset class="grp">
       <legend>Water (simulated baseline)</legend>
       <div id="baseSliders" class="baseSliders"></div>
@@ -933,6 +952,7 @@
 <div class="sr-only" aria-live="polite" id="liveState"></div>
 <div class="sr-only" aria-live="assertive" id="liveAlert"></div>
 
+<script src="js/filter.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/selftest.js"></script>
 <script src="js/tank.js"></script>

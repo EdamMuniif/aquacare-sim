@@ -1110,3 +1110,26 @@ button, a, input, select, label { touch-action: manipulation; }
 @media (max-width: 899px) { .camcard__grid { grid-template-columns: minmax(0, 1fr); } .phone { margin: 0 auto; } }
 @media (max-width: 699px) { .viewsgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 440px) { .viewsgrid { grid-template-columns: minmax(0, 1fr); } }
+
+/* filter (proposal) */
+.filt__ctl { display: grid; gap: 10px; margin-top: 8px; }
+.filt__ctl[hidden] { display: none; }
+.filt__ctl output { font: 600 12.5px var(--mono); color: var(--ink-2); margin-left: 6px; }
+.filt__ctl input[type="range"] { width: 100%; accent-color: #2b6f9e; }
+.filt { display: grid; gap: 8px; margin: 0; }
+.filt div { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: center; font-size: 13.5px; }
+.filt dt { color: var(--ink-2); font-weight: 600; }
+.filt dd { margin: 0; display: grid; grid-template-columns: 1fr auto; column-gap: 8px; align-items: center; min-width: 0; }
+.filt dd b { font-size: 13px; font-variant-numeric: tabular-nums; }
+.filt dd small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.filt .upk__bar i { background: linear-gradient(90deg, #8ec5e4, #2b6f9e); }
+.filt .st { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; }
+.filt .st::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok, #3c8a4d); }
+.filt .st[data-tone="attn"] { color: var(--attn); } .filt .st[data-tone="attn"]::before { background: #d98a1e; }
+.filt .st[data-tone="fault"] { color: var(--fault); } .filt .st[data-tone="fault"]::before { background: var(--fault); }
+.filt .st[data-tone="off"] { color: var(--off); } .filt .st[data-tone="off"]::before { background: transparent; border: 2px solid var(--off); width: 6px; height: 6px; }
+.filt__hist summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--ink-2); }
+.filt__hist ol { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-2); max-height: 180px; overflow: auto; }
+.filt__hist time { font: 600 11.5px var(--mono); color: var(--muted); margin-right: 4px; }
+.tank3d__tag--filter { border-color: rgba(111, 200, 255, .75); }
+.tank3d__tag--filter::before { background: #6fc8ff; }

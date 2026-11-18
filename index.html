@@ -1121,6 +1121,29 @@ button, a, input, select, label { touch-action: manipulation; }
 @media (max-width: 699px) { .viewsgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 440px) { .viewsgrid { grid-template-columns: minmax(0, 1fr); } }
 
+/* filter (proposal) */
+.filt__ctl { display: grid; gap: 10px; margin-top: 8px; }
+.filt__ctl[hidden] { display: none; }
+.filt__ctl output { font: 600 12.5px var(--mono); color: var(--ink-2); margin-left: 6px; }
+.filt__ctl input[type="range"] { width: 100%; accent-color: #2b6f9e; }
+.filt { display: grid; gap: 8px; margin: 0; }
+.filt div { display: grid; grid-template-columns: 92px 1fr; gap: 10px; align-items: center; font-size: 13.5px; }
+.filt dt { color: var(--ink-2); font-weight: 600; }
+.filt dd { margin: 0; display: grid; grid-template-columns: 1fr auto; column-gap: 8px; align-items: center; min-width: 0; }
+.filt dd b { font-size: 13px; font-variant-numeric: tabular-nums; }
+.filt dd small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.filt .upk__bar i { background: linear-gradient(90deg, #8ec5e4, #2b6f9e); }
+.filt .st { display: inline-flex; align-items: center; gap: 6px; font-weight: 650; }
+.filt .st::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--ok, #3c8a4d); }
+.filt .st[data-tone="attn"] { color: var(--attn); } .filt .st[data-tone="attn"]::before { background: #d98a1e; }
+.filt .st[data-tone="fault"] { color: var(--fault); } .filt .st[data-tone="fault"]::before { background: var(--fault); }
+.filt .st[data-tone="off"] { color: var(--off); } .filt .st[data-tone="off"]::before { background: transparent; border: 2px solid var(--off); width: 6px; height: 6px; }
+.filt__hist summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--ink-2); }
+.filt__hist ol { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-2); max-height: 180px; overflow: auto; }
+.filt__hist time { font: 600 11.5px var(--mono); color: var(--muted); margin-right: 4px; }
+.tank3d__tag--filter { border-color: rgba(111, 200, 255, .75); }
+.tank3d__tag--filter::before { background: #6fc8ff; }
+
 </style>
 </head>
 <body>
@@ -1229,6 +1252,7 @@ button, a, input, select, label { touch-action: manipulation; }
             <option value="fish">Fish close-up</option>
             <option value="feeder">Feeder (hopper and mini arm)</option>
             <option value="controller">Controller</option>
+            <option value="filter">Filter (proposal)</option>
             <option value="top">Top view</option>
           </select>
           <button type="button" data-camera="in" aria-label="Zoom in">+</button>
@@ -1990,6 +2014,24 @@ button, a, input, select, label { touch-action: manipulation; }
       </div>
     </fieldset>
 
+    <fieldset class="grp" id="filtGrp">
+      <legend>Filter <small>(proposal, needs project-team confirmation)</small></legend>
+      <p class="fine">Mechanical stage only. A pump pushes tank water through a sponge that traps suspended matter, so turbidity clears faster. It never changes pH, temperature or TDS. Flow, clogging and capture constants are illustrative, to confirm by measurement.</p>
+      <label class="switch"><input type="checkbox" id="filtOn"><span>Filter enabled</span></label>
+      <div class="filt__ctl" id="filtCtl">
+        <div class="row2">
+          <button class="btn" type="button" id="filtPump" aria-pressed="false">Stop pump</button>
+          <button class="btn" type="button" id="filtClean">Clean sponge</button>
+        </div>
+        <div class="field">
+          <label class="field__label" for="filtFlow">Set flow <output id="filtFlowOut" for="filtFlow">95 L/h</output></label>
+          <input type="range" id="filtFlow" min="0" max="190" step="5" value="95">
+        </div>
+        <dl class="filt" id="filtStats"></dl>
+        <details class="filt__hist"><summary>Maintenance history</summary><ol id="filtHist"></ol></details>
+      </div>
+    </fieldset>
+
     <fieldset class="grp">
       <legend>Water (simulated baseline)</legend>
       <div id="baseSliders" class="baseSliders"></div>
@@ -2049,6 +2091,189 @@ button, a, input, select, label { touch-action: manipulation; }
 
 <script>
 /*
+ * AquaCare digital prototype - mechanical filter (PROPOSAL, needs project-team confirmation)
+ * ------------------------------------------------------------------------------------------
+ * SIMULATION ONLY. An optional pump + sponge loop that clears suspended matter (turbidity).
+ * It never changes pH, temperature or TDS: a sponge does not regulate those.
+ * Biological and chemical stages, dissolved oxygen and water level are not modelled (Later).
+ *
+ * Model (all constants below are illustrative, to confirm by measurement):
+ *   - Actual flow  Q = Qset / sqrt(R), with sponge resistance R = 1 + RES_K * load^3
+ *     (a fixed-head pump against a growing restriction; R is relative to a clean sponge).
+ *   - Clearing: suspended-matter excess decays at k = (Q / V) * CAPTURE per hour, on top of
+ *     the engine's own settling. V is the nominal tank volume for the selected size.
+ *   - Clogging: load rises slowly while water flows, with each delivered feed (waste and
+ *     uneaten food), and with the suspended matter the sponge actually captures.
+ * Deterministic: no random numbers, so seeded runs and the run journal replay exactly.
+ */
+(function (root) {
+  'use strict';
+
+  var CFG = {
+    capture: 0.5,            // single-pass capture of suspended matter (0..1)
+    defaultTurnover: 5,      // default set flow, tank volumes per hour
+    maxTurnover: 10,         // slider maximum, tank volumes per hour
+    resK: 15,                // R = 1 + resK * load^3  (load 1.0 -> 16x a clean sponge)
+    loadPerDay: 0.012,       // background loading at full set flow (fine particles, biofilm)
+    loadPerFeed: 0.003,      // per delivered feed while water flows
+    loadPerNtuL: 7e-5,       // per NTU*litre of suspended matter captured (one soil test ~ +0.12 in 5 gal)
+    loadStart: 0.05,         // sponge at the start of a run
+    loadAfterClean: 0.03,    // rinsing never gets a sponge back to new
+    startMin: 2,             // STARTING: priming time, simulated minutes
+    warnFlow: 0.60,          // WARNING below this fraction of set flow ...
+    warnClear: 0.65,         // ... and back to RUNNING only above this (hysteresis)
+    faultFlow: 0.30,         // FAULT (protective stop) below this fraction of set flow
+    historyMax: 40
+  };
+  var STATES = ['OFF', 'STARTING', 'RUNNING', 'WARNING', 'FAULT'];
+  // Allowed transitions; anything else is refused (and would be a bug).
+  var NEXT = {
+    OFF: ['STARTING'],
+    STARTING: ['RUNNING', 'WARNING', 'FAULT', 'OFF'],
+    RUNNING: ['WARNING', 'FAULT', 'OFF'],
+    WARNING: ['RUNNING', 'FAULT', 'OFF'],
+    FAULT: ['OFF', 'STARTING']            // only after the sponge is cleaned
+  };
+
+  function volumeL(tankGal) {
+    if (String(tankGal) === 'p3') return 36 * 22 * 26 / 1000;      // paper [3] tank, nominal
+    var g = parseFloat(tankGal);
+    return (g > 0 ? g : 5) * 3.785;
+  }
+  function defaultFlow(V) { return Math.round(V * CFG.defaultTurnover / 5) * 5; }
+  function maxFlow(V) { return Math.round(V * CFG.maxTurnover / 5) * 5; }
+  function resistance(load) { return 1 + CFG.resK * Math.pow(Math.max(0, Math.min(1, load)), 3); }
+
+  function create(cfg, V, t) {
+    cfg = cfg || {};
+    var F = {
+      enabled: !!cfg.enabled, pumpCmd: !!cfg.enabled, state: 'OFF', why: 'Filter not enabled',
+      flowSet: clampFlow(cfg.flowLph, V), flow: 0, load: CFG.loadStart, R: resistance(CFG.loadStart),
+      t: t, since: t, lastClean: null, captured: 0, history: []
+    };
+    if (F.enabled) go(F, 'STARTING', 'Filter enabled at run start', t);
+    return F;
+  }
+  function clampFlow(q, V) {
+    var mx = maxFlow(V);
+    if (typeof q !== 'number' || !(q >= 0)) return defaultFlow(V);
+    return Math.max(0, Math.min(mx, Math.round(q)));
+  }
+  function go(F, to, why, t) {
+    if (F.state === to) { F.why = why; return null; }
+    if (NEXT[F.state].indexOf(to) < 0) return null;
+    var ev = { type: 'state', from: F.state, to: to, why: why };
+    F.state = to; F.why = why; F.since = t;
+    return ev;
+  }
+  function flowing(F) { return F.state === 'STARTING' || F.state === 'RUNNING' || F.state === 'WARNING'; }
+
+  // Advance dtMin simulated minutes. env: { power: 'on'|'off'|'booting', V, t }. Returns events.
+  function step(F, dtMin, env) {
+    var out = [];
+    function push(x) { if (x) out.push(x); }
+    if (!F.enabled) { F.flow = 0; return out; }
+    if (env.power !== 'on') {
+      if (flowing(F)) push(go(F, 'OFF', 'Controller has no power, pump stopped', env.t));
+      F.flow = 0;
+      return out;
+    }
+    if (F.state === 'OFF' && F.pumpCmd) push(go(F, 'STARTING', 'Pump starting', env.t));
+    F.R = resistance(F.load);
+    var ratio = 1 / Math.sqrt(F.R);
+    if (F.state === 'STARTING') {
+      var ramp = Math.min(1, (env.t - F.since) / (CFG.startMin * 60000));
+      F.flow = F.flowSet * ratio * ramp;
+      if (ramp >= 1) push(go(F, ratio < CFG.faultFlow ? 'FAULT' : (ratio < CFG.warnFlow ? 'WARNING' : 'RUNNING'), 'Water flowing through the sponge', env.t));
+    } else if (F.state === 'RUNNING' || F.state === 'WARNING') {
+      F.flow = F.flowSet * ratio;
+      if (ratio < CFG.faultFlow) push(go(F, 'FAULT', 'Flow ' + Math.round(ratio * 100) + ' % of set: protective stop, clean the sponge', env.t));
+      else if (F.state === 'RUNNING' && ratio < CFG.warnFlow) push(go(F, 'WARNING', 'Flow ' + Math.round(ratio * 100) + ' % of set: clean the sponge', env.t));
+      else if (F.state === 'WARNING' && ratio >= CFG.warnClear) push(go(F, 'RUNNING', 'Flow back to ' + Math.round(ratio * 100) + ' % of set', env.t));
+    }
+    if (F.state === 'FAULT') F.flow = 0;
+    // background loading while water passes the sponge
+    if (F.flow > 0 && F.flowSet > 0) F.load = Math.min(1, F.load + CFG.loadPerDay * (dtMin / 1440) * (F.flow / F.flowSet));
+    F.R = resistance(F.load);
+    return out;
+  }
+  // Per-minute decay rate the filter adds to suspended matter.
+  function removalPerMin(F, V) { return F.enabled && F.flow > 0 && V > 0 ? (F.flow / V) * CFG.capture / 60 : 0; }
+  function capture(F, ntuL) {
+    if (!(ntuL > 0)) return;
+    F.captured += ntuL;
+    F.load = Math.min(1, F.load + ntuL * CFG.loadPerNtuL);
+    F.R = resistance(F.load);
+  }
+  function feed(F) { if (F.enabled && F.flow > 0) { F.load = Math.min(1, F.load + CFG.loadPerFeed); F.R = resistance(F.load); } }
+  function note(F, t, text) {
+    F.history.unshift({ t: t, text: text });
+    if (F.history.length > CFG.historyMax) F.history.length = CFG.historyMax;
+  }
+
+  // Commands. Each returns events; none touch the water.
+  function setEnabled(F, on, t) {
+    var out = [];
+    on = !!on;
+    if (on === F.enabled) return out;
+    F.enabled = on; F.pumpCmd = on; F.t = t;
+    if (on) { var e = go(F, F.state === 'FAULT' ? 'FAULT' : 'STARTING', 'Filter enabled', t); if (e) out.push(e); note(F, t, 'Filter enabled'); }
+    else { if (F.state !== 'OFF') { F.state = 'OFF'; F.why = 'Filter disabled'; F.since = t; out.push({ type: 'state', from: '', to: 'OFF', why: 'Filter disabled' }); } F.flow = 0; note(F, t, 'Filter disabled'); }
+    return out;
+  }
+  function setPump(F, on, t) {
+    var out = [], e;
+    F.pumpCmd = !!on;
+    if (!F.enabled) return out;
+    if (on && F.state === 'OFF') e = go(F, 'STARTING', 'Pump started', t);
+    else if (!on && flowing(F)) e = go(F, 'OFF', 'Pump stopped', t);
+    if (e) { out.push(e); note(F, t, on ? 'Pump started' : 'Pump stopped'); }
+    if (!on) F.flow = 0;
+    return out;
+  }
+  function setFlow(F, q, V, t) {
+    var before = F.flowSet;
+    F.flowSet = clampFlow(q, V);
+    if (F.flowSet !== before) note(F, t, 'Set flow ' + before + ' → ' + F.flowSet + ' L/h');
+    return [];
+  }
+  function clean(F, t, powerOn) {
+    var out = [], was = F.state, before = F.load;
+    F.load = Math.min(F.load, CFG.loadAfterClean); F.R = resistance(F.load); F.lastClean = t;
+    note(F, t, 'Sponge rinsed (condition ' + Math.round((1 - before) * 100) + ' % → ' + Math.round((1 - F.load) * 100) + ' %)');
+    if (F.enabled) {
+      if (was === 'FAULT' || was === 'WARNING') {
+        // Clear the fault, then restart if the pump is commanded on and there is power.
+        if (was === 'FAULT') { F.state = 'OFF'; F.since = t; out.push({ type: 'state', from: 'FAULT', to: 'OFF', why: 'Sponge cleaned, fault cleared' }); }
+        if (F.pumpCmd && powerOn) { var e = go(F, 'STARTING', 'Restart after cleaning', t); if (e) out.push(e); }
+      }
+    }
+    out.push({ type: 'cleaned' });
+    return out;
+  }
+  function condition(F) { return Math.round((1 - F.load) * 100); }
+  function nextInspection(F, V) {
+    // Simulated days until flow would fall below the warning level at the current rates (background only).
+    if (!F.enabled || !(F.flowSet > 0)) return null;
+    var Lw = Math.cbrt((1 / (CFG.warnFlow * CFG.warnFlow) - 1) / CFG.resK);
+    var perDay = CFG.loadPerDay + 3 * CFG.loadPerFeed;
+    return F.load >= Lw ? 0 : (Lw - F.load) / perDay;
+  }
+
+  var AquaFilter = {
+    CFG: CFG, STATES: STATES, NEXT: NEXT,
+    volumeL: volumeL, defaultFlow: defaultFlow, maxFlow: maxFlow, resistance: resistance,
+    create: create, step: step, removalPerMin: removalPerMin, capture: capture, feed: feed,
+    setEnabled: setEnabled, setPump: setPump, setFlow: setFlow, clean: clean,
+    condition: condition, nextInspection: nextInspection, flowing: flowing, note: note
+  };
+  root.AquaFilter = AquaFilter;
+  if (typeof module !== 'undefined' && module.exports) module.exports = AquaFilter;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/*
  * AquaCare digital prototype - simulation engine v2
  * --------------------------------------------------
  * SIMULATION ONLY. Models the PROPOSED ESP32 firmware logic in the browser.
@@ -2066,7 +2291,9 @@ button, a, input, select, label { touch-action: manipulation; }
   var REMINDER_WINDOW = 10 * MIN;   // project requirement
   var DAILY_CAP = 3;                // project requirement
   var SAMPLE_EVERY = MIN;           // demo sampling interval
-  var DISPENSE_REAL_MS = 3400;      // animation length at slow speeds (not a hardware timing)
+  var DISPENSE_REAL_MS = 3400;
+  // Optional mechanical filter (proposal). Loaded before this file in the browser; required in Node.
+  var Filt = root.AquaFilter || (typeof require === 'function' ? (function () { try { return require('./filter.js'); } catch (e) { return null; } })() : null);      // animation length at slow speeds (not a hardware timing)
   var DISPENSE_SIM_MS = 60 * SEC;   // upper bound in simulated time, so fast runs stay exact
   var BOOT_REAL_MS = 1500, BOOT_SIM_MS = 30 * SEC;
   var DISPENSE_STEPS = [
@@ -2176,6 +2403,7 @@ button, a, input, select, label { touch-action: manipulation; }
       dailyPattern: true,                              // synthetic day/night shape in demo readings
       owner: { mode: 'presenter', respondPct: 60 },    // who presses the tank button
       policy: { interruptedReminder: 'missed', countAfterRestart: 'retain' },
+      filter: { enabled: false, flowLph: null },       // mechanical filter proposal; off by default
       scenarios: []
     };
   }
@@ -2280,6 +2508,7 @@ button, a, input, select, label { touch-action: manipulation; }
     this.s.simTime = this.dayStartOffset();
     var lived = this.s.simTime - UPKEEP.startAgeDays * DAY;      // the tank starts lived-in, not spotless
     this.s.maint = { glass: lived, gravel: lived, probes: lived };
+    this.s.filter = Filt ? Filt.create(this.settings.filter, Filt.volumeL(this.settings.tankGal), this.s.simTime) : null;
     this.s.nextSampleAt = Math.floor(this.s.simTime / MIN) * MIN;
     var scn = this.s.scn;
     (this.settings.scenarios || []).forEach(function (sc) { scn[sc.id] = 'pending'; });
@@ -2393,6 +2622,65 @@ button, a, input, select, label { touch-action: manipulation; }
     this.emit('change');
   };
 
+  // ---------- mechanical filter (proposal) ----------
+  P.filterVolume = function () { return Filt ? Filt.volumeL(this.settings.tankGal) : 0; };
+  P.filterStep = function () {
+    var s = this.s, F = s.filter, t = s.simTime;
+    if (!F || !F.enabled) return;
+    var dtMin = (t - F.t) / MIN;
+    F.t = t;
+    if (!(dtMin > 0)) return;
+    var V = this.filterVolume();
+    var ev = Filt.step(F, dtMin, { power: s.power, V: V, t: t });
+    var k = Filt.removalPerMin(F, V);
+    if (k > 0) {
+      var before = this.pertEffect('turb', t), keep = Math.exp(-k * dtMin);
+      s.perts.forEach(function (p) { if (PERTURB[p.kind].param === 'turb' && t >= p.start) p.f = (p.f == null ? 1 : p.f) * keep; });
+      Filt.capture(F, Math.max(0, before - this.pertEffect('turb', t)) * V);
+    }
+    this.filterEvents(ev);
+  };
+  P.filterEvents = function (ev) {
+    var s = this.s, F = s.filter, self = this;
+    (ev || []).forEach(function (e) {
+      if (e.type === 'state') {
+        self.addLog('logic', 'Filter (proposal): ' + (e.from ? e.from + ' \u2192 ' : '') + e.to + '. ' + e.why);
+        if (e.to === 'WARNING') { Filt.note(F, s.simTime, 'Warning: ' + e.why); self.raise('filter', 'equipment', 'Filter (proposal): ' + e.why); }
+        else if (e.to === 'FAULT') {
+          Filt.note(F, s.simTime, 'Fault: ' + e.why);
+          var a = self.findAlert('filter');
+          if (a) a.text = 'Filter (proposal): ' + e.why; else self.raise('filter', 'equipment', 'Filter (proposal): ' + e.why);
+        } else if (e.to === 'RUNNING' || (e.to === 'OFF' && !F.enabled)) self.clear('filter');
+      }
+      if (e.type === 'cleaned') self.clear('filter', 'Alert cleared: filter sponge cleaned');
+    });
+  };
+  P.setFilter = function (on) {
+    var s = this.s, F = s.filter; if (!F) return;
+    this.settings.filter = { enabled: !!on, flowLph: F.flowSet };
+    F.t = s.simTime;
+    this.filterEvents(Filt.setEnabled(F, on, s.simTime));
+    this.addLog('demo', 'Filter (proposal) ' + (on ? 'enabled, ' + F.flowSet + ' L/h set flow' : 'disabled') + '. Mechanical stage only; affects turbidity, never pH or TDS.', { injected: true });
+    this.emit('change');
+  };
+  P.filterPump = function (on) {
+    var s = this.s, F = s.filter; if (!F || !F.enabled) return;
+    this.filterEvents(Filt.setPump(F, on, s.simTime));
+    this.emit('change');
+  };
+  P.setFilterFlow = function (q) {
+    var s = this.s, F = s.filter; if (!F) return;
+    Filt.setFlow(F, +q, this.filterVolume(), s.simTime);
+    this.settings.filter = { enabled: F.enabled, flowLph: F.flowSet };
+    this.emit('change');
+  };
+  P.cleanFilter = function () {
+    var s = this.s, F = s.filter; if (!F) return;
+    this.filterEvents(Filt.clean(F, s.simTime, s.power === 'on'));
+    this.addLog('demo', 'Filter (proposal): sponge rinsed. Flow recovers; the water is not cleaned by this action.', { injected: true });
+    this.emit('change');
+  };
+
   // ---------- records ----------
   P.newRecord = function (slot, label, source) {
     var s = this.s;
@@ -2412,6 +2700,7 @@ button, a, input, select, label { touch-action: manipulation; }
     if (!r) return;
     r.outcome = outcome;
     r.countAfter = this.s.feeds.counted;
+    if (this.s.filter && (outcome === 'manual' || outcome === 'auto_ok')) Filt.feed(this.s.filter);
     if (this.s.curRec === r) this.s.curRec = null;
     this.emit('record', r);
   };
@@ -2853,9 +3142,9 @@ button, a, input, select, label { touch-action: manipulation; }
     this.s.perts.forEach(function (p) {
       var d = PERTURB[p.kind];
       if (d.param !== key || t < p.start) return;
-      var upMs = d.up * MIN, downMs = d.down * MIN;
-      if (t <= p.end) sum += d.mag * (1 - Math.exp(-(t - p.start) / upMs));
-      else sum += d.mag * (1 - Math.exp(-(p.end - p.start) / upMs)) * Math.exp(-(t - p.end) / downMs);
+      var upMs = d.up * MIN, downMs = d.down * MIN, f = p.f == null ? 1 : p.f;   // p.f: share the filter has not yet removed
+      if (t <= p.end) sum += f * d.mag * (1 - Math.exp(-(t - p.start) / upMs));
+      else sum += f * d.mag * (1 - Math.exp(-(p.end - p.start) / upMs)) * Math.exp(-(t - p.end) / downMs);
     });
     return sum;
   };
@@ -3020,6 +3309,7 @@ button, a, input, select, label { touch-action: manipulation; }
     if (s.boot && t >= s.boot.simEnd) this.finishBoot();
     if (t >= s.nextSampleAt) {
       if (s.power === 'on' && s.wifi) s.appLastSync = t;
+      this.filterStep();
       this.sample();
       s.nextSampleAt = Math.floor(t / SAMPLE_EVERY) * SAMPLE_EVERY + SAMPLE_EVERY;
     }
@@ -3127,8 +3417,8 @@ button, a, input, select, label { touch-action: manipulation; }
     'setSensorStatus', 'setWifi', 'setAway', 'cutPower', 'restorePower', 'finishBoot', 'pressTankButton', 'injectTrigger',
     'jumpToNextFeed', 'expireNow', 'fastForwardToDay', 'fastForwardNextDay', 'runToEnd', 'ackFeederFault', 'ackAlert',
     'addLog', 'raise', 'clear', 'startScenario', 'endScenario', 'syncScenarios', 'setLcdBug', 'setFeedMode', 'setBubbles',
-    'startPerturbation', 'settle', 'advanceTo', 'cleanTank'];
-  var COALESCE = { setTarget: 1, setSpeed: 1 };
+    'startPerturbation', 'settle', 'advanceTo', 'cleanTank', 'setFilter', 'filterPump', 'setFilterFlow', 'cleanFilter'];
+  var COALESCE = { setTarget: 1, setSpeed: 1, setFilterFlow: 1 };
   Engine.JOURNAL_VERSION = 1;
 
   P._jbase = function (kind) {
@@ -5094,6 +5384,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       self.probeTips.push(new T.Vector3(px, py, pz));
     });
 
+    this.buildFilter(a);
+
     // dust, bubbles and the algae layers
     this.dust = makeDust(a, rng);
     this.bubbles = [];
@@ -5198,18 +5490,94 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var self = this;
     var items = this.ctrl.labels.map(function (l) { return [l[0], l[1].clone().add(new T.Vector3(0, H, 0))]; });
     items.push(['Probes', this.probeTips[1].clone().add(new T.Vector3(0, 0.3, 0))]);
+    if (this.filt) this.filt.labels.forEach(function (l) { items.push([l[0], l[1], true]); });
     items.forEach(function (it) {
       var el = document.createElement('span');
-      el.className = 'tank3d__tag'; el.textContent = it[0]; el.hidden = !self.showTags;
+      el.className = 'tank3d__tag' + (it[2] ? ' tank3d__tag--filter' : ''); el.textContent = it[0];
       self.tagLayer.appendChild(el);
-      self.tags.push({ el: el, pos: it[1] });
+      self.tags.push({ el: el, pos: it[1], filter: !!it[2] });
     });
+    this.setTags(this.showTags);
   };
 
   Tank3D.prototype.setTags = function (on) {
     this.showTags = !!on;
-    this.tags.forEach(function (t) { t.el.hidden = !on; });
+    var fOn = !!(this.filt && this.filt.group.visible);
+    this.tags.forEach(function (t) { t.el.hidden = !on || (t.filter && !fOn); });
     this.dirty = true;
+  };
+
+  // ---- mechanical filter (proposal): external unit beside the tank, tubes over the back rim ----
+  Tank3D.prototype.buildFilter = function (a) {
+    var g = new T.Group(), self = this;
+    var bw = 10 * CM * (W / 8 > 1.1 ? 1.1 : 1), bd = 9 * CM, bh = Math.min(22 * CM, H * 0.82);
+    var bx = W / 2 + 0.42 + bw / 2, bz = -D / 2 + bd / 2 + 0.08, by = -0.125;
+    var shell = standard(0x1f3646, { metalness: 0.35, roughness: 0.42 });
+    var trim = standard(0x2b6f9e, { metalness: 0.3, roughness: 0.35 });
+    // body: back, sides, top, base; the front is a tinted window onto the two compartments
+    box(g, [bw, bh, 0.06], shell, bx, by + bh / 2, bz - bd / 2 + 0.03);
+    box(g, [0.06, bh, bd], shell, bx - bw / 2 + 0.03, by + bh / 2, bz);
+    box(g, [0.06, bh, bd], shell, bx + bw / 2 - 0.03, by + bh / 2, bz);
+    box(g, [bw + 0.06, 0.14, bd + 0.06], trim, bx, by + bh + 0.07, bz);
+    box(g, [bw + 0.1, 0.1, bd + 0.1], shell, bx, by + 0.05, bz);
+    var win = mesh(g, new T.PlaneGeometry(bw - 0.12, bh - 0.2), new T.MeshBasicMaterial({ color: 0x9fd4ea, transparent: true, opacity: 0.16, depthWrite: false }), bx, by + bh / 2, bz + bd / 2);
+    win.renderOrder = 7;
+    box(g, [bw - 0.1, 0.05, bd - 0.1], shell, bx, by + bh * 0.36, bz);                    // divider
+    // sponge (top compartment): colour follows load
+    this.filtSpongeMat = standard(0xe7d48c, { roughness: 1 });
+    box(g, [bw - 0.22, bh * 0.52, bd - 0.24], this.filtSpongeMat, bx, by + bh * 0.66, bz);
+    // pump (bottom compartment): motor can and an impeller that spins with the flow
+    mesh(g, new T.CylinderGeometry(bd * 0.26, bd * 0.26, bw * 0.5, 18), standard(0x2e3d46, { metalness: 0.5 }), bx, by + bh * 0.17, bz - 0.05).rotation.z = Math.PI / 2;
+    var imp = this.filtImpeller = new T.Group();
+    var bladeMat = standard(0xbfe3f2, { roughness: 0.4 });
+    for (var i = 0; i < 4; i++) { var bl = box(imp, [bd * 0.42, 0.05, 0.03], bladeMat, 0, 0, 0); bl.rotation.z = i * Math.PI / 4; }
+    imp.position.set(bx, by + bh * 0.17, bz + bd / 2 - 0.08);
+    g.add(imp);
+    this.filtLed = mesh(g, new T.SphereGeometry(0.06, 12, 8), new T.MeshBasicMaterial({ color: 0x354438 }), bx + bw / 2 - 0.2, by + bh - 0.18, bz + bd / 2 + 0.01);
+    // tubes: intake (tank -> filter) and return (filter -> tank) over the back rim
+    var xI = W / 2 - 0.36, xR = W / 2 - 0.82, zT = -D / 2 + 0.22, top = by + bh + 0.14, over = H + 0.48;
+    var intake = new T.CatmullRomCurve3([[xI, 0.55, zT], [xI, SURFACE - 0.3, zT], [xI, H + 0.3, zT], [xI + 0.12, over, zT], [W / 2 + 0.2, over + 0.04, zT],
+      [bx - bw * 0.22, over, bz - 0.1], [bx - bw * 0.22, top + 0.25, bz - 0.1], [bx - bw * 0.22, top, bz - 0.1]].map(function (p) { return new T.Vector3().fromArray(p); }));
+    var ret = new T.CatmullRomCurve3([[bx + bw * 0.22, top, bz + 0.1], [bx + bw * 0.22, top + 0.32, bz + 0.1], [bx + bw * 0.22, over + 0.1, bz + 0.1], [W / 2 + 0.2, over + 0.14, zT + 0.14],
+      [xR + 0.12, over + 0.08, zT + 0.14], [xR, H + 0.3, zT + 0.14], [xR, SURFACE - 0.12, zT + 0.14], [xR, SURFACE - 0.14, zT + 0.42]].map(function (p) { return new T.Vector3().fromArray(p); }));
+    var tubeMat = new T.MeshStandardMaterial({ color: 0x9ccfe0, transparent: true, opacity: 0.38, roughness: 0.2, depthWrite: false });
+    [intake, ret].forEach(function (c) { var m = mesh(g, new T.TubeGeometry(c, 60, 0.07, 10, false), tubeMat); m.renderOrder = 6; });
+    // intake strainer and return spout
+    mesh(g, new T.CylinderGeometry(0.12, 0.12, 0.55, 14, 1, true), standard(0x30424c, { wireframe: true }), xI, 0.5, zT);
+    mesh(g, new T.CylinderGeometry(0.1, 0.1, 0.06, 14), trim, xI, 0.22, zT);
+    // flow particles in the tubes and the stream leaving the spout
+    var pg = new T.SphereGeometry(0.035, 6, 5), pm = new T.MeshBasicMaterial({ color: 0x6fe0ff });
+    var parts = [];
+    [intake, ret].forEach(function (c, ci) { for (var k = 0; k < 16; k++) parts.push({ c: c, u: k / 16, m: mesh(g, pg, pm, 0, 0, 0) }); });
+    var jet = [], jm = new T.MeshBasicMaterial({ color: 0xd8f6ff, transparent: true, opacity: 0.55, depthWrite: false });
+    for (var j = 0; j < 12; j++) jet.push({ u: j / 12, m: mesh(g, pg, jm, 0, 0, 0) });
+    this.filt = {
+      extra: 2 * (bx + bw / 2 - W / 2), center: new T.Vector3(bx, by + bh / 2, bz),
+      group: g, parts: parts, jet: jet, spout: ret.getPointAt(1), dir: new T.Vector3(-0.15, -0.12, 1).normalize(), spin: 0,
+      labels: [['Filter (proposal)', new T.Vector3(bx, by + bh + 0.45, bz)], ['Intake', new T.Vector3(xI, 0.95, zT)], ['Return', new T.Vector3(xR, SURFACE + 0.05, zT + 0.3)]]
+    };
+    g.visible = !!(this.filtView && this.filtView.enabled);
+    a.add(g);
+    this.placeFilterParts(0);
+  };
+  Tank3D.prototype.placeFilterParts = function (dt) {
+    var f = this.filt, v = this.filtView;
+    if (!f) return;
+    var frac = v && v.enabled && v.flowMax > 0 ? Math.max(0, v.flow / v.flowMax) : 0;
+    var moving = frac > 0.002;
+    f.spin += dt * 40 * frac;
+    this.filtImpeller.rotation.z = f.spin;
+    f.parts.forEach(function (p) {
+      p.u = (p.u + dt * 0.55 * frac) % 1;
+      p.m.visible = moving;
+      if (moving) p.m.position.copy(p.c.getPointAt(p.u));
+    });
+    var sp = f.spout, d = f.dir;
+    f.jet.forEach(function (q, i) {
+      q.u = (q.u + dt * 1.1 * frac) % 1;
+      q.m.visible = moving;
+      if (moving) { var r = q.u * (0.25 + 1.4 * frac); q.m.position.set(sp.x + d.x * r + Math.sin(i * 2.3) * 0.04 * q.u, sp.y + d.y * r * 0.6, sp.z + d.z * r); q.m.scale.setScalar(1 + q.u * 1.6); }
+    });
   };
 
   Tank3D.prototype.setCone = function (on) { this.ctrl.cone.visible = !!on; this.dirty = true; };
@@ -5253,9 +5621,11 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
   Tank3D.prototype.presetFor = function (name) {
     var cy = (H + 1.5) / 2, fx = FEED.armX, fz = this.ctrl ? this.ctrl.headZ : 0;
+    var ex = this.filtExtra() / 2, fc = this.filt ? this.filt.center : new T.Vector3(W / 2 + 1.5, H * 0.45, -D / 2 + 1);
     var presets = {
-      reset: [0.17, 0.19, 1, 0, cy, 0],
-      front: [0, 0.075, 0.96, 0, cy, 0],
+      reset: [0.17, 0.19, 1, ex, cy, 0],
+      front: [0, 0.075, 0.96, ex, cy, 0],
+      filter: [0.62, 0.22, 0.52, fc.x - 0.9, fc.y, fc.z + 0.6],
       surface: [0.22, 0.86, 0.74, 0, SURFACE * 0.78, 0],
       fish: [-0.16, 0.10, 0.55, -W * 0.03, SURFACE * 0.5, D * 0.12],
       feeder: [2.55, 0.5, 0.62, fx, H + 0.1, fz - 0.9],
@@ -5272,9 +5642,10 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     this.dirty = true;
   };
 
+  Tank3D.prototype.filtExtra = function () { return this.filt && this.filt.group.visible ? this.filt.extra : 0; };
   Tank3D.prototype.cameraDistance = function () {
     var aspect = this.camera.aspect;
-    var widthDistance = 2.15 * (W + 0.7) / Math.max(0.8, aspect);
+    var widthDistance = 2.15 * (W + 0.7 + this.filtExtra()) / Math.max(0.8, aspect);
     var heightDistance = (H + 2.7) / (2 * Math.tan(T.MathUtils.degToRad(this.camera.fov / 2)) * 0.9);
     return T.MathUtils.clamp(Math.max(9.6, widthDistance, heightDistance) * this.zoom, 2.2, 48);
   };
@@ -5447,6 +5818,20 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     dust.mesh.material.color.set(0xc8e1dc).lerp(new T.Color(0xbe9e6d), turbidity);
     dust.mesh.material.size = 0.019 + turbidity * 0.024;
     if (state.upkeep) this.applyUpkeep(state.upkeep);
+    this.filtView = state.filter || null;
+    if (this.filt) {
+      var fv = this.filtView, fon = !!(fv && fv.enabled);
+      if (this.filt.group.visible !== fon) {
+        this.filt.group.visible = fon; this.setTags(this.showTags);
+        var sel = this.host.querySelector('select');
+        if (sel && (sel.value === 'reset' || sel.value === 'front' || sel.value === 'filter')) { if (!fon && sel.value === 'filter') sel.value = 'reset'; this.setCamera(sel.value); }
+      }
+      if (fon) {
+        this.filtSpongeMat.color.set(0xe7d48c).lerp(new T.Color(0x4f3b24), Math.min(1, fv.load * 1.1));
+        this.filtLed.material.color.setHex(fv.state === 'RUNNING' ? 0x9cec7c : fv.state === 'FAULT' ? 0xff6852 : (fv.state === 'WARNING' || fv.state === 'STARTING') ? 0xffc262 : 0x354438);
+        this.placeFilterParts(0);
+      }
+    }
     this.light.intensity = state.power === 'off' ? 0.65 : 2.75;
     var lit = state.power === 'off' ? 0x29343c : 0xffe2a8;
     this.lightStrip.color.setHex(lit);
@@ -5712,6 +6097,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       bubble.mesh.position.set(this.airX + Math.sin(y * 7 + bubble.phase) * 0.10, y, this.airZ + Math.cos(y * 5 + bubble.phase) * 0.10);
     }, this);
     this.stepPellets(dt);
+    if (this.filt && this.filt.group.visible) this.placeFilterParts(dt);
     if (this.beamUntil && now >= this.beamUntil) {
       this.beam = 'idle';
       this.beamUntil = 0;
@@ -5882,6 +6268,10 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       if (sv.dailyPattern === false) d.dailyPattern = false;
       if (sv.owner && (sv.owner.mode === 'simulated' || sv.owner.mode === 'presenter')) d.owner.mode = sv.owner.mode;
       if (sv.owner && typeof sv.owner.respondPct === 'number') d.owner.respondPct = Math.max(0, Math.min(100, sv.owner.respondPct));
+      if (sv.filter && typeof sv.filter === 'object') {
+        d.filter.enabled = !!sv.filter.enabled;
+        if (typeof sv.filter.flowLph === 'number' && sv.filter.flowLph >= 0) d.filter.flowLph = sv.filter.flowLph;
+      }
       if (sv.policy) {
         if (sv.policy.interruptedReminder === 'restart') d.policy.interruptedReminder = 'restart';
         if (sv.policy.countAfterRestart === 'reset') d.policy.countAfterRestart = 'reset';
@@ -6270,9 +6660,11 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       heater: s.perts.some(function (p) { return p.kind === 'heater' && s.simTime <= p.end; }),
       bubbles: bub || s.bubblesScn > 0,
       probes: { ph: sv.ph.status, temp: sv.temp.status, tds: sv.tds.status, turb: sv.turb.status },
-      upkeep: upk
+      upkeep: upk,
+      filter: s.filter ? { enabled: s.filter.enabled, state: s.filter.state, flow: s.filter.flow, flowSet: s.filter.flowSet, flowMax: AquaFilter.maxFlow(engine.filterVolume()), load: s.filter.load } : null
     });
     renderUpkeep(upk);
+    renderFilter();
 
     // architecture
     var off = s.power !== 'on';
@@ -6385,6 +6777,41 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       $('bayUpkeep').textContent = 'Algae: ' + upkWord(u.glass) + ' \u00b7 glass wiped ' + ago(u.days.glass);
     }
   }
+  // ---------- filter (proposal) ----------
+  var FILT_WORD = { OFF: 'Off', STARTING: 'Starting', RUNNING: 'Running', WARNING: 'Warning', FAULT: 'Fault, pump stopped' };
+  var FILT_TONE = { OFF: 'off', STARTING: 'attn', RUNNING: 'ok', WARNING: 'attn', FAULT: 'fault' };
+  function renderFilter() {
+    var f = engine.s.filter; if (!f || !window.AquaFilter) return;
+    var V = engine.filterVolume(), mx = AquaFilter.maxFlow(V), cond = AquaFilter.condition(f);
+    var pct = f.flowSet > 0 ? Math.round(f.flow / f.flowSet * 100) : 0;
+    var nxt = AquaFilter.nextInspection(f, V);
+    var sig = [f.enabled, f.state, f.pumpCmd, Math.round(f.flow), f.flowSet, cond, f.R.toFixed(1), f.history.length, mx, nxt == null ? '' : nxt.toFixed(0)].join('|');
+    if (sig === ui.sigFilt) return;
+    ui.sigFilt = sig;
+    $('filtOn').checked = f.enabled;
+    $('filtCtl').hidden = !f.enabled;
+    var pb = $('filtPump');
+    pb.textContent = f.pumpCmd ? 'Stop pump' : 'Start pump';
+    pb.setAttribute('aria-pressed', f.pumpCmd ? 'true' : 'false');
+    var sl = $('filtFlow');
+    sl.max = String(mx);
+    if (document.activeElement !== sl) sl.value = String(f.flowSet);
+    $('filtFlowOut').textContent = f.flowSet + ' L/h (' + (f.flowSet / V).toFixed(1) + ' tank volumes/h)';
+    var rows = [
+      ['Status', '<span class="st" data-tone="' + FILT_TONE[f.state] + '">' + FILT_WORD[f.state] + '</span><small>' + esc(f.why) + '</small>'],
+      ['Flow', '<b>' + Math.round(f.flow) + ' L/h</b><small>' + pct + ' % of set \u00b7 ' + (f.flow / V).toFixed(1) + ' tank volumes/h</small>'],
+      ['Sponge', '<span class="upk__bar"><i style="width:' + cond + '%"></i></span><b>' + cond + ' %</b><small>condition</small>'],
+      ['Resistance', '<b>' + f.R.toFixed(1) + '\u00d7</b><small>pressure loss vs a clean sponge (relative)</small>'],
+      ['Service', '<b>' + (f.lastClean == null ? 'Not cleaned this run' : 'Rinsed ' + engine.dateLabel(Math.floor(f.lastClean / 86400000) + 1) + ' ' + F.hhmm(f.lastClean)) + '</b><small>' + (nxt == null ? '' : (nxt <= 0 ? 'inspect now' : 'next inspection in about ' + Math.max(1, Math.round(nxt)) + ' simulated days')) + '</small>']
+    ];
+    $('filtStats').innerHTML = rows.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
+    $('filtHist').innerHTML = f.history.length ? f.history.map(function (h) { return '<li><time>Day ' + (Math.floor(h.t / 86400000) + 1) + ' ' + F.hhmm(h.t) + '</time> ' + esc(h.text) + '</li>'; }).join('') : '<li>No entries yet</li>';
+  }
+  $('filtOn').addEventListener('change', function () { engine.setFilter(this.checked); save(); ui.sigFilt = ''; render(); });
+  $('filtPump').addEventListener('click', function () { var f = engine.s.filter; if (f) engine.filterPump(!f.pumpCmd); ui.sigFilt = ''; render(); });
+  $('filtClean').addEventListener('click', function () { engine.cleanFilter(); ui.sigFilt = ''; render(); });
+  $('filtFlow').addEventListener('input', function () { engine.setFilterFlow(+this.value); save(); ui.sigFilt = ''; render(); });
+
   document.addEventListener('click', function (ev) {
     var b = ev.target.closest('[data-clean]'); if (!b) return;
     engine.cleanTank(b.getAttribute('data-clean'));
@@ -6406,6 +6833,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     rows.push(['App link', !s.wifi ? 'Stale since ' + F.hhmm(s.appLastSync) : (s.power === 'on' ? 'Live' : 'Device offline'), s.wifi && s.power === 'on' ? 'ok' : 'attn', 0]);
     rows.push(['LCD', s.power !== 'on' ? 'No power' : (s.lcdBug ? 'Status not updating (fault)' : 'Updating'), s.power !== 'on' ? 'off' : (s.lcdBug ? 'fault' : 'ok'), 1]);
     rows.push(['pH calibration', 'Not calibrated', 'attn', 0]);
+    var ff = s.filter;
+    if (ff && ff.enabled) rows.push(['Filter pump <small>proposal</small>', s.power !== 'on' ? 'No power' : FILT_WORD[ff.state] + (ff.state === 'RUNNING' || ff.state === 'WARNING' ? ', ' + Math.round(ff.flow) + ' L/h' : ''), s.power !== 'on' ? 'off' : FILT_TONE[ff.state], 0, true]);
     var u = engine.upkeep(), worst = Math.max(u.glass, u.detritus, u.probes);
     rows.push(['Tank upkeep <small>illustrative</small>', worst >= 0.7 ? 'Cleaning due' : (worst >= 0.4 ? 'Algae building up' : 'Clean enough'), worst >= 0.7 ? 'attn' : 'ok', 0, true]);
     setHTML($('health'), rows.map(function (r) {
@@ -7086,6 +7515,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   $('baySize').textContent = sizeLabel(settings.tankGal) + ' · demo setting';
   $('sizeSel').addEventListener('change', function () {
     settings.tankGal = $('sizeSel').value;
+    if (engine.s.filter) engine.setFilterFlow(engine.s.filter.flowSet);
     tank.render(settings.tankGal); tank.setAnimate($('animChk').checked);
     $('baySize').textContent = sizeLabel(settings.tankGal) + ' · demo setting';
     engine.addLog('demo', 'Tank size demo setting changed to ' + sizeLabel(settings.tankGal).replace('Tank: ', '') + ' (illustration only)', { injected: true });

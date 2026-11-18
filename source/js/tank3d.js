@@ -928,6 +928,8 @@
       self.probeTips.push(new T.Vector3(px, py, pz));
     });
 
+    this.buildFilter(a);
+
     // dust, bubbles and the algae layers
     this.dust = makeDust(a, rng);
     this.bubbles = [];
@@ -1032,18 +1034,94 @@
     var self = this;
     var items = this.ctrl.labels.map(function (l) { return [l[0], l[1].clone().add(new T.Vector3(0, H, 0))]; });
     items.push(['Probes', this.probeTips[1].clone().add(new T.Vector3(0, 0.3, 0))]);
+    if (this.filt) this.filt.labels.forEach(function (l) { items.push([l[0], l[1], true]); });
     items.forEach(function (it) {
       var el = document.createElement('span');
-      el.className = 'tank3d__tag'; el.textContent = it[0]; el.hidden = !self.showTags;
+      el.className = 'tank3d__tag' + (it[2] ? ' tank3d__tag--filter' : ''); el.textContent = it[0];
       self.tagLayer.appendChild(el);
-      self.tags.push({ el: el, pos: it[1] });
+      self.tags.push({ el: el, pos: it[1], filter: !!it[2] });
     });
+    this.setTags(this.showTags);
   };
 
   Tank3D.prototype.setTags = function (on) {
     this.showTags = !!on;
-    this.tags.forEach(function (t) { t.el.hidden = !on; });
+    var fOn = !!(this.filt && this.filt.group.visible);
+    this.tags.forEach(function (t) { t.el.hidden = !on || (t.filter && !fOn); });
     this.dirty = true;
+  };
+
+  // ---- mechanical filter (proposal): external unit beside the tank, tubes over the back rim ----
+  Tank3D.prototype.buildFilter = function (a) {
+    var g = new T.Group(), self = this;
+    var bw = 10 * CM * (W / 8 > 1.1 ? 1.1 : 1), bd = 9 * CM, bh = Math.min(22 * CM, H * 0.82);
+    var bx = W / 2 + 0.42 + bw / 2, bz = -D / 2 + bd / 2 + 0.08, by = -0.125;
+    var shell = standard(0x1f3646, { metalness: 0.35, roughness: 0.42 });
+    var trim = standard(0x2b6f9e, { metalness: 0.3, roughness: 0.35 });
+    // body: back, sides, top, base; the front is a tinted window onto the two compartments
+    box(g, [bw, bh, 0.06], shell, bx, by + bh / 2, bz - bd / 2 + 0.03);
+    box(g, [0.06, bh, bd], shell, bx - bw / 2 + 0.03, by + bh / 2, bz);
+    box(g, [0.06, bh, bd], shell, bx + bw / 2 - 0.03, by + bh / 2, bz);
+    box(g, [bw + 0.06, 0.14, bd + 0.06], trim, bx, by + bh + 0.07, bz);
+    box(g, [bw + 0.1, 0.1, bd + 0.1], shell, bx, by + 0.05, bz);
+    var win = mesh(g, new T.PlaneGeometry(bw - 0.12, bh - 0.2), new T.MeshBasicMaterial({ color: 0x9fd4ea, transparent: true, opacity: 0.16, depthWrite: false }), bx, by + bh / 2, bz + bd / 2);
+    win.renderOrder = 7;
+    box(g, [bw - 0.1, 0.05, bd - 0.1], shell, bx, by + bh * 0.36, bz);                    // divider
+    // sponge (top compartment): colour follows load
+    this.filtSpongeMat = standard(0xe7d48c, { roughness: 1 });
+    box(g, [bw - 0.22, bh * 0.52, bd - 0.24], this.filtSpongeMat, bx, by + bh * 0.66, bz);
+    // pump (bottom compartment): motor can and an impeller that spins with the flow
+    mesh(g, new T.CylinderGeometry(bd * 0.26, bd * 0.26, bw * 0.5, 18), standard(0x2e3d46, { metalness: 0.5 }), bx, by + bh * 0.17, bz - 0.05).rotation.z = Math.PI / 2;
+    var imp = this.filtImpeller = new T.Group();
+    var bladeMat = standard(0xbfe3f2, { roughness: 0.4 });
+    for (var i = 0; i < 4; i++) { var bl = box(imp, [bd * 0.42, 0.05, 0.03], bladeMat, 0, 0, 0); bl.rotation.z = i * Math.PI / 4; }
+    imp.position.set(bx, by + bh * 0.17, bz + bd / 2 - 0.08);
+    g.add(imp);
+    this.filtLed = mesh(g, new T.SphereGeometry(0.06, 12, 8), new T.MeshBasicMaterial({ color: 0x354438 }), bx + bw / 2 - 0.2, by + bh - 0.18, bz + bd / 2 + 0.01);
+    // tubes: intake (tank -> filter) and return (filter -> tank) over the back rim
+    var xI = W / 2 - 0.36, xR = W / 2 - 0.82, zT = -D / 2 + 0.22, top = by + bh + 0.14, over = H + 0.48;
+    var intake = new T.CatmullRomCurve3([[xI, 0.55, zT], [xI, SURFACE - 0.3, zT], [xI, H + 0.3, zT], [xI + 0.12, over, zT], [W / 2 + 0.2, over + 0.04, zT],
+      [bx - bw * 0.22, over, bz - 0.1], [bx - bw * 0.22, top + 0.25, bz - 0.1], [bx - bw * 0.22, top, bz - 0.1]].map(function (p) { return new T.Vector3().fromArray(p); }));
+    var ret = new T.CatmullRomCurve3([[bx + bw * 0.22, top, bz + 0.1], [bx + bw * 0.22, top + 0.32, bz + 0.1], [bx + bw * 0.22, over + 0.1, bz + 0.1], [W / 2 + 0.2, over + 0.14, zT + 0.14],
+      [xR + 0.12, over + 0.08, zT + 0.14], [xR, H + 0.3, zT + 0.14], [xR, SURFACE - 0.12, zT + 0.14], [xR, SURFACE - 0.14, zT + 0.42]].map(function (p) { return new T.Vector3().fromArray(p); }));
+    var tubeMat = new T.MeshStandardMaterial({ color: 0x9ccfe0, transparent: true, opacity: 0.38, roughness: 0.2, depthWrite: false });
+    [intake, ret].forEach(function (c) { var m = mesh(g, new T.TubeGeometry(c, 60, 0.07, 10, false), tubeMat); m.renderOrder = 6; });
+    // intake strainer and return spout
+    mesh(g, new T.CylinderGeometry(0.12, 0.12, 0.55, 14, 1, true), standard(0x30424c, { wireframe: true }), xI, 0.5, zT);
+    mesh(g, new T.CylinderGeometry(0.1, 0.1, 0.06, 14), trim, xI, 0.22, zT);
+    // flow particles in the tubes and the stream leaving the spout
+    var pg = new T.SphereGeometry(0.035, 6, 5), pm = new T.MeshBasicMaterial({ color: 0x6fe0ff });
+    var parts = [];
+    [intake, ret].forEach(function (c, ci) { for (var k = 0; k < 16; k++) parts.push({ c: c, u: k / 16, m: mesh(g, pg, pm, 0, 0, 0) }); });
+    var jet = [], jm = new T.MeshBasicMaterial({ color: 0xd8f6ff, transparent: true, opacity: 0.55, depthWrite: false });
+    for (var j = 0; j < 12; j++) jet.push({ u: j / 12, m: mesh(g, pg, jm, 0, 0, 0) });
+    this.filt = {
+      extra: 2 * (bx + bw / 2 - W / 2), center: new T.Vector3(bx, by + bh / 2, bz),
+      group: g, parts: parts, jet: jet, spout: ret.getPointAt(1), dir: new T.Vector3(-0.15, -0.12, 1).normalize(), spin: 0,
+      labels: [['Filter (proposal)', new T.Vector3(bx, by + bh + 0.45, bz)], ['Intake', new T.Vector3(xI, 0.95, zT)], ['Return', new T.Vector3(xR, SURFACE + 0.05, zT + 0.3)]]
+    };
+    g.visible = !!(this.filtView && this.filtView.enabled);
+    a.add(g);
+    this.placeFilterParts(0);
+  };
+  Tank3D.prototype.placeFilterParts = function (dt) {
+    var f = this.filt, v = this.filtView;
+    if (!f) return;
+    var frac = v && v.enabled && v.flowMax > 0 ? Math.max(0, v.flow / v.flowMax) : 0;
+    var moving = frac > 0.002;
+    f.spin += dt * 40 * frac;
+    this.filtImpeller.rotation.z = f.spin;
+    f.parts.forEach(function (p) {
+      p.u = (p.u + dt * 0.55 * frac) % 1;
+      p.m.visible = moving;
+      if (moving) p.m.position.copy(p.c.getPointAt(p.u));
+    });
+    var sp = f.spout, d = f.dir;
+    f.jet.forEach(function (q, i) {
+      q.u = (q.u + dt * 1.1 * frac) % 1;
+      q.m.visible = moving;
+      if (moving) { var r = q.u * (0.25 + 1.4 * frac); q.m.position.set(sp.x + d.x * r + Math.sin(i * 2.3) * 0.04 * q.u, sp.y + d.y * r * 0.6, sp.z + d.z * r); q.m.scale.setScalar(1 + q.u * 1.6); }
+    });
   };
 
   Tank3D.prototype.setCone = function (on) { this.ctrl.cone.visible = !!on; this.dirty = true; };
@@ -1087,9 +1165,11 @@
 
   Tank3D.prototype.presetFor = function (name) {
     var cy = (H + 1.5) / 2, fx = FEED.armX, fz = this.ctrl ? this.ctrl.headZ : 0;
+    var ex = this.filtExtra() / 2, fc = this.filt ? this.filt.center : new T.Vector3(W / 2 + 1.5, H * 0.45, -D / 2 + 1);
     var presets = {
-      reset: [0.17, 0.19, 1, 0, cy, 0],
-      front: [0, 0.075, 0.96, 0, cy, 0],
+      reset: [0.17, 0.19, 1, ex, cy, 0],
+      front: [0, 0.075, 0.96, ex, cy, 0],
+      filter: [0.62, 0.22, 0.52, fc.x - 0.9, fc.y, fc.z + 0.6],
       surface: [0.22, 0.86, 0.74, 0, SURFACE * 0.78, 0],
       fish: [-0.16, 0.10, 0.55, -W * 0.03, SURFACE * 0.5, D * 0.12],
       feeder: [2.55, 0.5, 0.62, fx, H + 0.1, fz - 0.9],
@@ -1106,9 +1186,10 @@
     this.dirty = true;
   };
 
+  Tank3D.prototype.filtExtra = function () { return this.filt && this.filt.group.visible ? this.filt.extra : 0; };
   Tank3D.prototype.cameraDistance = function () {
     var aspect = this.camera.aspect;
-    var widthDistance = 2.15 * (W + 0.7) / Math.max(0.8, aspect);
+    var widthDistance = 2.15 * (W + 0.7 + this.filtExtra()) / Math.max(0.8, aspect);
     var heightDistance = (H + 2.7) / (2 * Math.tan(T.MathUtils.degToRad(this.camera.fov / 2)) * 0.9);
     return T.MathUtils.clamp(Math.max(9.6, widthDistance, heightDistance) * this.zoom, 2.2, 48);
   };
@@ -1281,6 +1362,20 @@
     dust.mesh.material.color.set(0xc8e1dc).lerp(new T.Color(0xbe9e6d), turbidity);
     dust.mesh.material.size = 0.019 + turbidity * 0.024;
     if (state.upkeep) this.applyUpkeep(state.upkeep);
+    this.filtView = state.filter || null;
+    if (this.filt) {
+      var fv = this.filtView, fon = !!(fv && fv.enabled);
+      if (this.filt.group.visible !== fon) {
+        this.filt.group.visible = fon; this.setTags(this.showTags);
+        var sel = this.host.querySelector('select');
+        if (sel && (sel.value === 'reset' || sel.value === 'front' || sel.value === 'filter')) { if (!fon && sel.value === 'filter') sel.value = 'reset'; this.setCamera(sel.value); }
+      }
+      if (fon) {
+        this.filtSpongeMat.color.set(0xe7d48c).lerp(new T.Color(0x4f3b24), Math.min(1, fv.load * 1.1));
+        this.filtLed.material.color.setHex(fv.state === 'RUNNING' ? 0x9cec7c : fv.state === 'FAULT' ? 0xff6852 : (fv.state === 'WARNING' || fv.state === 'STARTING') ? 0xffc262 : 0x354438);
+        this.placeFilterParts(0);
+      }
+    }
     this.light.intensity = state.power === 'off' ? 0.65 : 2.75;
     var lit = state.power === 'off' ? 0x29343c : 0xffe2a8;
     this.lightStrip.color.setHex(lit);
@@ -1546,6 +1641,7 @@
       bubble.mesh.position.set(this.airX + Math.sin(y * 7 + bubble.phase) * 0.10, y, this.airZ + Math.cos(y * 5 + bubble.phase) * 0.10);
     }, this);
     this.stepPellets(dt);
+    if (this.filt && this.filt.group.visible) this.placeFilterParts(dt);
     if (this.beamUntil && now >= this.beamUntil) {
       this.beam = 'idle';
       this.beamUntil = 0;

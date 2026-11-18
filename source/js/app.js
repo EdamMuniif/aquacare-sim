@@ -39,6 +39,10 @@
       if (sv.dailyPattern === false) d.dailyPattern = false;
       if (sv.owner && (sv.owner.mode === 'simulated' || sv.owner.mode === 'presenter')) d.owner.mode = sv.owner.mode;
       if (sv.owner && typeof sv.owner.respondPct === 'number') d.owner.respondPct = Math.max(0, Math.min(100, sv.owner.respondPct));
+      if (sv.filter && typeof sv.filter === 'object') {
+        d.filter.enabled = !!sv.filter.enabled;
+        if (typeof sv.filter.flowLph === 'number' && sv.filter.flowLph >= 0) d.filter.flowLph = sv.filter.flowLph;
+      }
       if (sv.policy) {
         if (sv.policy.interruptedReminder === 'restart') d.policy.interruptedReminder = 'restart';
         if (sv.policy.countAfterRestart === 'reset') d.policy.countAfterRestart = 'reset';
@@ -427,9 +431,11 @@
       heater: s.perts.some(function (p) { return p.kind === 'heater' && s.simTime <= p.end; }),
       bubbles: bub || s.bubblesScn > 0,
       probes: { ph: sv.ph.status, temp: sv.temp.status, tds: sv.tds.status, turb: sv.turb.status },
-      upkeep: upk
+      upkeep: upk,
+      filter: s.filter ? { enabled: s.filter.enabled, state: s.filter.state, flow: s.filter.flow, flowSet: s.filter.flowSet, flowMax: AquaFilter.maxFlow(engine.filterVolume()), load: s.filter.load } : null
     });
     renderUpkeep(upk);
+    renderFilter();
 
     // architecture
     var off = s.power !== 'on';
@@ -542,6 +548,41 @@
       $('bayUpkeep').textContent = 'Algae: ' + upkWord(u.glass) + ' \u00b7 glass wiped ' + ago(u.days.glass);
     }
   }
+  // ---------- filter (proposal) ----------
+  var FILT_WORD = { OFF: 'Off', STARTING: 'Starting', RUNNING: 'Running', WARNING: 'Warning', FAULT: 'Fault, pump stopped' };
+  var FILT_TONE = { OFF: 'off', STARTING: 'attn', RUNNING: 'ok', WARNING: 'attn', FAULT: 'fault' };
+  function renderFilter() {
+    var f = engine.s.filter; if (!f || !window.AquaFilter) return;
+    var V = engine.filterVolume(), mx = AquaFilter.maxFlow(V), cond = AquaFilter.condition(f);
+    var pct = f.flowSet > 0 ? Math.round(f.flow / f.flowSet * 100) : 0;
+    var nxt = AquaFilter.nextInspection(f, V);
+    var sig = [f.enabled, f.state, f.pumpCmd, Math.round(f.flow), f.flowSet, cond, f.R.toFixed(1), f.history.length, mx, nxt == null ? '' : nxt.toFixed(0)].join('|');
+    if (sig === ui.sigFilt) return;
+    ui.sigFilt = sig;
+    $('filtOn').checked = f.enabled;
+    $('filtCtl').hidden = !f.enabled;
+    var pb = $('filtPump');
+    pb.textContent = f.pumpCmd ? 'Stop pump' : 'Start pump';
+    pb.setAttribute('aria-pressed', f.pumpCmd ? 'true' : 'false');
+    var sl = $('filtFlow');
+    sl.max = String(mx);
+    if (document.activeElement !== sl) sl.value = String(f.flowSet);
+    $('filtFlowOut').textContent = f.flowSet + ' L/h (' + (f.flowSet / V).toFixed(1) + ' tank volumes/h)';
+    var rows = [
+      ['Status', '<span class="st" data-tone="' + FILT_TONE[f.state] + '">' + FILT_WORD[f.state] + '</span><small>' + esc(f.why) + '</small>'],
+      ['Flow', '<b>' + Math.round(f.flow) + ' L/h</b><small>' + pct + ' % of set \u00b7 ' + (f.flow / V).toFixed(1) + ' tank volumes/h</small>'],
+      ['Sponge', '<span class="upk__bar"><i style="width:' + cond + '%"></i></span><b>' + cond + ' %</b><small>condition</small>'],
+      ['Resistance', '<b>' + f.R.toFixed(1) + '\u00d7</b><small>pressure loss vs a clean sponge (relative)</small>'],
+      ['Service', '<b>' + (f.lastClean == null ? 'Not cleaned this run' : 'Rinsed ' + engine.dateLabel(Math.floor(f.lastClean / 86400000) + 1) + ' ' + F.hhmm(f.lastClean)) + '</b><small>' + (nxt == null ? '' : (nxt <= 0 ? 'inspect now' : 'next inspection in about ' + Math.max(1, Math.round(nxt)) + ' simulated days')) + '</small>']
+    ];
+    $('filtStats').innerHTML = rows.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
+    $('filtHist').innerHTML = f.history.length ? f.history.map(function (h) { return '<li><time>Day ' + (Math.floor(h.t / 86400000) + 1) + ' ' + F.hhmm(h.t) + '</time> ' + esc(h.text) + '</li>'; }).join('') : '<li>No entries yet</li>';
+  }
+  $('filtOn').addEventListener('change', function () { engine.setFilter(this.checked); save(); ui.sigFilt = ''; render(); });
+  $('filtPump').addEventListener('click', function () { var f = engine.s.filter; if (f) engine.filterPump(!f.pumpCmd); ui.sigFilt = ''; render(); });
+  $('filtClean').addEventListener('click', function () { engine.cleanFilter(); ui.sigFilt = ''; render(); });
+  $('filtFlow').addEventListener('input', function () { engine.setFilterFlow(+this.value); save(); ui.sigFilt = ''; render(); });
+
   document.addEventListener('click', function (ev) {
     var b = ev.target.closest('[data-clean]'); if (!b) return;
     engine.cleanTank(b.getAttribute('data-clean'));
@@ -563,6 +604,8 @@
     rows.push(['App link', !s.wifi ? 'Stale since ' + F.hhmm(s.appLastSync) : (s.power === 'on' ? 'Live' : 'Device offline'), s.wifi && s.power === 'on' ? 'ok' : 'attn', 0]);
     rows.push(['LCD', s.power !== 'on' ? 'No power' : (s.lcdBug ? 'Status not updating (fault)' : 'Updating'), s.power !== 'on' ? 'off' : (s.lcdBug ? 'fault' : 'ok'), 1]);
     rows.push(['pH calibration', 'Not calibrated', 'attn', 0]);
+    var ff = s.filter;
+    if (ff && ff.enabled) rows.push(['Filter pump <small>proposal</small>', s.power !== 'on' ? 'No power' : FILT_WORD[ff.state] + (ff.state === 'RUNNING' || ff.state === 'WARNING' ? ', ' + Math.round(ff.flow) + ' L/h' : ''), s.power !== 'on' ? 'off' : FILT_TONE[ff.state], 0, true]);
     var u = engine.upkeep(), worst = Math.max(u.glass, u.detritus, u.probes);
     rows.push(['Tank upkeep <small>illustrative</small>', worst >= 0.7 ? 'Cleaning due' : (worst >= 0.4 ? 'Algae building up' : 'Clean enough'), worst >= 0.7 ? 'attn' : 'ok', 0, true]);
     setHTML($('health'), rows.map(function (r) {
@@ -1243,6 +1286,7 @@
   $('baySize').textContent = sizeLabel(settings.tankGal) + ' · demo setting';
   $('sizeSel').addEventListener('change', function () {
     settings.tankGal = $('sizeSel').value;
+    if (engine.s.filter) engine.setFilterFlow(engine.s.filter.flowSet);
     tank.render(settings.tankGal); tank.setAnimate($('animChk').checked);
     $('baySize').textContent = sizeLabel(settings.tankGal) + ' · demo setting';
     engine.addLog('demo', 'Tank size demo setting changed to ' + sizeLabel(settings.tankGal).replace('Tank: ', '') + ' (illustration only)', { injected: true });

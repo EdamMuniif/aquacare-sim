@@ -27,3 +27,14 @@ The aquarium uses the same simulated turbidity, probe faults, LCD, tank button, 
 - Toggles: **Labels**, **Camera view**, **Black / White** finish.
 
 The simulation runs in each visitor's browser. A web page can't run while it's closed, so the run is saved in that browser and, when the page is reopened, rebuilt and caught up by the time away (at the chosen speed). Nothing is stored online, and true 24/7 running would need a server or the real ESP32. Use the CSV exports to keep the data.
+
+### Mechanical filter (proposal, needs project-team confirmation)
+
+Off by default. Turn it on under **Presenter controls → Filter**. It is a pump and sponge loop beside the tank, with intake and return tubes over the back rim.
+
+- **What it changes:** turbidity only. Suspended matter from a soil test clears faster while water flows (removal rate = flow ÷ tank volume × 0.5 capture). It never changes pH, temperature or TDS, and feeding is untouched.
+- **Clogging:** the sponge loads slowly while water flows, with each delivered feed, and with the matter it captures. Resistance rises and flow falls. Below 60 % of set flow it raises a WARNING (clean the sponge). Below 30 % it makes a protective stop (FAULT) that only clears after cleaning. A power cut stops the pump, and it restarts when power returns.
+- **Cleaning:** rinsing the sponge restores flow. It does not clean the water at that moment.
+- **Constants:** the flow, clogging and capture values in `source/js/filter.js` are illustrative, to confirm by measurement.
+- **Not modelled (Later):** biological and chemical stages, dissolved oxygen, ammonia/nitrite/nitrate, water level and dry-run protection.
+- **Checks:** `node source/tests/filter.test.js` runs 11 checks. With the filter off, a seeded 30-day run is identical to commit 91f88cf.
