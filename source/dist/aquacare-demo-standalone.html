@@ -5510,55 +5510,127 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   // ---- mechanical filter (proposal): external unit beside the tank, tubes over the back rim ----
   Tank3D.prototype.buildFilter = function (a) {
     var g = new T.Group(), self = this;
-    var bw = 10 * CM * (W / 8 > 1.1 ? 1.1 : 1), bd = 9 * CM, bh = Math.min(22 * CM, H * 0.82);
-    var bx = W / 2 + 0.42 + bw / 2, bz = -D / 2 + bd / 2 + 0.08, by = -0.125;
-    var shell = standard(0x1f3646, { metalness: 0.35, roughness: 0.42 });
-    var trim = standard(0x2b6f9e, { metalness: 0.3, roughness: 0.35 });
-    // body: back, sides, top, base; the front is a tinted window onto the two compartments
+    var V3 = function (p) { return new T.Vector3().fromArray(p); };
+    var bw = 11 * CM, bd = 10 * CM, bh = Math.min(24 * CM, H * 0.86);
+    var bx = W / 2 + 0.5 + bw / 2, bz = -D / 2 + bd / 2 + 0.05, by = -0.125;
+    var shell = standard(0x1d3342, { metalness: 0.3, roughness: 0.45 });
+    var trim = standard(0x2b6f9e, { metalness: 0.35, roughness: 0.3 });
+    var dark = standard(0x111b22, { roughness: 0.6 });
+    var baseMat = standard(0x18232a);
+    // plinth from the floor, matching the aquarium stand
+    box(g, [bw + 0.3, 0.86, bd + 0.3], baseMat, bx, -0.56, bz);
+    box(g, [bw + 0.36, 0.06, bd + 0.36], standard(0x26383d, { metalness: 0.5, roughness: 0.4 }), bx, -0.15, bz);
+    // housing: back, sides, base, lid; front is a clear window
     box(g, [bw, bh, 0.06], shell, bx, by + bh / 2, bz - bd / 2 + 0.03);
-    box(g, [0.06, bh, bd], shell, bx - bw / 2 + 0.03, by + bh / 2, bz);
-    box(g, [0.06, bh, bd], shell, bx + bw / 2 - 0.03, by + bh / 2, bz);
-    box(g, [bw + 0.06, 0.14, bd + 0.06], trim, bx, by + bh + 0.07, bz);
-    box(g, [bw + 0.1, 0.1, bd + 0.1], shell, bx, by + 0.05, bz);
-    var win = mesh(g, new T.PlaneGeometry(bw - 0.12, bh - 0.2), new T.MeshBasicMaterial({ color: 0x9fd4ea, transparent: true, opacity: 0.16, depthWrite: false }), bx, by + bh / 2, bz + bd / 2);
-    win.renderOrder = 7;
-    box(g, [bw - 0.1, 0.05, bd - 0.1], shell, bx, by + bh * 0.36, bz);                    // divider
-    // sponge (top compartment): colour follows load
-    this.filtSpongeMat = standard(0xe7d48c, { roughness: 1 });
-    box(g, [bw - 0.22, bh * 0.52, bd - 0.24], this.filtSpongeMat, bx, by + bh * 0.66, bz);
-    // pump (bottom compartment): motor can and an impeller that spins with the flow
-    mesh(g, new T.CylinderGeometry(bd * 0.26, bd * 0.26, bw * 0.5, 18), standard(0x2e3d46, { metalness: 0.5 }), bx, by + bh * 0.17, bz - 0.05).rotation.z = Math.PI / 2;
-    var imp = this.filtImpeller = new T.Group();
-    var bladeMat = standard(0xbfe3f2, { roughness: 0.4 });
-    for (var i = 0; i < 4; i++) { var bl = box(imp, [bd * 0.42, 0.05, 0.03], bladeMat, 0, 0, 0); bl.rotation.z = i * Math.PI / 4; }
-    imp.position.set(bx, by + bh * 0.17, bz + bd / 2 - 0.08);
+    box(g, [0.07, bh, bd], shell, bx - bw / 2 + 0.035, by + bh / 2, bz);
+    box(g, [0.07, bh, bd], shell, bx + bw / 2 - 0.035, by + bh / 2, bz);
+    box(g, [bw, 0.1, bd], shell, bx, by + 0.05, bz);
+    box(g, [bw + 0.08, 0.16, bd + 0.08], trim, bx, by + bh + 0.08, bz);
+    box(g, [bw * 0.42, 0.07, 0.16], dark, bx, by + bh + 0.19, bz);                               // lid handle
+    box(g, [0.05, bh - 0.05, 0.05], trim, bx - bw / 2 + 0.03, by + bh / 2, bz + bd / 2 - 0.03);  // front corner posts
+    box(g, [0.05, bh - 0.05, 0.05], trim, bx + bw / 2 - 0.03, by + bh / 2, bz + bd / 2 - 0.03);
+    var glassF = mesh(g, new T.PlaneGeometry(bw - 0.1, bh - 0.12), new T.MeshBasicMaterial({ color: 0xa8d8ec, transparent: true, opacity: 0.12, depthWrite: false }), bx, by + bh / 2, bz + bd / 2);
+    glassF.renderOrder = 8;
+    // water inside the unit
+    var wl = by + bh * 0.9;
+    var wat = box(g, [bw - 0.16, wl - by - 0.12, bd - 0.14], new T.MeshBasicMaterial({ color: 0x3f9fc6, transparent: true, opacity: 0.16, depthWrite: false }), bx, (wl + by + 0.1) / 2, bz);
+    wat.renderOrder = 7;
+    // sponge (upper chamber) on a perforated tray; colour follows load
+    var trayY = by + bh * 0.38;
+    box(g, [bw - 0.16, 0.05, bd - 0.16], standard(0x5b6b74, { metalness: 0.4, wireframe: false }), bx, trayY, bz);
+    var pore = document.createElement('canvas'); pore.width = pore.height = 64;
+    var pc = pore.getContext('2d'); pc.fillStyle = '#fff'; pc.fillRect(0, 0, 64, 64);
+    var prng = randomGenerator(3311);
+    for (var q = 0; q < 260; q++) { pc.fillStyle = 'rgba(0,0,0,' + (0.08 + prng() * 0.22).toFixed(2) + ')'; pc.beginPath(); pc.arc(prng() * 64, prng() * 64, 0.6 + prng() * 1.8, 0, TAU); pc.fill(); }
+    var poreTex = new T.CanvasTexture(pore); poreTex.wrapS = poreTex.wrapT = T.RepeatWrapping; poreTex.repeat.set(2, 3);
+    this.filtSpongeMat = standard(0xe7d48c, { roughness: 1, map: poreTex });
+    var spH = bh * 0.42;
+    box(g, [bw - 0.3, spH, bd - 0.32], this.filtSpongeMat, bx - 0.04, trayY + 0.03 + spH / 2, bz - 0.02);
+    // pump chamber: volute, motor can and an impeller (hub + rim + six curved blades)
+    var pumpY = by + bh * 0.19;
+    mesh(g, new T.CylinderGeometry(bd * 0.24, bd * 0.24, 0.5, 24), dark, bx - 0.1, pumpY, bz - 0.18).rotation.x = Math.PI / 2;
+    var imp = this.filtImpeller = new T.Group(), bladeMat = standard(0xcfe9f5, { roughness: 0.35 });
+    mesh(imp, new T.CylinderGeometry(0.07, 0.07, 0.08, 16), trim, 0, 0, 0).rotation.x = Math.PI / 2;
+    mesh(imp, new T.TorusGeometry(bd * 0.2, 0.018, 8, 32), bladeMat, 0, 0, -0.02);
+    for (var bI = 0; bI < 6; bI++) {
+      var bl = box(imp, [bd * 0.17, 0.035, 0.05], bladeMat, 0, 0, 0);
+      var ang = bI * TAU / 6;
+      bl.position.set(Math.cos(ang) * bd * 0.1, Math.sin(ang) * bd * 0.1, 0);
+      bl.rotation.z = ang + 0.55;
+    }
+    imp.position.set(bx - 0.1, pumpY, bz + bd / 2 - 0.12);
     g.add(imp);
-    this.filtLed = mesh(g, new T.SphereGeometry(0.06, 12, 8), new T.MeshBasicMaterial({ color: 0x354438 }), bx + bw / 2 - 0.2, by + bh - 0.18, bz + bd / 2 + 0.01);
-    // tubes: intake (tank -> filter) and return (filter -> tank) over the back rim
-    var xI = W / 2 - 0.36, xR = W / 2 - 0.82, zT = -D / 2 + 0.22, top = by + bh + 0.14, over = H + 0.48;
-    var intake = new T.CatmullRomCurve3([[xI, 0.55, zT], [xI, SURFACE - 0.3, zT], [xI, H + 0.3, zT], [xI + 0.12, over, zT], [W / 2 + 0.2, over + 0.04, zT],
-      [bx - bw * 0.22, over, bz - 0.1], [bx - bw * 0.22, top + 0.25, bz - 0.1], [bx - bw * 0.22, top, bz - 0.1]].map(function (p) { return new T.Vector3().fromArray(p); }));
-    var ret = new T.CatmullRomCurve3([[bx + bw * 0.22, top, bz + 0.1], [bx + bw * 0.22, top + 0.32, bz + 0.1], [bx + bw * 0.22, over + 0.1, bz + 0.1], [W / 2 + 0.2, over + 0.14, zT + 0.14],
-      [xR + 0.12, over + 0.08, zT + 0.14], [xR, H + 0.3, zT + 0.14], [xR, SURFACE - 0.12, zT + 0.14], [xR, SURFACE - 0.14, zT + 0.42]].map(function (p) { return new T.Vector3().fromArray(p); }));
-    var tubeMat = new T.MeshStandardMaterial({ color: 0x9ccfe0, transparent: true, opacity: 0.38, roughness: 0.2, depthWrite: false });
-    [intake, ret].forEach(function (c) { var m = mesh(g, new T.TubeGeometry(c, 60, 0.07, 10, false), tubeMat); m.renderOrder = 6; });
-    // intake strainer and return spout
+    mesh(g, new T.TorusGeometry(bd * 0.235, 0.025, 8, 32), shell, bx - 0.1, pumpY, bz + bd / 2 - 0.1);   // volute ring
+    // riser: pump outlet up the back corner to the lid outlet
+    var rx = bx + bw / 2 - 0.22, rz = bz - bd / 2 + 0.22, top = by + bh + 0.16;
+    var riser = new T.CatmullRomCurve3([[bx - 0.1 + bd * 0.24, pumpY, bz - 0.18], [rx, pumpY, rz], [rx, by + bh * 0.6, rz], [rx, top, rz]].map(V3));
+    mesh(g, new T.TubeGeometry(riser, 30, 0.06, 10, false), standard(0x8fb8c8, { transparent: true, opacity: 0.55, roughness: 0.2 }));
+    // lid fittings: inlet (front left) and outlet (back right)
+    var inX = bx - bw * 0.26, inZ = bz + 0.05;
+    [[inX, inZ], [rx, rz]].forEach(function (f) {
+      mesh(g, new T.CylinderGeometry(0.1, 0.11, 0.16, 16), dark, f[0], top + 0.06, f[1]);
+      mesh(g, new T.CylinderGeometry(0.115, 0.115, 0.04, 16), trim, f[0], top + 0.15, f[1]);
+    });
+    // on-unit status display (flow, sponge, state)
+    var dc = document.createElement('canvas'); dc.width = 256; dc.height = 128;
+    var dTex = new T.CanvasTexture(dc); dTex.anisotropy = 4;
+    var dW = bw * 0.62, dH = dW / 2;
+    box(g, [dW + 0.08, dH + 0.08, 0.04], dark, bx, by + bh - dH / 2 - 0.16, bz + bd / 2 + 0.03);
+    mesh(g, new T.PlaneGeometry(dW, dH), new T.MeshBasicMaterial({ map: dTex }), bx, by + bh - dH / 2 - 0.16, bz + bd / 2 + 0.055);
+    this.filtLed = mesh(g, new T.SphereGeometry(0.055, 12, 8), new T.MeshBasicMaterial({ color: 0x354438 }), bx + bw / 2 - 0.16, by + bh - 0.12, bz + bd / 2 + 0.04);
+    // tubes over the back rim
+    var xI = W / 2 - 1.1, xR = W / 2 - 0.42, zT = -D / 2 + 0.22, over = H + 0.48;
+    var intake = new T.CatmullRomCurve3([[xI, 0.55, zT], [xI, SURFACE - 0.3, zT], [xI, H + 0.3, zT], [xI + 0.12, over, zT], [W / 2 + 0.25, over + 0.04, zT],
+      [inX - 0.1, over + 0.02, inZ - 0.1], [inX, top + 0.4, inZ], [inX, top + 0.15, inZ]].map(V3));
+    var ret = new T.CatmullRomCurve3([[rx, top + 0.15, rz], [rx, top + 0.4, rz], [rx - 0.1, over + 0.12, rz], [W / 2 + 0.25, over + 0.14, zT + 0.14],
+      [xR + 0.12, over + 0.08, zT + 0.14], [xR, H + 0.3, zT + 0.14], [xR, SURFACE - 0.12, zT + 0.14], [xR, SURFACE - 0.14, zT + 0.42]].map(V3));
+    var tubeMat = new T.MeshStandardMaterial({ color: 0x9ccfe0, transparent: true, opacity: 0.4, roughness: 0.2, depthWrite: false });
+    [intake, ret].forEach(function (c) { var m = mesh(g, new T.TubeGeometry(c, 70, 0.065, 10, false), tubeMat); m.renderOrder = 6; });
+    // intake strainer in the tank, and the return spout
     mesh(g, new T.CylinderGeometry(0.12, 0.12, 0.55, 14, 1, true), standard(0x30424c, { wireframe: true }), xI, 0.5, zT);
     mesh(g, new T.CylinderGeometry(0.1, 0.1, 0.06, 14), trim, xI, 0.22, zT);
-    // flow particles in the tubes and the stream leaving the spout
-    var pg = new T.SphereGeometry(0.035, 6, 5), pm = new T.MeshBasicMaterial({ color: 0x6fe0ff });
+    mesh(g, new T.CylinderGeometry(0.075, 0.09, 0.12, 12), trim, xR, SURFACE - 0.14, zT + 0.42).rotation.x = Math.PI / 2;
+    // the path water takes inside the unit: down through the sponge to the pump
+    var inner = new T.CatmullRomCurve3([[inX, top, inZ], [inX, wl, inZ], [bx - 0.05, trayY + spH * 0.7, bz], [bx - 0.05, trayY + 0.05, bz + 0.05],
+      [bx - 0.1, pumpY + 0.25, bz + 0.1], [bx - 0.1, pumpY, bz + 0.12]].map(V3));
+    // flow particles: tank -> intake -> sponge -> pump -> riser -> return -> tank
+    var pg = new T.SphereGeometry(0.034, 6, 5), pm = new T.MeshBasicMaterial({ color: 0x6fe0ff });
+    var dirtM = new T.MeshBasicMaterial({ color: 0xb08a52 });
     var parts = [];
-    [intake, ret].forEach(function (c, ci) { for (var k = 0; k < 16; k++) parts.push({ c: c, u: k / 16, m: mesh(g, pg, pm, 0, 0, 0) }); });
+    [[intake, 16, pm], [inner, 10, dirtM], [riser, 7, pm], [ret, 16, pm]].forEach(function (c) { for (var n = 0; n < c[1]; n++) parts.push({ c: c[0], u: n / c[1], m: mesh(g, pg, c[2], 0, 0, 0) }); });
     var jet = [], jm = new T.MeshBasicMaterial({ color: 0xd8f6ff, transparent: true, opacity: 0.55, depthWrite: false });
-    for (var j = 0; j < 12; j++) jet.push({ u: j / 12, m: mesh(g, pg, jm, 0, 0, 0) });
+    for (var jI = 0; jI < 12; jI++) jet.push({ u: jI / 12, m: mesh(g, pg, jm, 0, 0, 0) });
     this.filt = {
-      extra: 2 * (bx + bw / 2 - W / 2), center: new T.Vector3(bx, by + bh / 2, bz),
-      group: g, parts: parts, jet: jet, spout: ret.getPointAt(1), dir: new T.Vector3(-0.15, -0.12, 1).normalize(), spin: 0,
-      labels: [['Filter (proposal)', new T.Vector3(bx, by + bh + 0.45, bz)], ['Intake', new T.Vector3(xI, 0.95, zT)], ['Return', new T.Vector3(xR, SURFACE + 0.05, zT + 0.3)]]
+      extra: 2 * (bx + bw / 2 + 0.15 - W / 2), center: new T.Vector3(bx, by + bh / 2, bz),
+      group: g, parts: parts, jet: jet, spout: new T.Vector3(xR, SURFACE - 0.14, zT + 0.5), dir: new T.Vector3(-0.15, -0.12, 1).normalize(), spin: 0,
+      disp: { canvas: dc, tex: dTex, sig: '' },
+      labels: [['Filter unit (proposal)', new T.Vector3(bx, by + bh + 0.55, bz)], ['Sponge', new T.Vector3(bx - bw / 2 + 0.1, trayY + spH * 0.6, bz + bd / 2)],
+        ['Pump', new T.Vector3(bx - bw / 2 + 0.1, pumpY, bz + bd / 2)], ['Intake strainer (in tank)', new T.Vector3(xI, 0.8, zT)], ['Return', new T.Vector3(xR, SURFACE + 0.05, zT + 0.45)]]
     };
     g.visible = !!(this.filtView && this.filtView.enabled);
     a.add(g);
+    this.drawFilterDisplay();
     this.placeFilterParts(0);
+  };
+  Tank3D.prototype.drawFilterDisplay = function () {
+    var f = this.filt, v = this.filtView;
+    if (!f) return;
+    var st = v ? v.state : 'OFF', flow = v ? Math.round(v.flow) : 0, cond = v ? Math.round((1 - v.load) * 100) : 100;
+    var sig = st + '|' + flow + '|' + cond;
+    if (sig === f.disp.sig) return;
+    f.disp.sig = sig;
+    var c = f.disp.canvas.getContext('2d');
+    c.fillStyle = '#071318'; c.fillRect(0, 0, 256, 128);
+    var col = st === 'RUNNING' ? '#9cec7c' : st === 'FAULT' ? '#ff6852' : (st === 'WARNING' || st === 'STARTING') ? '#ffc262' : '#5d6e74';
+    c.fillStyle = col; c.font = '700 26px monospace'; c.textBaseline = 'top';
+    c.fillText(st, 14, 10);
+    c.fillStyle = '#d9f3fb'; c.font = '700 34px monospace';
+    c.fillText(('   ' + flow).slice(-3) + ' L/h', 14, 44);
+    c.font = '600 24px monospace'; c.fillStyle = '#9ec5d2';
+    c.fillText('SPONGE ' + cond + '%', 14, 88);
+    c.fillStyle = '#1f3a45'; c.fillRect(196, 92, 46, 20);
+    c.fillStyle = cond > 40 ? '#4fb0de' : '#d9822b'; c.fillRect(198, 94, Math.round(42 * cond / 100), 16);
+    f.disp.tex.needsUpdate = true;
   };
   Tank3D.prototype.placeFilterParts = function (dt) {
     var f = this.filt, v = this.filtView;
@@ -5625,7 +5697,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var presets = {
       reset: [0.17, 0.19, 1, ex, cy, 0],
       front: [0, 0.075, 0.96, ex, cy, 0],
-      filter: [0.62, 0.22, 0.52, fc.x - 0.9, fc.y, fc.z + 0.6],
+      filter: [0.3, 0.16, 0.5, fc.x - 1.1, fc.y + 0.2, fc.z + 0.4],
       surface: [0.22, 0.86, 0.74, 0, SURFACE * 0.78, 0],
       fish: [-0.16, 0.10, 0.55, -W * 0.03, SURFACE * 0.5, D * 0.12],
       feeder: [2.55, 0.5, 0.62, fx, H + 0.1, fz - 0.9],
@@ -5829,6 +5901,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       if (fon) {
         this.filtSpongeMat.color.set(0xe7d48c).lerp(new T.Color(0x4f3b24), Math.min(1, fv.load * 1.1));
         this.filtLed.material.color.setHex(fv.state === 'RUNNING' ? 0x9cec7c : fv.state === 'FAULT' ? 0xff6852 : (fv.state === 'WARNING' || fv.state === 'STARTING') ? 0xffc262 : 0x354438);
+        this.drawFilterDisplay();
         this.placeFilterParts(0);
       }
     }
