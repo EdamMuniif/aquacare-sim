@@ -432,10 +432,12 @@
       bubbles: bub || s.bubblesScn > 0,
       probes: { ph: sv.ph.status, temp: sv.temp.status, tds: sv.tds.status, turb: sv.turb.status },
       upkeep: upk,
-      filter: s.filter ? { enabled: s.filter.enabled, state: s.filter.state, flow: s.filter.flow, flowSet: s.filter.flowSet, flowMax: AquaFilter.maxFlow(engine.filterVolume()), load: s.filter.load } : null
+      filter: s.filter ? { enabled: s.filter.enabled, state: s.filter.state, flow: s.filter.flow, flowSet: s.filter.flowSet, flowMax: AquaFilter.maxFlow(engine.filterVolume()), load: s.filter.load,
+        bio: s.water ? AquaFilterStages.bioPct(s.water) : 0, carbonOn: !!(s.water && s.water.carbonOn), carbonLeft: s.water ? AquaFilterStages.carbonLeftPct(s.water) : 100 } : null
     });
     renderUpkeep(upk);
     renderFilter();
+    renderFilterSystem();
 
     // architecture
     var off = s.power !== 'on';
@@ -588,6 +590,66 @@
     $('filtStats').innerHTML = rows.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
     $('filtHist').innerHTML = f.history.length ? f.history.map(function (h) { return '<li><time>Day ' + (Math.floor(h.t / 86400000) + 1) + ' ' + F.hhmm(h.t) + '</time> ' + esc(h.text) + '</li>'; }).join('') : '<li>No entries yet</li>';
   }
+  // ---------- Filter System panel (proposal) ----------
+  function fsSpark(hist, key, label, unit, dp) {
+    var vals = hist.map(function (h) { return h[key]; }), max = Math.max.apply(null, vals.concat([1e-6]));
+    var pts = vals.map(function (v, i) { return (vals.length > 1 ? i / (vals.length - 1) * 300 : 0).toFixed(1) + ',' + (58 - v / max * 54).toFixed(1); }).join(' ');
+    return '<figure><figcaption>' + label + ': now ' + vals[vals.length - 1].toFixed(dp) + ' ' + unit + ', peak ' + max.toFixed(dp) + ' ' + unit + '</figcaption><svg viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label="' + label + ' over the run, simulation data"><polyline points="' + pts + '"></polyline></svg></figure>';
+  }
+  function renderFilterSystem() {
+    var s = engine.s, f = s.filter, w = s.water, St = window.AquaFilterStages;
+    if (!f || !w || !St || $('pane-filter').hidden) return;
+    var V = engine.filterVolume(), mx = AquaFilter.maxFlow(V), set = AquaFilter.target(f, V), proc = AquaFilter.processing(f, V);
+    var sv = s.sensors, nxt = AquaFilter.nextInspection(f, V), low = St.carbonLow(w);
+    var num = function (x, dp, unit) { return x == null ? 'No data' : x.toFixed(dp) + ' ' + unit; };
+    var water = [['Turbidity', num(sv.turb.value, 0, 'NTU')], ['pH', num(sv.ph.value, 2, '')], ['TDS', num(sv.tds.value, 0, 'ppm')], ['Temperature', num(sv.temp.value, 1, '°C')],
+      ['Dissolved oxygen', w.doMg.toFixed(1) + ' mg/L'], ['Ammonia', w.tan.toFixed(2) + ' mg/L'], ['Nitrite', w.no2.toFixed(2) + ' mg/L'], ['Nitrate', w.no3.toFixed(1) + ' mg/L'], ['Water level', Math.round(w.level) + ' %']];
+    var status = AquaFilter.status(f, low), tone = status === 'Normal' ? 'ok' : status === 'Off' ? 'off' : status === 'Maintenance' ? 'attn' : 'fault';
+    var pump = AquaFilter.pumpLabel(f), pumpTone = pump === 'ON' ? 'ok' : pump === 'FAULT' ? 'fault' : 'off';
+    var service = (f.lastClean == null ? 'Sponge not cleaned this run' : 'Sponge rinsed day ' + (Math.floor(f.lastClean / 86400000) + 1) + ' ' + F.hhmm(f.lastClean)) + (w.lastCarbon == null ? '' : '; carbon replaced day ' + (Math.floor(w.lastCarbon / 86400000) + 1));
+    var rows = [
+      ['Pump status', '<span class="st" data-tone="' + pumpTone + '">' + pump + '</span><small>' + esc(f.why) + '</small>'],
+      ['Control mode', '<b>' + (f.mode === 'auto' ? 'Automatic' : 'Manual') + '</b>' + (f.boostActive ? '<small>Turbidity boost active</small>' : '')],
+      ['Water flow', '<b>' + Math.round(f.flow) + ' L/h</b><small>' + (set > 0 ? Math.round(f.flow / set * 100) : 0) + ' % of ' + set + ' L/h set</small>'],
+      ['Mechanical', '<span class="upk__bar"><i style="width:' + AquaFilter.condition(f) + '%"></i></span><b>' + AquaFilter.condition(f) + ' %</b><small>condition</small>'],
+      ['Biological', '<span class="upk__bar"><i style="width:' + St.bioPct(w) + '%"></i></span><b>' + St.bioPct(w) + ' %</b><small>maturity' + (proc ? '' : ', not processing') + '</small>'],
+      ['Chemical', w.carbonOn ? '<span class="upk__bar"><i style="width:' + St.carbonLeftPct(w).toFixed(0) + '%"></i></span><b>' + St.carbonLeftPct(w).toFixed(0) + ' %</b><small>capacity remaining</small>' : '<b>Disabled</b>'],
+      ['Resistance', '<b>' + f.R.toFixed(1) + '×</b><small>simulated pressure loss vs a clean sponge</small>'],
+      ['Filtration', '<span class="st" data-tone="' + tone + '">' + status + '</span>' + (f.interlock ? '<small>Dry-run protection active</small>' : f.sensorWarn ? '<small>Turbidity sensor error</small>' : low ? '<small>Replace the carbon</small>' : '')],
+      ['Maintenance', '<b>' + esc(service) + '</b><small>' + (nxt == null ? 'Filter off' : nxt <= 0 ? 'Inspect now' : 'Next inspection in about ' + Math.max(1, Math.round(nxt)) + ' simulated days') + '</small>']
+    ];
+    var sig = [JSON.stringify(rows), JSON.stringify(water), f.history.length, f.enabled, f.pumpCmd, f.flowSet, mx, f.boost, w.carbonOn, w.level, $('fsPerf').open ? w.hist.length : 0].join('|');
+    if (sig === ui.sigFS) return;
+    ui.sigFS = sig;
+    $('fsStats').innerHTML = rows.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
+    $('fsWater').innerHTML = water.map(function (r) { return '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>'; }).join('');
+    var running = f.flow > 0, loop = $('fsLoop');
+    loop.setAttribute('data-run', String(running));
+    loop.style.setProperty('--fs-dur', (running ? Math.max(0.3, Math.min(4, 1.2 * mx / 2 / f.flow)) : 1.5).toFixed(2) + 's');
+    $('fsStage3').classList.toggle('is-off', !w.carbonOn);
+    $('fsLoopNote').textContent = !f.enabled ? 'Filter off: no water circulates.' : running ? (proc ? 'Water is circulating through the stages.' : 'Flow is too low for the stages to process water.') : 'Pump stopped: no water circulates and no filtering happens.';
+    $('fsPump').textContent = !f.enabled ? 'Enable filter and start' : (f.pumpCmd && f.state !== 'OFF' ? 'Stop pump' : 'Start pump');
+    $('fsMode').textContent = f.mode === 'auto' ? 'Switch to manual' : 'Switch to automatic';
+    var sl = $('fsFlow'); sl.max = String(mx); if (document.activeElement !== sl) sl.value = String(f.flowSet);
+    $('fsFlowOut').textContent = f.flowSet + ' L/h';
+    $('fsBoost').checked = f.boost; $('fsCarbon').checked = w.carbonOn;
+    var lv = $('fsLevel'); if (document.activeElement !== lv) lv.value = String(w.level);
+    $('fsLevelOut').textContent = Math.round(w.level) + ' %';
+    $('fsHist').innerHTML = f.history.length ? f.history.map(function (h) { return '<li><time>Day ' + (Math.floor(h.t / 86400000) + 1) + ' ' + F.hhmm(h.t) + '</time> ' + esc(h.text) + '</li>'; }).join('') : '<li>No entries yet</li>';
+    if ($('fsPerf').open) $('fsCharts').innerHTML = w.hist.length < 2 ? '<p class="fine">Performance builds up as the run advances.</p>' :
+      fsSpark(w.hist, 'tan', 'Ammonia', 'mg/L', 2) + fsSpark(w.hist, 'no2', 'Nitrite', 'mg/L', 2) + fsSpark(w.hist, 'no3', 'Nitrate', 'mg/L', 1) + fsSpark(w.hist, 'doMg', 'Dissolved oxygen', 'mg/L', 1) + fsSpark(w.hist, 'flow', 'Flow', 'L/h', 0) + fsSpark(w.hist, 'bio', 'Biological maturity', '%', 0);
+  }
+  function fsAct(fn) { return function () { fn.call(this); ui.sigFilt = ''; ui.sigFS = ''; save(); render(); }; }
+  $('fsPump').addEventListener('click', fsAct(function () { var f = engine.s.filter; if (!f.enabled) engine.setFilter(true); else engine.filterPump(!(f.pumpCmd && f.state !== 'OFF')); }));
+  $('fsMode').addEventListener('click', fsAct(function () { engine.setFilterMode(engine.s.filter.mode === 'auto' ? 'manual' : 'auto'); }));
+  $('fsFlow').addEventListener('input', fsAct(function () { engine.setFilterFlow(+this.value); }));
+  $('fsBoost').addEventListener('change', fsAct(function () { engine.setFilterBoost(this.checked); }));
+  $('fsCarbon').addEventListener('change', fsAct(function () { engine.setCarbon(this.checked); }));
+  $('fsClean').addEventListener('click', fsAct(function () { engine.cleanFilter(); }));
+  $('fsCarbonNew').addEventListener('click', fsAct(function () { engine.replaceCarbon(); }));
+  $('fsLevel').addEventListener('input', fsAct(function () { engine.setWaterLevel(+this.value); }));
+  $('fsPerf').addEventListener('toggle', function () { ui.sigFS = ''; renderFilterSystem(); });
+
   $('filtQuick').addEventListener('click', function () {
     var f = engine.s.filter; if (!f) return;
     var on = !f.enabled;

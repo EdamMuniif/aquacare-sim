@@ -1089,7 +1089,17 @@
     var poreTex = new T.CanvasTexture(pore); poreTex.wrapS = poreTex.wrapT = T.RepeatWrapping; poreTex.repeat.set(2, 3);
     this.filtSpongeMat = standard(0xe7d48c, { roughness: 1, map: poreTex });
     var spH = bh * 0.42;
-    box(g, [bw - 0.3, spH, bd - 0.32], this.filtSpongeMat, bx - 0.04, trayY + 0.03 + spH / 2, bz - 0.02);
+    // three compartments in flow order: sponge, biological media, optional carbon
+    var cw = (bw - 0.3) / 3, cx0 = bx - (bw - 0.3) / 2 + cw / 2, cy = trayY + 0.03 + spH / 2;
+    box(g, [cw - 0.05, spH, bd - 0.32], this.filtSpongeMat, cx0, cy, bz - 0.02);
+    [cx0 + cw / 2, cx0 + cw * 1.5].forEach(function (x) { box(g, [0.03, spH + 0.04, bd - 0.2], trim, x, cy, bz); });
+    this.filtBioMat = standard(0x9fb0b6, { roughness: 0.9 });
+    var bioGeo = new T.SphereGeometry(Math.min(cw * 0.15, 0.1), 8, 6);
+    for (var bioY = 0; bioY < 5; bioY++) for (var bioX = 0; bioX < 3; bioX++) for (var bioZ = 0; bioZ < 3; bioZ++) {
+      mesh(g, bioGeo, this.filtBioMat, cx0 + cw + (bioX - 1) * cw * 0.28, trayY + 0.12 + bioY * (spH - 0.2) / 4, bz + (bioZ - 1) * (bd - 0.5) * 0.32);
+    }
+    this.filtCarbonMat = standard(0x2c3033, { roughness: 1 });
+    this.filtCarbon = box(g, [cw - 0.05, spH, bd - 0.62], this.filtCarbonMat, cx0 + cw * 2, cy, bz + 0.12);
     // pump chamber: volute, motor can and an impeller (hub + rim + six curved blades)
     var pumpY = by + bh * 0.19;
     mesh(g, new T.CylinderGeometry(bd * 0.24, bd * 0.24, 0.5, 24), dark, bx - 0.1, pumpY, bz - 0.18).rotation.x = Math.PI / 2;
@@ -1130,13 +1140,20 @@
       [xR + 0.12, over + 0.08, zT + 0.14], [xR, H + 0.3, zT + 0.14], [xR, SURFACE - 0.12, zT + 0.14], [xR, SURFACE - 0.14, zT + 0.42]].map(V3));
     var tubeMat = new T.MeshStandardMaterial({ color: 0x9ccfe0, transparent: true, opacity: 0.4, roughness: 0.2, depthWrite: false });
     [intake, ret].forEach(function (c) { var m = mesh(g, new T.TubeGeometry(c, 70, 0.065, 10, false), tubeMat); m.renderOrder = 6; });
+    // flow direction arrows on both tubes
+    var arrowGeo = new T.ConeGeometry(0.11, 0.24, 12), arrowMat = new T.MeshBasicMaterial({ color: 0x4fc3f7 }), upAxis = new T.Vector3(0, 1, 0);
+    [[intake, 0.3], [intake, 0.72], [ret, 0.3], [ret, 0.72]].forEach(function (c) {
+      var p = c[0].getPointAt(c[1]), arrow = mesh(g, arrowGeo, arrowMat, p.x, p.y, p.z);
+      arrow.quaternion.setFromUnitVectors(upAxis, c[0].getTangentAt(c[1]).normalize());
+    });
     // intake strainer in the tank, and the return spout
     mesh(g, new T.CylinderGeometry(0.12, 0.12, 0.55, 14, 1, true), standard(0x30424c, { wireframe: true }), xI, 0.5, zT);
     mesh(g, new T.CylinderGeometry(0.1, 0.1, 0.06, 14), trim, xI, 0.22, zT);
     mesh(g, new T.CylinderGeometry(0.075, 0.09, 0.12, 12), trim, xR, SURFACE - 0.14, zT + 0.42).rotation.x = Math.PI / 2;
-    // the path water takes inside the unit: down through the sponge to the pump
-    var inner = new T.CatmullRomCurve3([[inX, top, inZ], [inX, wl, inZ], [bx - 0.05, trayY + spH * 0.7, bz], [bx - 0.05, trayY + 0.05, bz + 0.05],
-      [bx - 0.1, pumpY + 0.25, bz + 0.1], [bx - 0.1, pumpY, bz + 0.12]].map(V3));
+    // the path water takes inside the unit: through the three compartments in order, then to the pump
+    var fz = bz + bd / 2 - 0.12;
+    var inner = new T.CatmullRomCurve3([[inX, top, inZ], [inX, wl, inZ], [cx0, trayY + spH * 0.75, fz], [cx0 + cw, trayY + spH * 0.4, fz], [cx0 + cw * 2, trayY + spH * 0.7, fz],
+      [cx0 + cw * 2, trayY + 0.05, fz], [bx - 0.1, pumpY + 0.25, bz + 0.1], [bx - 0.1, pumpY, bz + 0.12]].map(V3));
     // flow particles: tank -> intake -> sponge -> pump -> riser -> return -> tank
     var pg = new T.SphereGeometry(0.034, 6, 5), pm = new T.MeshBasicMaterial({ color: 0x6fe0ff });
     var dirtM = new T.MeshBasicMaterial({ color: 0xb08a52 });
@@ -1148,7 +1165,8 @@
       extra: 2 * (bx + bw / 2 + 0.15 - W / 2), center: new T.Vector3(bx, by + bh / 2, bz),
       group: g, parts: parts, jet: jet, spout: new T.Vector3(xR, SURFACE - 0.14, zT + 0.5), dir: new T.Vector3(-0.15, -0.12, 1).normalize(), spin: 0,
       disp: { canvas: dc, tex: dTex, sig: '' },
-      labels: [['Filter unit (proposal)', new T.Vector3(bx, by + bh + 0.55, bz)], ['Sponge', new T.Vector3(bx - bw / 2 + 0.1, trayY + spH * 0.6, bz + bd / 2)],
+      labels: [['Filter unit (proposal)', new T.Vector3(bx, by + bh + 0.55, bz)], ['1 Mechanical: sponge', new T.Vector3(cx0, trayY + spH * 0.85, bz + bd / 2)],
+        ['2 Biological media', new T.Vector3(cx0 + cw, trayY + spH * 0.5, bz + bd / 2)], ['3 Chemical: carbon', new T.Vector3(cx0 + cw * 2, trayY + spH * 0.15, bz + bd / 2)],
         ['Pump', new T.Vector3(bx - bw / 2 + 0.1, pumpY, bz + bd / 2)], ['Intake strainer (in tank)', new T.Vector3(xI, 0.8, zT)], ['Return', new T.Vector3(xR, SURFACE + 0.05, zT + 0.45)]]
     };
     g.visible = !!(this.filtView && this.filtView.enabled);
@@ -1444,6 +1462,9 @@
       }
       if (fon) {
         this.filtSpongeMat.color.set(0xe7d48c).lerp(new T.Color(0x4f3b24), Math.min(1, fv.load * 1.1));
+        this.filtBioMat.color.set(0x9fb0b6).lerp(new T.Color(0xa9793f), Math.min(1, (fv.bio || 0) / 100));
+        this.filtCarbon.visible = !!fv.carbonOn;
+        this.filtCarbonMat.color.set(0x8d9499).lerp(new T.Color(0x24282b), Math.min(1, (fv.carbonLeft == null ? 100 : fv.carbonLeft) / 100));
         this.filtLed.material.color.setHex(fv.state === 'RUNNING' ? 0x9cec7c : fv.state === 'FAULT' ? 0xff6852 : (fv.state === 'WARNING' || fv.state === 'STARTING') ? 0xffc262 : 0x354438);
         this.drawFilterDisplay();
         this.placeFilterParts(0);

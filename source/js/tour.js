@@ -131,8 +131,8 @@
       target: '#bay', act: function (live) { if (live) show3d('top'); }
     },
     {
-      title: 'Proposal: mechanical filter',
-      body: '<p>A pump and sponge loop beside the tank, <b>off by default</b>. It changes <b>turbidity only</b>, never pH, temperature, TDS or feeding. The sponge clogs over time: below 60% of set flow it warns, and below 30% it makes a protective stop until the sponge is cleaned.</p><p>All constants are illustrative, to confirm by measurement. Needs project-team confirmation. Press <b>Filter: off</b> under the tank to try it.</p><p>Exit to keep exploring this run, or use Reset run to start fresh.</p>',
+      title: 'Proposal: multi-stage filter',
+      body: '<p>A pump loop beside the tank, <b>off by default</b>, with a sponge, biological media and optional carbon. Bacteria mature over weeks, so ammonia and nitrite fall gradually. It never regulates pH or TDS. Low flow and low water both protect the pump.</p><p>All constants are illustrative, to confirm by measurement. Needs project-team confirmation. Open <b>Water &rarr; Filter System</b> to try it.</p><p>Exit to keep exploring this run, or use Reset run to start fresh.</p>',
       target: '#bay', act: function (live) { if (live) show3d('reset'); }
     }
   ];

@@ -28,13 +28,17 @@ The aquarium uses the same simulated turbidity, probe faults, LCD, tank button, 
 
 The simulation runs in each visitor's browser. A web page can't run while it's closed, so the run is saved in that browser and, when the page is reopened, rebuilt and caught up by the time away (at the chosen speed). Nothing is stored online, and true 24/7 running would need a server or the real ESP32. Use the CSV exports to keep the data.
 
-### Mechanical filter (proposal, needs project-team confirmation)
+### Multi-stage filter (proposal, needs project-team confirmation)
 
-Off by default. Turn it on under **Presenter controls → Filter**. It is a pump and sponge loop beside the tank, with intake and return tubes over the back rim.
+Off by default. Turn it on under **Presenter controls → Filter** or **Water → Filter System**. It is a pump loop beside the tank, with intake and return tubes over the back rim, and three stages: sponge, biological media and optional activated carbon.
 
-- **What it changes:** turbidity only. Suspended matter from a soil test clears faster while water flows (removal rate = flow ÷ tank volume × 0.5 capture). It never changes pH, temperature or TDS, and feeding is untouched.
+- **Mechanical stage:** suspended matter from a soil test clears faster while water flows (removal rate = flow ÷ tank volume × 0.5 capture), and uneaten food is trapped in the sponge.
+- **Biological stage:** ammonia becomes nitrite, then nitrate, limited by media maturity, dissolved oxygen and flow. Maturity builds over weeks and survives sponge cleaning.
+- **Chemical stage:** carbon adsorbs dissolved organics only, and its capacity runs out until the media is replaced.
+- **Controller:** OFF, STARTING, RUNNING, WARNING and FAULT states, automatic and manual modes, an optional turbidity boost, and dry-run protection that stays active in manual mode.
+- **What it never changes:** pH, temperature, TDS and feeding.
 - **Clogging:** the sponge loads slowly while water flows, with each delivered feed, and with the matter it captures. Resistance rises and flow falls. Below 60 % of set flow it raises a WARNING (clean the sponge). Below 30 % it makes a protective stop (FAULT) that only clears after cleaning. A power cut stops the pump, and it restarts when power returns.
 - **Cleaning:** rinsing the sponge restores flow. It does not clean the water at that moment.
-- **Constants:** the flow, clogging and capture values in `source/js/filter.js` are illustrative, to confirm by measurement.
-- **Not modelled (Later):** biological and chemical stages, dissolved oxygen, ammonia/nitrite/nitrate, water level and dry-run protection.
-- **Checks:** `node source/tests/filter.test.js` runs 11 checks. With the filter off, a seeded 30-day run is identical to commit 91f88cf.
+- **Constants:** the values in `source/js/filter.js` and `source/js/filterstages.js` are illustrative, to confirm by measurement.
+- **Not modelled:** water changes, evaporation, species or stocking effects, and any pH or TDS change caused by nitrification. Ammonia, nitrite, nitrate, oxygen and water level have no sensor in the design, and their alert limits read Not configured.
+- **Checks:** `node source/tests/filter.test.js` runs 11 checks and `node source/tests/filterstages.test.js` runs 15. With the filter off, a seeded 30-day run keeps the same sensor readings and feed records.
