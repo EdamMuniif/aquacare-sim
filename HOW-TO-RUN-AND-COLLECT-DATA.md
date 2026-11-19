@@ -314,7 +314,7 @@ Every file starts with comment lines (beginning with `#`) and a blank line: **th
 
 | Column | Meaning | Values |
 |---|---|---|
-| `label` | Evidence label | `SIMULATION - DEMO DATA` |
+| `label` | Evidence label | `SIMULATION / DEMO DATA — NOT HARDWARE MEASUREMENTS` |
 | `sim_day` | Day of the run | 1–30 |
 | `date` | Calendar date from the start date | YYYY-MM-DD |
 | `slot` | Feed slot | e.g. `13:00`, or `13:05 (injected)` |

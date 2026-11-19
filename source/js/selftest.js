@@ -75,7 +75,9 @@
     check('Sensor fault shows No data and raises an equipment alert', function () {
       var e = make(); e.setSensorStatus('temp', 'disconnected'); e.setSpeed(60); run(e, 1500);
       if (e.s.sensors.temp.value !== null) return 'stale value shown';
-      if (!e.findAlert('sensor-temp')) return 'no alert';
+      var a = e.findAlert('sensor-temp');
+      if (!a) return 'no alert';
+      if (a.cat !== 'equipment') return 'alert category is ' + a.cat + ', expected equipment';
       e.setSensorStatus('temp', 'ok'); run(e, 1500);
       return !e.findAlert('sensor-temp') && typeof e.s.sensors.temp.value === 'number' || 'did not recover';
     });

@@ -112,7 +112,7 @@
     },
     {
       title: 'Feed log and CSV export',
-      body: '<p>Every feed event is one row: reminder, button press, automatic attempt, IR result, outcome and the count after it. You can search and filter it.</p><p>The <b>CSV exports</b> (feed log, raw and smoothed readings, event log, perturbation tests) are all marked <b>SIMULATION - DEMO DATA</b> for analysis and slides.</p>',
+      body: '<p>Every feed event is one row: reminder, button press, automatic attempt, IR result, outcome and the count after it. You can search and filter it.</p><p>The <b>CSV exports</b> (feed log, raw and smoothed readings, event log, perturbation tests) are all marked <b>SIMULATION / DEMO DATA — NOT HARDWARE MEASUREMENTS</b> for analysis and slides.</p>',
       tab: 'feed', target: '#pane-feed', act: function () {}
     },
     {
