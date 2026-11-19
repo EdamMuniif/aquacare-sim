@@ -1,0 +1,26 @@
+name: AquaCare simulation regression
+on:
+  push:
+    branches:
+      - feature/realistic-ecosystem-phase1
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Existing engine checks
+        run: node source/tests/engine.test.js
+      - name: Existing mechanical filter checks
+        run: node source/tests/filter.test.js
+      - name: Ecosystem Phase 1 checks
+        run: node source/tests/ecosystem-core.test.js
+      - name: Exact legacy output against reference commit
+        run: node source/tests/legacy-baseline.test.js
