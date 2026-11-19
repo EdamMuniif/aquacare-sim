@@ -1,0 +1,41 @@
+/* Real-Life Aquarium Research Simulation page. Loaded only by research.html. */
+body.rs { margin: 0; padding: 0; background: #e9eff2; color: var(--ink); font-family: var(--sans); overflow-x: hidden; }
+.rs-tape { padding: 8px 16px; background: var(--tape); color: #1c1a0a; font-size: 13.5px; line-height: 1.4; }
+.rs-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; max-width: 1440px; margin: 0 auto; padding: 16px; }
+.rs-head h1 { margin: 2px 0 0; font-size: 24px; line-height: 1.2; }
+.rs-clock { display: grid; text-align: right; flex: none; }
+.rs-clock b { font: 700 18px var(--mono); }
+.rs-clock span { font-size: 13px; color: var(--muted); }
+.rs-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; max-width: 1440px; margin: 0 auto; padding: 0 16px 24px; }
+.rs-col { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+.rs-wide { grid-column: 1 / -1; min-width: 0; }
+.rs-bay { margin: 0; min-width: 0; }
+.rs-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.rs-field { display: grid; gap: 4px; flex: 1 1 150px; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.rs-field select { min-height: 44px; width: 100%; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: var(--r-sm); background: #fff; }
+.rs-field input[type="range"] { width: 100%; accent-color: #2b6f9e; }
+.rs-field output { font: 600 12.5px var(--mono); margin-left: 6px; }
+.rs-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.rs-sliders { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.rs-key { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 0 10px; font-size: 13px; color: var(--ink-2); }
+.rtag { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 11.5px; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
+.rtag--calculated { background: #e4eef5; color: #1d4f70; border-color: #b6d3e4; }
+.rtag--virtual { background: #efe9f7; color: #4d3478; border-color: #d3c5e8; }
+.rtag--measured { background: #fff; color: var(--muted); border-color: var(--line-2); border-style: dashed; }
+.rtag--published { background: #e3f2e7; color: #1b6e38; border-color: #bcdcc6; }
+.rtag--illustrative { background: #fdf0dd; color: #8f4700; border-color: #eccf9f; }
+.rtag--user { background: #eef1f2; color: var(--ink-2); border-color: var(--line); }
+.rs-tablewrap { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.rs-wide .rs-tablewrap { max-height: 460px; overflow: auto; }
+.rs-table { width: 100%; font-size: 13.5px; }
+.rs-table td, .rs-table th { padding: 7px 9px; text-align: left; vertical-align: top; }
+.rs-table td.num { font-family: var(--mono); white-space: nowrap; }
+.rs-table .none { color: var(--muted); font-family: var(--sans); font-size: 12.5px; }
+.rs-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; margin: 0; }
+.rs-stats div { padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); min-width: 0; }
+.rs-stats dt { font-size: 12px; color: var(--muted); }
+.rs-stats dd { margin: 2px 0 0; font: 650 14.5px var(--mono); overflow-wrap: anywhere; }
+.rs-charts { margin-top: 0; }
+.rs-log { margin: 0; padding-left: 18px; max-height: 180px; overflow: auto; font-size: 13px; color: var(--ink-2); }
+.rs-log time { font: 600 11.5px var(--mono); color: var(--muted); margin-right: 5px; }
+@media (max-width: 980px) { .rs-grid { grid-template-columns: minmax(0, 1fr); } .rs-head h1 { font-size: 20px; } }

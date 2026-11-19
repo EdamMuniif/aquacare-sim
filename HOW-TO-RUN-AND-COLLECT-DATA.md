@@ -88,7 +88,7 @@ The tank starts the run 1.5 simulated days after a clean, so it looks lived-in. 
 | Universal controller | Tank section → camera view list → **Controller**. Change **Presenter controls → Display → Tank size** to watch the rails extend. **Labels** names the parts. |
 | Mini feeder arm | Camera view list → **Feeder (hopper and mini arm)**, then run a feed |
 | Top camera and blind spots | Press **Camera view** to show the view cone, choose **Top view**, and read the **Top camera and phone app** card |
-| Mechanical filter | Press **Filter: off** under the tank. The camera moves to the filter unit. Settings are in **Presenter controls → Filter**. |
+| Multi-stage filter | Press **Filter: off** under the tank, or open **Water → Filter System**. The camera moves to the filter unit. Settings are in **Presenter controls → Filter**. |
 
 **Universal controller**
 
@@ -132,13 +132,19 @@ The tank starts the run 1.5 simulated days after a clean, so it looks lived-in. 
 - The behaviour analysis is a rule-based stand-in with placeholder limits, not a trained model. Notifications fire only if you tick them on.
 - **Not modelled:** plants and rocks blocking the view, ripple, glare from the light bar and condensation on the lens.
 
-**Mechanical filter**
+**Multi-stage filter**
 
-- It is a pump and sponge loop beside the tank, with tubes over the back rim. It is **off by default**.
-- It changes **turbidity only**. It never touches pH, temperature, TDS or feeding.
-- Clearing rate = flow ÷ tank volume × 0.5 capture.
-- The sponge clogs over time, with each feed and with captured dirt. Below **60 %** of set flow it warns. Below **30 %** it makes a protective stop that clears only after **Clean sponge**.
-- All constants in `source/js/filter.js` are illustrative, to confirm by measurement.
+Open **Water → Filter System** for the status table, controls, water quality, performance charts and maintenance history.
+
+- It is a pump loop beside the tank, with tubes over the back rim: aquarium → intake → mechanical → biological → optional chemical → pump → return. It is **off by default**.
+- **Mechanical (sponge):** clears turbidity and traps uneaten food. Clearing rate = flow ÷ tank volume × 0.5 capture. The sponge clogs over time, with each feed and with captured dirt. Below **60 %** of set flow it warns. Below **30 %** it makes a protective stop that clears only after cleaning.
+- **Biological media:** converts ammonia to nitrite, then nitrite to nitrate. It depends on maturity, dissolved oxygen and flow, and it matures over weeks. Cleaning the sponge does not reset it.
+- **Chemical (optional carbon):** adsorbs dissolved organics only, and its capacity runs out. It never removes ammonia, nitrite, nitrate or TDS.
+- **Control:** automatic or manual mode, with an optional flow boost when turbidity rises. Stopping the pump switches to manual. Dry-run protection stops the pump below **70 %** water level in both modes and releases at **75 %**.
+- The filter never regulates pH, temperature or TDS, and it does not change feeding.
+- Ammonia, nitrite, nitrate, oxygen and water level are modelled values. The design has no sensor for them, and their alert limits read **Not configured**.
+- **Not modelled:** water changes (so nitrate keeps rising), evaporation, species or stocking effects, and any pH or TDS change caused by nitrification. Feeding does not raise the turbidity reading.
+- All constants in `source/js/filter.js` and `source/js/filterstages.js` are illustrative, to confirm by measurement.
 
 ---
 
@@ -475,7 +481,7 @@ Call this **logic verification in simulation** or **simulated scenario testing**
 - That the reference ranges are safe for any species, or that TDS and turbidity are part of the confirmed AquaCare design.
 - That the controller, mini arm, top camera, behaviour analysis or filter are part of the confirmed design, or that any of them has been built or tested.
 - That the camera sees the whole tank, or that the behaviour analysis is a trained or validated model.
-- That the filter's clearing, clogging or flow figures are measured. They are illustrative.
+- That the filter's clearing, clogging, flow, nitrogen, oxygen or carbon figures are measured. They are illustrative.
 
 In every figure caption or table title, add: *"Simulation output (demo data), not hardware measurements."*
 
@@ -501,7 +507,8 @@ In every figure caption or table title, add: *"Simulation output (demo data), no
 | The filter button says **clean sponge** or **fault** | Flow has dropped below 60 % or 30 % of set flow. Press **Clean sponge** in **Presenter controls → Filter**. |
 | Fewer fish are in view than are in the tank | That's the camera's blind spots (section 2.2), shown on purpose. |
 | The phone card says the feed spot is at the **edge of arm reach** | The fish are beyond the arm's reach of about 8.7 cm, so the pour point is clamped. |
-| Want to confirm the logic still works | **Logic self-test** tab → **Run logic self-test** (30 checks, software only), or run `node tests/engine.test.js`. For the filter model, run `node tests/filter.test.js` (11 checks). Run both from the `source` folder. |
+| Want to confirm the logic still works | **Logic self-test** tab → **Run logic self-test** (30 checks, software only), or run `node tests/engine.test.js`. For the filter model, run `node tests/filter.test.js` (11 checks) and `node tests/filterstages.test.js` (15 checks). Run them from the `source` folder. |
+| The pump won't start and the filter shows a fault | Check the water level in **Water → Filter System**. Dry-run protection holds the pump until the level is back to 75 %. |
 
 ---
 

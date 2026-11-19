@@ -1142,6 +1142,28 @@ button, a, input, select, label { touch-action: manipulation; }
 .filt__hist summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--ink-2); }
 .filt__hist ol { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--ink-2); max-height: 180px; overflow: auto; }
 .filt__hist time { font: 600 11.5px var(--mono); color: var(--muted); margin-right: 4px; }
+.fsloop { list-style: none; margin: 14px 0 6px; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; counter-reset: fs; }
+.fsloop li { counter-increment: fs; position: relative; overflow: hidden; padding: 10px 4px 14px; border: 1px solid #b6d3e4; border-radius: 6px; background: #eef6fb; color: #1d4f70; font-size: 12.5px; font-weight: 650; text-align: center; overflow-wrap: anywhere; }
+.fsloop li::before { content: counter(fs) ". "; color: #5f8aa6; }
+.fsloop li::after { content: ""; position: absolute; left: 0; right: 0; bottom: 3px; height: 4px; background: repeating-linear-gradient(90deg, #2b6f9e 0 10px, transparent 10px 20px); background-size: 20px 4px; opacity: .25; }
+.fsloop[data-run="true"] li::after { opacity: 1; animation: fsflow var(--fs-dur, 1.5s) linear infinite; }
+.fsloop li.is-off { background: var(--surface-2); color: var(--muted); border-style: dashed; }
+@keyframes fsflow { to { background-position: 20px 0; } }
+@media (prefers-reduced-motion: reduce) { .fsloop[data-run="true"] li::after { animation: none; } }
+.fsstats div { grid-template-columns: 128px 1fr; }
+.fsctl { display: grid; gap: 10px; }
+.fsctl input[type="range"] { width: 100%; accent-color: #2b6f9e; }
+.fsctl output { font: 600 12.5px var(--mono); color: var(--ink-2); margin-left: 6px; }
+.fswater { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.fswater div { padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); min-width: 0; }
+.fswater span { display: block; font-size: 12px; color: var(--muted); }
+.fswater b { font: 650 15px var(--mono); color: var(--ink); overflow-wrap: anywhere; }
+.fscharts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 8px; }
+.fscharts figure { margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: 6px; }
+.fscharts figcaption { font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+.fscharts svg { display: block; width: 100%; height: 64px; }
+.fscharts polyline { fill: none; stroke: #2b6f9e; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+@media (max-width: 720px) { .fsloop { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fsstats div { grid-template-columns: 104px 1fr; } }
 .tank3d__tag--filter { border-color: rgba(111, 200, 255, .75); }
 .tank3d__tag--filter::before { background: #6fc8ff; }
 .filtQuick[aria-pressed="true"] { border-color: #6fc8ff; color: #bfe9ff; background: rgba(43, 111, 158, .35); }
@@ -1244,7 +1266,7 @@ button, a, input, select, label { touch-action: manipulation; }
       <li><b>Universal controller.</b> A fixed 24 &times; 7 &times; 4.5 cm housing rests on the front rim. Rails slide out of both ends to corner clamps, spanning 31.4&ndash;49.9 cm wide and 15.7&ndash;24.9 cm deep across the six tank settings.</li>
       <li><b>Mini 4-axis feeder arm.</b> Turntable, shoulder, elbow and wrist, with a reach of about 8.7 cm from the housing centre. An IR gate on the scoop lip confirms the drop, and no passage is a fault. The tank button still decides whether to feed, with the same cap of 3 a day. The camera only picks where to pour.</li>
       <li><b>Top camera and blind spots.</b> One fixed 120&deg; lens sees about 81&deg; under water. It covers about 100&nbsp;% of the floor but only about 3&ndash;8&nbsp;% of the water just under the surface, so the upper ends and sides are blind. The behaviour analysis is a rule-based stand-in, not a trained model.</li>
-      <li><b>Mechanical filter.</b> Off by default. A pump and sponge loop that changes turbidity only. It warns below 60&nbsp;% of set flow and makes a protective stop below 30&nbsp;% until the sponge is cleaned. All constants are illustrative, to confirm by measurement.</li>
+      <li><b>Multi-stage filter.</b> Off by default. A pump loop with a sponge, biological media and optional activated carbon. It warns below 60&nbsp;% of set flow, makes a protective stop below 30&nbsp;% until the sponge is cleaned, and stops on low water. It never regulates pH or TDS. All constants are illustrative, to confirm by measurement.</li>
     </ul>
   </section>
   <section class="sensorrow" id="sensorRow" data-views="tank water" aria-label="Water quality readings"></section>
@@ -1509,6 +1531,7 @@ button, a, input, select, label { touch-action: manipulation; }
     <button role="tab" data-view="feeding" id="tab-scen" aria-controls="pane-scen" aria-selected="false" tabindex="-1">Scenarios</button>
     <button role="tab" data-view="project" id="tab-alerts" aria-controls="pane-alerts" aria-selected="false" tabindex="-1">Alerts &amp; settings <span class="badge" id="alertBadge" hidden>0</span></button>
     <button role="tab" data-view="water" id="tab-cal" aria-controls="pane-cal" aria-selected="false" tabindex="-1">pH calibration</button>
+    <button role="tab" data-view="water" id="tab-filter" aria-controls="pane-filter" aria-selected="false" tabindex="-1">Filter System</button>
     <button role="tab" data-view="project" id="tab-arch" aria-controls="pane-arch" aria-selected="false" tabindex="-1">Architecture</button>
     <button role="tab" data-view="records" id="tab-app" aria-controls="pane-app" aria-selected="false" tabindex="-1">App view</button>
     <button role="tab" data-view="project" id="tab-assume" aria-controls="pane-assume" aria-selected="false" tabindex="-1">Assumptions</button>
@@ -1805,6 +1828,49 @@ button, a, input, select, label { touch-action: manipulation; }
     </div>
   </div>
 
+  <!-- Filter System (proposal) -->
+  <div class="pane" role="tabpanel" id="pane-filter" aria-labelledby="tab-filter" hidden>
+    <p class="callout callout--attn"><b>SIMULATION / DEMO DATA. Proposal, needs project-team confirmation.</b> Flow, clogging, biological and carbon constants are illustrative, to confirm by measurement. Ammonia, nitrite, nitrate, oxygen and water level are modelled values with no sensor in the design.</p>
+    <ol class="fsloop" id="fsLoop" data-run="false" aria-label="Filter circulation path">
+      <li>Aquarium</li><li>Intake</li><li id="fsStage1">Mechanical</li><li id="fsStage2">Biological</li><li id="fsStage3">Chemical</li><li>Pump</li><li>Return</li>
+    </ol>
+    <p class="fine" id="fsLoopNote" role="status"></p>
+    <div class="grid2">
+      <section>
+        <h3 class="h3">Filter status</h3>
+        <dl class="filt fsstats" id="fsStats"></dl>
+      </section>
+      <section>
+        <h3 class="h3">Controls</h3>
+        <div class="fsctl">
+          <div class="row2">
+            <button class="btn btn--primary" type="button" id="fsPump">Start pump</button>
+            <button class="btn" type="button" id="fsMode">Switch to manual</button>
+          </div>
+          <div class="field">
+            <label class="field__label" for="fsFlow">Set flow <output id="fsFlowOut" for="fsFlow"></output></label>
+            <input type="range" id="fsFlow" min="0" max="190" step="5" value="95">
+          </div>
+          <label class="switch"><input type="checkbox" id="fsBoost"><span>Raise flow when turbidity rises <em>(automatic mode)</em></span></label>
+          <label class="switch"><input type="checkbox" id="fsCarbon"><span>Chemical stage (activated carbon)</span></label>
+          <div class="row2">
+            <button class="btn" type="button" id="fsClean">Clean mechanical filter</button>
+            <button class="btn" type="button" id="fsCarbonNew">Replace chemical media</button>
+          </div>
+          <div class="field">
+            <label class="field__label" for="fsLevel">Water level, demo test <output id="fsLevelOut" for="fsLevel">100 %</output></label>
+            <input type="range" id="fsLevel" min="40" max="100" step="1" value="100">
+          </div>
+        </div>
+      </section>
+    </div>
+    <h3 class="h3">Water quality</h3>
+    <div class="fswater" id="fsWater"></div>
+    <p class="fine">Alert limits for ammonia, nitrite, nitrate and oxygen: <b>Not configured</b>. The filter does not regulate pH or TDS, and there is no water-change function in this simulation.</p>
+    <details class="filt__hist" id="fsPerf"><summary>View filter performance</summary><div class="fscharts" id="fsCharts"></div></details>
+    <details class="filt__hist"><summary>Maintenance history</summary><ol id="fsHist"></ol></details>
+  </div>
+
   <!-- Calibration -->
   <div class="pane" role="tabpanel" id="pane-cal" aria-labelledby="tab-cal" hidden>
     <div class="grid2">
@@ -1897,6 +1963,7 @@ button, a, input, select, label { touch-action: manipulation; }
         <tr><td>Portion size</td><td>Not configured. The animation shows one dispense cycle, not a measured amount.</td><td><span class="pill">From brief</span></td></tr>
         <tr><td>Food consumption</td><td>Not detected. The IR beam-break only shows that food left the chute.</td><td><span class="pill">From brief</span></td></tr>
         <tr><td>Sensor fault display</td><td>Shows "No data" instead of the last good value and raises an equipment alert.</td><td><span class="pill pill--attn">Assumption</span></td></tr>
+        <tr><td>Filter stages and tank chemistry</td><td>Ammonia, nitrite, nitrate, oxygen, organics, water level, biological maturity and carbon capacity use illustrative constants. They do not change the four sensor readings, and feeding does not raise the turbidity reading. Nitrate keeps rising because no water-change function exists.</td><td><span class="pill pill--attn">Requires team confirmation</span></td></tr>
         <tr><td>Tank size</td><td>Changes the illustration only. The number of fish and shrimp does not change and is not stocking advice.</td><td><span class="pill">Demo setting</span></td></tr>
       </tbody>
     </table></div>
@@ -2029,7 +2096,7 @@ button, a, input, select, label { touch-action: manipulation; }
 
     <fieldset class="grp" id="filtGrp">
       <legend>Filter <small>(proposal, needs project-team confirmation)</small></legend>
-      <p class="fine">Mechanical stage only. A pump pushes tank water through a sponge that traps suspended matter, so turbidity clears faster. It never changes pH, temperature or TDS. Flow, clogging and capture constants are illustrative, to confirm by measurement.</p>
+      <p class="fine">A pump circulates tank water through a sponge, biological media and optional carbon. It never regulates pH, temperature or TDS. All constants are illustrative, to confirm by measurement. Full controls are in <b>Water → Filter System</b>.</p>
       <label class="switch"><input type="checkbox" id="filtOn"><span>Filter enabled</span></label>
       <div class="filt__ctl" id="filtCtl">
         <div class="row2">
@@ -2104,6 +2171,169 @@ button, a, input, select, label { touch-action: manipulation; }
 
 <script>
 /*
+ * AquaCare digital prototype - filter stages and tank nitrogen model (PROPOSAL, needs project-team confirmation)
+ * ---------------------------------------------------------------------------------------------------------------
+ * SIMULATION ONLY. Tracks what the four existing sensors do not: ammonia, nitrite, nitrate, dissolved oxygen,
+ * dissolved organics, water level, biological maturity and activated-carbon capacity.
+ *
+ * Every constant in CFG is an illustrative demo assumption, to confirm by measurement. None comes from the four
+ * reviewed papers, and none is a fish-safe limit. No alert limit exists for these values: they read "Not configured".
+ *
+ * Scope of each stage:
+ *   Mechanical  captures uneaten food (the sponge pool). Turbidity and clogging stay in filter.js.
+ *   Biological  ammonia -> nitrite -> nitrate. Limited by maturity, oxygen, flow and substrate. Never instant.
+ *   Chemical    optional carbon adsorbs dissolved organics only. Never ammonia, nitrite, nitrate or TDS.
+ * pH, temperature and TDS are never changed here.
+ *
+ * Deterministic: no random numbers, so seeded runs and the run journal replay exactly.
+ */
+(function (root) {
+  'use strict';
+
+  var CFG = {
+    // nitrogen sources, mg N
+    fishTanPerDay: 1.5,      // steady excretion by the demo stock
+    feedTan: 1.0,            // eaten part of one feed, released gradually through the waste pool
+    feedUneaten: 0.3,        // uneaten part of one feed
+    wastePerHour: 0.25,      // waste pool -> ammonia, share per hour
+    foodPerDay: 0.5,         // uneaten food -> ammonia, share per day
+    captureEff: 0.5,         // single-pass capture of uneaten food by the sponge
+    // biological stage
+    bioSeed: 0.02,           // maturity of new media (0..1)
+    aobMaxPerDay: 40,        // mg N/day ammonia oxidised by fully mature media
+    nobMaxPerDay: 40,        // mg N/day nitrite oxidised by fully mature media
+    ks: 0.5,                 // half-saturation for ammonia and nitrite, mg/L
+    koDo: 2,                 // half-saturation for dissolved oxygen, mg/L
+    aobGrowthPerDay: 0.6,    // ammonia oxidisers grow first
+    nobGrowthPerDay: 0.4,    // nitrite oxidisers lag, which produces the nitrite peak
+    bioDecayPerDay: 0.05,    // die-back while no water flows through the media
+    fullFlowTurnover: 2,     // tank volumes/h at which flow no longer limits the media
+    // dissolved oxygen, mg/L
+    doSatAt26: 8.1,          // saturation at 26 degC
+    doSatPerDeg: 0.17,       // change in saturation per degC
+    doSurfacePerHour: 0.15,  // surface exchange with no circulation
+    doFlowPerHour: 0.6,      // extra exchange at the return, at doFullTurnover
+    doFullTurnover: 5,       // tank volumes/h
+    doRespPerHour: 0.25,     // fish and tank respiration
+    doPerN: 4.57,            // mg O2 per mg N fully nitrified (stoichiometric)
+    // dissolved organics, mg/L
+    docPerDay: 0.5,          // background source, mg/day
+    docPerFoodN: 2,          // mg organics released per mg N of food that decays
+    docDecayPerDay: 0.05,    // slow natural breakdown
+    // chemical stage
+    carbonCapacityMg: 150,   // adsorption capacity of one charge
+    carbonEff: 0.3,          // single-pass adsorption by fresh carbon
+    carbonLowPct: 15,        // replacement alert below this remaining capacity
+    historyEveryMin: 60,
+    historyMax: 1440
+  };
+
+  function create(cfg, t) {
+    cfg = cfg || {};
+    return {
+      t: t, tan: 0.02, no2: 0.01, no3: 2, doMg: CFG.doSatAt26 - 1, doc: 2,
+      waste: 0, food: 0, spongeFood: 0, level: 100,
+      aob: CFG.bioSeed, nob: CFG.bioSeed,
+      carbonOn: !!cfg.carbon, carbonUsed: 0, carbonLowFlag: false, lastCarbon: null,
+      nextHist: t, hist: [],
+      nIn: 0                 // cumulative nitrogen added, mg (used by the mass-balance check)
+    };
+  }
+
+  function doSat(tempC) { return Math.max(0, CFG.doSatAt26 - CFG.doSatPerDeg * (tempC - 26)); }
+  function carbonLeftPct(W) { return Math.max(0, 100 * (1 - W.carbonUsed / CFG.carbonCapacityMg)); }
+  function carbonLow(W) { return W.carbonOn && carbonLeftPct(W) < CFG.carbonLowPct; }
+  function bioPct(W) { return Math.round(100 * Math.min(W.aob, W.nob)); }
+  function nitrogenMg(W, V) { return (W.tan + W.no2 + W.no3) * V + W.waste + W.food + W.spongeFood; }
+
+  // One step of at most a few minutes. flow is the circulating flow in L/h (0 when too little water moves).
+  function advance(W, h, env, out) {
+    var V = env.V, turnover = V > 0 ? env.flow / V : 0, flowing = turnover > 0;
+    var day = h / 1440, hour = h / 60;
+
+    // sources
+    var fish = CFG.fishTanPerDay * day; W.nIn += fish;
+    var fromWaste = W.waste * (1 - Math.exp(-CFG.wastePerHour * hour));
+    var foodShare = 1 - Math.exp(-CFG.foodPerDay * day);
+    var fromFood = W.food * foodShare, fromSponge = W.spongeFood * foodShare;
+    W.waste -= fromWaste; W.food -= fromFood; W.spongeFood -= fromSponge;
+    W.tan += (fish + fromWaste + fromFood + fromSponge) / V;
+    W.doc += (CFG.docPerDay * day + (fromFood + fromSponge) * CFG.docPerFoodN) / V;
+    W.doc *= Math.exp(-CFG.docDecayPerDay * day);
+
+    // mechanical stage: uneaten food moves to the sponge, where it still decays until the sponge is rinsed
+    if (flowing && W.food > 0) {
+      var caught = W.food * (1 - Math.exp(-turnover * CFG.captureEff * hour));
+      W.food -= caught; W.spongeFood += caught;
+    }
+
+    // biological stage: only while water flows through the media
+    var used = 0;
+    if (flowing) {
+      var fDo = W.doMg / (W.doMg + CFG.koDo), fFlow = Math.min(1, turnover / CFG.fullFlowTurnover);
+      var sA = W.tan / (CFG.ks + W.tan), sN = W.no2 / (CFG.ks + W.no2);
+      var a = Math.min(W.tan * V, CFG.aobMaxPerDay * W.aob * fDo * fFlow * sA * day);
+      W.tan -= a / V; W.no2 += a / V;
+      var n = Math.min(W.no2 * V, CFG.nobMaxPerDay * W.nob * fDo * fFlow * sN * day);
+      W.no2 -= n / V; W.no3 += n / V;
+      used = (a + n) * CFG.doPerN / 2 / V;
+      W.aob = Math.min(1, W.aob + CFG.aobGrowthPerDay * W.aob * (1 - W.aob) * fDo * fFlow * sA * day);
+      W.nob = Math.min(1, W.nob + CFG.nobGrowthPerDay * W.nob * (1 - W.nob) * fDo * fFlow * sN * day);
+    } else {
+      var keep = Math.exp(-CFG.bioDecayPerDay * day);
+      W.aob = Math.max(CFG.bioSeed, W.aob * keep);
+      W.nob = Math.max(CFG.bioSeed, W.nob * keep);
+    }
+
+    // chemical stage: adsorbs dissolved organics, and capacity runs out
+    if (flowing && W.carbonOn) {
+      var left = carbonLeftPct(W) / 100;
+      var ads = Math.min(W.doc * V, W.doc * V * (1 - Math.exp(-turnover * CFG.carbonEff * left * hour)), CFG.carbonCapacityMg - W.carbonUsed);
+      if (ads > 0) { W.doc -= ads / V; W.carbonUsed += ads; }
+    }
+
+    // dissolved oxygen
+    var sat = doSat(env.tempC);
+    var kLa = CFG.doSurfacePerHour + CFG.doFlowPerHour * Math.min(1, turnover / CFG.doFullTurnover);
+    W.doMg += (sat - W.doMg) * (1 - Math.exp(-kLa * hour)) - CFG.doRespPerHour * hour - used;
+    W.doMg = Math.max(0, Math.min(sat, W.doMg));
+
+    var low = carbonLow(W);
+    if (low !== W.carbonLowFlag) { W.carbonLowFlag = low; out.push({ type: 'carbonLow', on: low }); }
+  }
+
+  // Advance dtMin simulated minutes. env: { flow (L/h), V (L), tempC, t }. Returns events.
+  function step(W, dtMin, env) {
+    var out = [], left = dtMin;
+    while (left > 1e-9) { var h = Math.min(left, 5); advance(W, h, env, out); left -= h; }
+    W.t = env.t;
+    if (env.t >= W.nextHist) {
+      W.hist.push({ t: env.t, tan: W.tan, no2: W.no2, no3: W.no3, doMg: W.doMg, doc: W.doc, flow: env.flow, bio: bioPct(W), carbon: carbonLeftPct(W) });
+      if (W.hist.length > CFG.historyMax) W.hist.shift();
+      W.nextHist = env.t + CFG.historyEveryMin * 60000;
+    }
+    return out;
+  }
+
+  function feed(W) { W.waste += CFG.feedTan; W.food += CFG.feedUneaten; W.nIn += CFG.feedTan + CFG.feedUneaten; }
+  // Rinsing removes what the sponge trapped. It never touches the biological media or the water.
+  function rinseSponge(W, V) { W.nIn -= W.spongeFood; W.spongeFood = 0; return V; }
+  function setCarbon(W, on) { W.carbonOn = !!on; var low = carbonLow(W), out = []; if (low !== W.carbonLowFlag) { W.carbonLowFlag = low; out.push({ type: 'carbonLow', on: low }); } return out; }
+  function replaceCarbon(W, t) { W.carbonUsed = 0; W.lastCarbon = t; var out = []; if (W.carbonLowFlag) { W.carbonLowFlag = false; out.push({ type: 'carbonLow', on: false }); } return out; }
+  function setLevel(W, pct) { W.level = Math.max(0, Math.min(100, +pct || 0)); }
+
+  var AquaFilterStages = {
+    CFG: CFG, create: create, step: step, feed: feed, rinseSponge: rinseSponge,
+    setCarbon: setCarbon, replaceCarbon: replaceCarbon, setLevel: setLevel,
+    doSat: doSat, carbonLeftPct: carbonLeftPct, carbonLow: carbonLow, bioPct: bioPct, nitrogenMg: nitrogenMg
+  };
+  root.AquaFilterStages = AquaFilterStages;
+  if (typeof module !== 'undefined' && module.exports) module.exports = AquaFilterStages;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/*
  * AquaCare digital prototype - mechanical filter (PROPOSAL, needs project-team confirmation)
  * ------------------------------------------------------------------------------------------
  * SIMULATION ONLY. An optional pump + sponge loop that clears suspended matter (turbidity).
@@ -2136,7 +2366,14 @@ button, a, input, select, label { touch-action: manipulation; }
     warnFlow: 0.60,          // WARNING below this fraction of set flow ...
     warnClear: 0.65,         // ... and back to RUNNING only above this (hysteresis)
     faultFlow: 0.30,         // FAULT (protective stop) below this fraction of set flow
-    historyMax: 40
+    historyMax: 40,
+    minTurnover: 0.5,        // tank volumes/h below which the stages do not process water
+    carbonRes: 0.15,         // extra resistance while a carbon charge is fitted
+    dryLevelPct: 70,         // dry-run interlock trips below this water level
+    dryClearPct: 75,         // ... and releases at or above this level (hysteresis)
+    boostOnNtu: 30,          // optional automatic boost starts at this smoothed turbidity
+    boostOffNtu: 15,         // ... and ends below this one
+    boostFactor: 1.5         // boost multiplies the set flow, up to the pump maximum
   };
   var STATES = ['OFF', 'STARTING', 'RUNNING', 'WARNING', 'FAULT'];
   // Allowed transitions; anything else is refused (and would be a bug).
@@ -2162,7 +2399,9 @@ button, a, input, select, label { touch-action: manipulation; }
     var F = {
       enabled: !!cfg.enabled, pumpCmd: !!cfg.enabled, state: 'OFF', why: 'Filter not enabled',
       flowSet: clampFlow(cfg.flowLph, V), flow: 0, load: CFG.loadStart, R: resistance(CFG.loadStart),
-      t: t, since: t, lastClean: null, captured: 0, history: []
+      t: t, since: t, lastClean: null, captured: 0, history: [],
+      mode: cfg.mode === 'manual' ? 'manual' : 'auto', boost: !!cfg.boost, boostActive: false,
+      faultKind: null, interlock: null, sensorWarn: false, Rx: 0
     };
     if (F.enabled) go(F, 'STARTING', 'Filter enabled at run start', t);
     return F;
@@ -2180,8 +2419,35 @@ button, a, input, select, label { touch-action: manipulation; }
     return ev;
   }
   function flowing(F) { return F.state === 'STARTING' || F.state === 'RUNNING' || F.state === 'WARNING'; }
+  function updateR(F) { F.R = resistance(F.load) + (F.Rx || 0); }
+  function target(F, V) { return F.boostActive ? Math.min(maxFlow(V), Math.round(F.flowSet * CFG.boostFactor)) : F.flowSet; }
 
-  // Advance dtMin simulated minutes. env: { power: 'on'|'off'|'booting', V, t }. Returns events.
+  // Controller rules that apply in every mode. The dry-run interlock cannot be overridden by manual mode.
+  function control(F, env, push) {
+    if (env.turbStatus != null) {
+      var bad = env.turbStatus !== 'ok';
+      if (bad !== F.sensorWarn) { F.sensorWarn = bad; push({ type: 'sensor', on: bad }); }
+    }
+    var want = false;
+    if (F.mode === 'auto' && F.boost && !F.sensorWarn && env.turbNtu != null) want = env.turbNtu >= (F.boostActive ? CFG.boostOffNtu : CFG.boostOnNtu);
+    if (want !== F.boostActive) { F.boostActive = want; push({ type: 'boost', on: want }); }
+    if (env.levelPct == null) return;
+    if (!F.interlock && env.levelPct < CFG.dryLevelPct) {
+      F.interlock = 'dry';
+      push({ type: 'interlock', on: true });
+      if (flowing(F)) { F.faultKind = 'dry'; push(go(F, 'FAULT', 'Water level too low: dry-run protection stopped the pump', env.t)); }
+    } else if (F.interlock && env.levelPct >= CFG.dryClearPct) {
+      F.interlock = null;
+      push({ type: 'interlock', on: false });
+      if (F.state === 'FAULT' && F.faultKind === 'dry') {
+        F.faultKind = null;
+        if (F.mode === 'auto') push(go(F, 'STARTING', 'Water level restored: automatic restart', env.t));
+        else { F.pumpCmd = false; push(go(F, 'OFF', 'Water level restored: press Start to run the pump', env.t)); }
+      }
+    }
+  }
+
+  // Advance dtMin simulated minutes. env: { power: 'on'|'off'|'booting', V, t, levelPct?, turbNtu?, turbStatus?, extraR? }. Returns events.
   function step(F, dtMin, env) {
     var out = [];
     function push(x) { if (x) out.push(x); }
@@ -2191,34 +2457,38 @@ button, a, input, select, label { touch-action: manipulation; }
       F.flow = 0;
       return out;
     }
-    if (F.state === 'OFF' && F.pumpCmd) push(go(F, 'STARTING', 'Pump starting', env.t));
-    F.R = resistance(F.load);
-    var ratio = 1 / Math.sqrt(F.R);
+    F.Rx = env.extraR || 0;
+    control(F, env, push);
+    if (F.state === 'OFF' && F.pumpCmd && !F.interlock) push(go(F, 'STARTING', 'Pump starting', env.t));
+    updateR(F);
+    var ratio = 1 / Math.sqrt(F.R), set = target(F, env.V);
     if (F.state === 'STARTING') {
       var ramp = Math.min(1, (env.t - F.since) / (CFG.startMin * 60000));
-      F.flow = F.flowSet * ratio * ramp;
-      if (ramp >= 1) push(go(F, ratio < CFG.faultFlow ? 'FAULT' : (ratio < CFG.warnFlow ? 'WARNING' : 'RUNNING'), 'Water flowing through the sponge', env.t));
+      F.flow = set * ratio * ramp;
+      if (ramp >= 1) { if (ratio < CFG.faultFlow) F.faultKind = 'clog'; push(go(F, ratio < CFG.faultFlow ? 'FAULT' : (ratio < CFG.warnFlow ? 'WARNING' : 'RUNNING'), 'Water flowing through the sponge', env.t)); }
     } else if (F.state === 'RUNNING' || F.state === 'WARNING') {
-      F.flow = F.flowSet * ratio;
-      if (ratio < CFG.faultFlow) push(go(F, 'FAULT', 'Flow ' + Math.round(ratio * 100) + ' % of set: protective stop, clean the sponge', env.t));
+      F.flow = set * ratio;
+      if (ratio < CFG.faultFlow) { F.faultKind = 'clog'; push(go(F, 'FAULT', 'Flow ' + Math.round(ratio * 100) + ' % of set: protective stop, clean the sponge', env.t)); }
       else if (F.state === 'RUNNING' && ratio < CFG.warnFlow) push(go(F, 'WARNING', 'Flow ' + Math.round(ratio * 100) + ' % of set: clean the sponge', env.t));
       else if (F.state === 'WARNING' && ratio >= CFG.warnClear) push(go(F, 'RUNNING', 'Flow back to ' + Math.round(ratio * 100) + ' % of set', env.t));
     }
     if (F.state === 'FAULT') F.flow = 0;
     // background loading while water passes the sponge
-    if (F.flow > 0 && F.flowSet > 0) F.load = Math.min(1, F.load + CFG.loadPerDay * (dtMin / 1440) * (F.flow / F.flowSet));
-    F.R = resistance(F.load);
+    if (F.flow > 0 && F.flowSet > 0) F.load = Math.min(1, F.load + CFG.loadPerDay * (dtMin / 1440) * Math.min(1, F.flow / F.flowSet));
+    updateR(F);
     return out;
   }
+  // True only when enough water circulates for the stages to process it.
+  function processing(F, V) { return !!F && F.enabled && F.flow > 0 && V > 0 && F.flow / V >= CFG.minTurnover; }
   // Per-minute decay rate the filter adds to suspended matter.
-  function removalPerMin(F, V) { return F.enabled && F.flow > 0 && V > 0 ? (F.flow / V) * CFG.capture / 60 : 0; }
+  function removalPerMin(F, V) { return processing(F, V) ? (F.flow / V) * CFG.capture / 60 : 0; }
   function capture(F, ntuL) {
     if (!(ntuL > 0)) return;
     F.captured += ntuL;
     F.load = Math.min(1, F.load + ntuL * CFG.loadPerNtuL);
-    F.R = resistance(F.load);
+    updateR(F);
   }
-  function feed(F) { if (F.enabled && F.flow > 0) { F.load = Math.min(1, F.load + CFG.loadPerFeed); F.R = resistance(F.load); } }
+  function feed(F) { if (F.enabled && F.flow > 0) { F.load = Math.min(1, F.load + CFG.loadPerFeed); updateR(F); } }
   function note(F, t, text) {
     F.history.unshift({ t: t, text: text });
     if (F.history.length > CFG.historyMax) F.history.length = CFG.historyMax;
@@ -2231,13 +2501,37 @@ button, a, input, select, label { touch-action: manipulation; }
     if (on === F.enabled) return out;
     F.enabled = on; F.pumpCmd = on; F.t = t;
     if (on) { var e = go(F, F.state === 'FAULT' ? 'FAULT' : 'STARTING', 'Filter enabled', t); if (e) out.push(e); note(F, t, 'Filter enabled'); }
-    else { if (F.state !== 'OFF') { F.state = 'OFF'; F.why = 'Filter disabled'; F.since = t; out.push({ type: 'state', from: '', to: 'OFF', why: 'Filter disabled' }); } F.flow = 0; note(F, t, 'Filter disabled'); }
+    else {
+      if (F.state !== 'OFF') { F.state = 'OFF'; F.why = 'Filter disabled'; F.since = t; out.push({ type: 'state', from: '', to: 'OFF', why: 'Filter disabled' }); }
+      F.flow = 0; F.faultKind = null; F.interlock = null; F.boostActive = false; F.sensorWarn = false;
+      note(F, t, 'Filter disabled');
+    }
     return out;
   }
+  function setMode(F, mode, t) {
+    var out = [], m = mode === 'manual' ? 'manual' : 'auto';
+    if (m === F.mode) return out;
+    F.mode = m;
+    note(F, t, m === 'auto' ? 'Automatic mode' : 'Manual mode');
+    if (m === 'manual') F.boostActive = false;
+    else {
+      F.pumpCmd = true;
+      if (F.enabled && F.state === 'OFF' && !F.interlock) { var e = go(F, 'STARTING', 'Automatic mode started the pump', t); if (e) out.push(e); }
+    }
+    return out;
+  }
+  function setBoost(F, on, t) { F.boost = !!on; if (!on) F.boostActive = false; note(F, t, on ? 'Turbidity boost enabled' : 'Turbidity boost disabled'); return []; }
   function setPump(F, on, t) {
     var out = [], e;
     F.pumpCmd = !!on;
     if (!F.enabled) return out;
+    if (!on && F.mode === 'auto') { F.mode = 'manual'; F.boostActive = false; note(F, t, 'Manual override: pump stopped by the operator'); }
+    if (on && F.interlock) {
+      F.pumpCmd = F.mode === 'auto';
+      note(F, t, 'Start refused: dry-run protection is active');
+      out.push({ type: 'refused', why: 'Start refused: water level too low (dry-run protection)' });
+      return out;
+    }
     if (on && F.state === 'OFF') e = go(F, 'STARTING', 'Pump started', t);
     else if (!on && flowing(F)) e = go(F, 'OFF', 'Pump stopped', t);
     if (e) { out.push(e); note(F, t, on ? 'Pump started' : 'Pump stopped'); }
@@ -2252,19 +2546,26 @@ button, a, input, select, label { touch-action: manipulation; }
   }
   function clean(F, t, powerOn) {
     var out = [], was = F.state, before = F.load;
-    F.load = Math.min(F.load, CFG.loadAfterClean); F.R = resistance(F.load); F.lastClean = t;
+    F.load = Math.min(F.load, CFG.loadAfterClean); updateR(F); F.lastClean = t;
     note(F, t, 'Sponge rinsed (condition ' + Math.round((1 - before) * 100) + ' % → ' + Math.round((1 - F.load) * 100) + ' %)');
-    if (F.enabled) {
+    if (F.enabled && !(was === 'FAULT' && F.faultKind === 'dry')) {     // cleaning never clears a dry-run stop
       if (was === 'FAULT' || was === 'WARNING') {
         // Clear the fault, then restart if the pump is commanded on and there is power.
-        if (was === 'FAULT') { F.state = 'OFF'; F.since = t; out.push({ type: 'state', from: 'FAULT', to: 'OFF', why: 'Sponge cleaned, fault cleared' }); }
-        if (F.pumpCmd && powerOn) { var e = go(F, 'STARTING', 'Restart after cleaning', t); if (e) out.push(e); }
+        if (was === 'FAULT') { F.state = 'OFF'; F.faultKind = null; F.since = t; out.push({ type: 'state', from: 'FAULT', to: 'OFF', why: 'Sponge cleaned, fault cleared' }); }
+        if (F.pumpCmd && powerOn && !F.interlock) { var e = go(F, 'STARTING', 'Restart after cleaning', t); if (e) out.push(e); }
       }
     }
     out.push({ type: 'cleaned' });
     return out;
   }
   function condition(F) { return Math.round((1 - F.load) * 100); }
+  function pumpLabel(F) { return F.state === 'FAULT' ? 'FAULT' : (flowing(F) ? 'ON' : 'OFF'); }
+  function status(F, carbonLow) {
+    if (!F.enabled) return 'Off';
+    if ((F.state === 'FAULT' && F.faultKind !== 'dry') || F.state === 'WARNING' || carbonLow) return 'Maintenance';
+    if (F.interlock || F.sensorWarn || F.state === 'FAULT') return 'Warning';
+    return F.state === 'OFF' ? 'Off' : 'Normal';
+  }
   function nextInspection(F, V) {
     // Simulated days until flow would fall below the warning level at the current rates (background only).
     if (!F.enabled || !(F.flowSet > 0)) return null;
@@ -2277,8 +2578,9 @@ button, a, input, select, label { touch-action: manipulation; }
     CFG: CFG, STATES: STATES, NEXT: NEXT,
     volumeL: volumeL, defaultFlow: defaultFlow, maxFlow: maxFlow, resistance: resistance,
     create: create, step: step, removalPerMin: removalPerMin, capture: capture, feed: feed,
-    setEnabled: setEnabled, setPump: setPump, setFlow: setFlow, clean: clean,
-    condition: condition, nextInspection: nextInspection, flowing: flowing, note: note
+    setEnabled: setEnabled, setPump: setPump, setFlow: setFlow, clean: clean, setMode: setMode, setBoost: setBoost,
+    condition: condition, nextInspection: nextInspection, flowing: flowing, note: note,
+    processing: processing, target: target, pumpLabel: pumpLabel, status: status
   };
   root.AquaFilter = AquaFilter;
   if (typeof module !== 'undefined' && module.exports) module.exports = AquaFilter;
@@ -2306,6 +2608,7 @@ button, a, input, select, label { touch-action: manipulation; }
   var SAMPLE_EVERY = MIN;           // demo sampling interval
   var DISPENSE_REAL_MS = 3400;
   // Optional mechanical filter (proposal). Loaded before this file in the browser; required in Node.
+  var Stages = root.AquaFilterStages || (typeof require === 'function' ? (function () { try { return require('./filterstages.js'); } catch (e) { return null; } })() : null);
   var Filt = root.AquaFilter || (typeof require === 'function' ? (function () { try { return require('./filter.js'); } catch (e) { return null; } })() : null);      // animation length at slow speeds (not a hardware timing)
   var DISPENSE_SIM_MS = 60 * SEC;   // upper bound in simulated time, so fast runs stay exact
   var BOOT_REAL_MS = 1500, BOOT_SIM_MS = 30 * SEC;
@@ -2416,7 +2719,7 @@ button, a, input, select, label { touch-action: manipulation; }
       dailyPattern: true,                              // synthetic day/night shape in demo readings
       owner: { mode: 'presenter', respondPct: 60 },    // who presses the tank button
       policy: { interruptedReminder: 'missed', countAfterRestart: 'retain' },
-      filter: { enabled: false, flowLph: null },       // mechanical filter proposal; off by default
+      filter: { enabled: false, flowLph: null, mode: 'auto', boost: false, carbon: false },   // filter proposal; off by default
       scenarios: []
     };
   }
@@ -2522,6 +2825,7 @@ button, a, input, select, label { touch-action: manipulation; }
     var lived = this.s.simTime - UPKEEP.startAgeDays * DAY;      // the tank starts lived-in, not spotless
     this.s.maint = { glass: lived, gravel: lived, probes: lived };
     this.s.filter = Filt ? Filt.create(this.settings.filter, Filt.volumeL(this.settings.tankGal), this.s.simTime) : null;
+    this.s.water = Stages ? Stages.create(this.settings.filter, this.s.simTime) : null;
     this.s.nextSampleAt = Math.floor(this.s.simTime / MIN) * MIN;
     var scn = this.s.scn;
     (this.settings.scenarios || []).forEach(function (sc) { scn[sc.id] = 'pending'; });
@@ -2638,13 +2942,37 @@ button, a, input, select, label { touch-action: manipulation; }
   // ---------- mechanical filter (proposal) ----------
   P.filterVolume = function () { return Filt ? Filt.volumeL(this.settings.tankGal) : 0; };
   P.filterStep = function () {
-    var s = this.s, F = s.filter, t = s.simTime;
+    this.pumpStep();
+    this.waterStep();
+  };
+  // Tank chemistry runs with the filter on or off. It uses no random numbers and never changes the four sensors.
+  P.waterStep = function () {
+    var s = this.s, W = s.water, F = s.filter, t = s.simTime, self = this;
+    if (!W) return;
+    var dtMin = (t - W.t) / MIN;
+    if (!(dtMin > 0)) return;
+    var V = this.filterVolume(), tw = s.sensors.temp.water;
+    var flow = Filt && Filt.processing(F, V) ? F.flow : 0;
+    Stages.step(W, dtMin, { flow: flow, V: V, tempC: tw == null ? SENSORS.temp.base : tw, t: t }).forEach(function (e) { self.waterEvent(e); });
+  };
+  P.waterEvent = function (e) {
+    if (e.type !== 'carbonLow') return;
+    if (e.on) { Filt.note(this.s.filter, this.s.simTime, 'Carbon nearly exhausted: replace the media'); this.raise('filter-carbon', 'equipment', 'Filter (proposal): carbon nearly exhausted, replace the media'); }
+    else this.clear('filter-carbon');
+  };
+  P.saveFilterCfg = function () {
+    var F = this.s.filter, W = this.s.water;
+    this.settings.filter = { enabled: F.enabled, flowLph: F.flowSet, mode: F.mode, boost: F.boost, carbon: !!(W && W.carbonOn) };
+  };
+  P.pumpStep = function () {
+    var s = this.s, F = s.filter, t = s.simTime, W = s.water;
     if (!F || !F.enabled) return;
     var dtMin = (t - F.t) / MIN;
     F.t = t;
     if (!(dtMin > 0)) return;
     var V = this.filterVolume();
-    var ev = Filt.step(F, dtMin, { power: s.power, V: V, t: t });
+    var ev = Filt.step(F, dtMin, { power: s.power, V: V, t: t, levelPct: W ? W.level : null, turbNtu: s.sensors.turb.value,
+      turbStatus: s.sensors.turb.status, extraR: W && W.carbonOn ? Filt.CFG.carbonRes : 0 });
     var k = Filt.removalPerMin(F, V);
     if (k > 0) {
       var before = this.pertEffect('turb', t), keep = Math.exp(-k * dtMin);
@@ -2659,6 +2987,7 @@ button, a, input, select, label { touch-action: manipulation; }
       if (e.type === 'state') {
         self.addLog('logic', 'Filter (proposal): ' + (e.from ? e.from + ' \u2192 ' : '') + e.to + '. ' + e.why);
         if (e.to === 'WARNING') { Filt.note(F, s.simTime, 'Warning: ' + e.why); self.raise('filter', 'equipment', 'Filter (proposal): ' + e.why); }
+        else if (e.to === 'FAULT' && F.faultKind === 'dry') Filt.note(F, s.simTime, 'Fault: ' + e.why);
         else if (e.to === 'FAULT') {
           Filt.note(F, s.simTime, 'Fault: ' + e.why);
           var a = self.findAlert('filter');
@@ -2666,31 +2995,76 @@ button, a, input, select, label { touch-action: manipulation; }
         } else if (e.to === 'RUNNING' || (e.to === 'OFF' && !F.enabled)) self.clear('filter');
       }
       if (e.type === 'cleaned') self.clear('filter', 'Alert cleared: filter sponge cleaned');
+      if (e.type === 'interlock') {
+        if (e.on) self.raise('filter-dry', 'equipment', 'Filter (proposal): water level too low, dry-run protection active');
+        else { Filt.note(F, s.simTime, 'Water level restored'); self.clear('filter-dry'); }
+      }
+      if (e.type === 'sensor') {
+        if (e.on) { Filt.note(F, s.simTime, 'Turbidity sensor error: automatic boost disabled'); self.raise('filter-sensor', 'equipment', 'Filter (proposal): turbidity sensor error, automatic boost disabled'); }
+        else self.clear('filter-sensor');
+      }
+      if (e.type === 'boost') { Filt.note(F, s.simTime, e.on ? 'Turbidity boost on' : 'Turbidity boost off'); self.addLog('logic', 'Filter (proposal): turbidity boost ' + (e.on ? 'on' : 'off')); }
+      if (e.type === 'refused') self.addLog('logic', 'Filter (proposal): ' + e.why);
     });
   };
   P.setFilter = function (on) {
     var s = this.s, F = s.filter; if (!F) return;
-    this.settings.filter = { enabled: !!on, flowLph: F.flowSet };
     F.t = s.simTime;
     this.filterEvents(Filt.setEnabled(F, on, s.simTime));
-    this.addLog('demo', 'Filter (proposal) ' + (on ? 'enabled, ' + F.flowSet + ' L/h set flow' : 'disabled') + '. Mechanical stage only; affects turbidity, never pH or TDS.', { injected: true });
+    this.saveFilterCfg();
+    if (!on) { this.clear('filter-dry'); this.clear('filter-sensor'); }
+    this.addLog('demo', 'Filter (proposal) ' + (on ? 'enabled, ' + F.flowSet + ' L/h set flow' : 'disabled') + '. Never regulates pH or TDS.', { injected: true });
     this.emit('change');
   };
   P.filterPump = function (on) {
     var s = this.s, F = s.filter; if (!F || !F.enabled) return;
     this.filterEvents(Filt.setPump(F, on, s.simTime));
+    this.saveFilterCfg();
     this.emit('change');
   };
   P.setFilterFlow = function (q) {
     var s = this.s, F = s.filter; if (!F) return;
     Filt.setFlow(F, +q, this.filterVolume(), s.simTime);
-    this.settings.filter = { enabled: F.enabled, flowLph: F.flowSet };
+    this.saveFilterCfg();
     this.emit('change');
   };
   P.cleanFilter = function () {
     var s = this.s, F = s.filter; if (!F) return;
     this.filterEvents(Filt.clean(F, s.simTime, s.power === 'on'));
-    this.addLog('demo', 'Filter (proposal): sponge rinsed. Flow recovers; the water is not cleaned by this action.', { injected: true });
+    if (s.water) Stages.rinseSponge(s.water, this.filterVolume());
+    this.addLog('demo', 'Filter (proposal): sponge rinsed. Flow recovers; the water and the biological media are not changed by this action.', { injected: true });
+    this.emit('change');
+  };
+  P.setFilterMode = function (mode) {
+    var s = this.s, F = s.filter; if (!F) return;
+    this.filterEvents(Filt.setMode(F, mode, s.simTime));
+    this.saveFilterCfg();
+    this.addLog('demo', 'Filter (proposal): ' + (F.mode === 'auto' ? 'automatic' : 'manual') + ' mode. Safety interlocks stay active.', { injected: true });
+    this.emit('change');
+  };
+  P.setFilterBoost = function (on) {
+    var s = this.s, F = s.filter; if (!F) return;
+    Filt.setBoost(F, on, s.simTime);
+    this.saveFilterCfg();
+    this.emit('change');
+  };
+  P.setCarbon = function (on) {
+    var s = this.s, W = s.water, self = this; if (!W) return;
+    Stages.setCarbon(W, on).forEach(function (e) { self.waterEvent(e); });
+    Filt.note(s.filter, s.simTime, on ? 'Chemical stage enabled' : 'Chemical stage disabled');
+    this.saveFilterCfg();
+    this.emit('change');
+  };
+  P.replaceCarbon = function () {
+    var s = this.s, W = s.water, self = this; if (!W) return;
+    Stages.replaceCarbon(W, s.simTime).forEach(function (e) { self.waterEvent(e); });
+    Filt.note(s.filter, s.simTime, 'Carbon media replaced');
+    this.addLog('demo', 'Filter (proposal): carbon replaced. Adsorption capacity restored; the water is not changed by this action.', { injected: true });
+    this.emit('change');
+  };
+  P.setWaterLevel = function (pct) {
+    var s = this.s, W = s.water; if (!W) return;
+    Stages.setLevel(W, pct);
     this.emit('change');
   };
 
@@ -2714,6 +3088,7 @@ button, a, input, select, label { touch-action: manipulation; }
     r.outcome = outcome;
     r.countAfter = this.s.feeds.counted;
     if (this.s.filter && (outcome === 'manual' || outcome === 'auto_ok')) Filt.feed(this.s.filter);
+    if (this.s.water && (outcome === 'manual' || outcome === 'auto_ok')) Stages.feed(this.s.water);
     if (this.s.curRec === r) this.s.curRec = null;
     this.emit('record', r);
   };
@@ -3430,8 +3805,9 @@ button, a, input, select, label { touch-action: manipulation; }
     'setSensorStatus', 'setWifi', 'setAway', 'cutPower', 'restorePower', 'finishBoot', 'pressTankButton', 'injectTrigger',
     'jumpToNextFeed', 'expireNow', 'fastForwardToDay', 'fastForwardNextDay', 'runToEnd', 'ackFeederFault', 'ackAlert',
     'addLog', 'raise', 'clear', 'startScenario', 'endScenario', 'syncScenarios', 'setLcdBug', 'setFeedMode', 'setBubbles',
-    'startPerturbation', 'settle', 'advanceTo', 'cleanTank', 'setFilter', 'filterPump', 'setFilterFlow', 'cleanFilter'];
-  var COALESCE = { setTarget: 1, setSpeed: 1, setFilterFlow: 1 };
+    'startPerturbation', 'settle', 'advanceTo', 'cleanTank', 'setFilter', 'filterPump', 'setFilterFlow', 'cleanFilter',
+    'setFilterMode', 'setFilterBoost', 'setCarbon', 'replaceCarbon', 'setWaterLevel'];
+  var COALESCE = { setTarget: 1, setSpeed: 1, setFilterFlow: 1, setWaterLevel: 1 };
   Engine.JOURNAL_VERSION = 1;
 
   P._jbase = function (kind) {
@@ -5558,7 +5934,17 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var poreTex = new T.CanvasTexture(pore); poreTex.wrapS = poreTex.wrapT = T.RepeatWrapping; poreTex.repeat.set(2, 3);
     this.filtSpongeMat = standard(0xe7d48c, { roughness: 1, map: poreTex });
     var spH = bh * 0.42;
-    box(g, [bw - 0.3, spH, bd - 0.32], this.filtSpongeMat, bx - 0.04, trayY + 0.03 + spH / 2, bz - 0.02);
+    // three compartments in flow order: sponge, biological media, optional carbon
+    var cw = (bw - 0.3) / 3, cx0 = bx - (bw - 0.3) / 2 + cw / 2, cy = trayY + 0.03 + spH / 2;
+    box(g, [cw - 0.05, spH, bd - 0.32], this.filtSpongeMat, cx0, cy, bz - 0.02);
+    [cx0 + cw / 2, cx0 + cw * 1.5].forEach(function (x) { box(g, [0.03, spH + 0.04, bd - 0.2], trim, x, cy, bz); });
+    this.filtBioMat = standard(0x9fb0b6, { roughness: 0.9 });
+    var bioGeo = new T.SphereGeometry(Math.min(cw * 0.15, 0.1), 8, 6);
+    for (var bioY = 0; bioY < 5; bioY++) for (var bioX = 0; bioX < 3; bioX++) for (var bioZ = 0; bioZ < 3; bioZ++) {
+      mesh(g, bioGeo, this.filtBioMat, cx0 + cw + (bioX - 1) * cw * 0.28, trayY + 0.12 + bioY * (spH - 0.2) / 4, bz + (bioZ - 1) * (bd - 0.5) * 0.32);
+    }
+    this.filtCarbonMat = standard(0x2c3033, { roughness: 1 });
+    this.filtCarbon = box(g, [cw - 0.05, spH, bd - 0.62], this.filtCarbonMat, cx0 + cw * 2, cy, bz + 0.12);
     // pump chamber: volute, motor can and an impeller (hub + rim + six curved blades)
     var pumpY = by + bh * 0.19;
     mesh(g, new T.CylinderGeometry(bd * 0.24, bd * 0.24, 0.5, 24), dark, bx - 0.1, pumpY, bz - 0.18).rotation.x = Math.PI / 2;
@@ -5599,13 +5985,20 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       [xR + 0.12, over + 0.08, zT + 0.14], [xR, H + 0.3, zT + 0.14], [xR, SURFACE - 0.12, zT + 0.14], [xR, SURFACE - 0.14, zT + 0.42]].map(V3));
     var tubeMat = new T.MeshStandardMaterial({ color: 0x9ccfe0, transparent: true, opacity: 0.4, roughness: 0.2, depthWrite: false });
     [intake, ret].forEach(function (c) { var m = mesh(g, new T.TubeGeometry(c, 70, 0.065, 10, false), tubeMat); m.renderOrder = 6; });
+    // flow direction arrows on both tubes
+    var arrowGeo = new T.ConeGeometry(0.11, 0.24, 12), arrowMat = new T.MeshBasicMaterial({ color: 0x4fc3f7 }), upAxis = new T.Vector3(0, 1, 0);
+    [[intake, 0.3], [intake, 0.72], [ret, 0.3], [ret, 0.72]].forEach(function (c) {
+      var p = c[0].getPointAt(c[1]), arrow = mesh(g, arrowGeo, arrowMat, p.x, p.y, p.z);
+      arrow.quaternion.setFromUnitVectors(upAxis, c[0].getTangentAt(c[1]).normalize());
+    });
     // intake strainer in the tank, and the return spout
     mesh(g, new T.CylinderGeometry(0.12, 0.12, 0.55, 14, 1, true), standard(0x30424c, { wireframe: true }), xI, 0.5, zT);
     mesh(g, new T.CylinderGeometry(0.1, 0.1, 0.06, 14), trim, xI, 0.22, zT);
     mesh(g, new T.CylinderGeometry(0.075, 0.09, 0.12, 12), trim, xR, SURFACE - 0.14, zT + 0.42).rotation.x = Math.PI / 2;
-    // the path water takes inside the unit: down through the sponge to the pump
-    var inner = new T.CatmullRomCurve3([[inX, top, inZ], [inX, wl, inZ], [bx - 0.05, trayY + spH * 0.7, bz], [bx - 0.05, trayY + 0.05, bz + 0.05],
-      [bx - 0.1, pumpY + 0.25, bz + 0.1], [bx - 0.1, pumpY, bz + 0.12]].map(V3));
+    // the path water takes inside the unit: through the three compartments in order, then to the pump
+    var fz = bz + bd / 2 - 0.12;
+    var inner = new T.CatmullRomCurve3([[inX, top, inZ], [inX, wl, inZ], [cx0, trayY + spH * 0.75, fz], [cx0 + cw, trayY + spH * 0.4, fz], [cx0 + cw * 2, trayY + spH * 0.7, fz],
+      [cx0 + cw * 2, trayY + 0.05, fz], [bx - 0.1, pumpY + 0.25, bz + 0.1], [bx - 0.1, pumpY, bz + 0.12]].map(V3));
     // flow particles: tank -> intake -> sponge -> pump -> riser -> return -> tank
     var pg = new T.SphereGeometry(0.034, 6, 5), pm = new T.MeshBasicMaterial({ color: 0x6fe0ff });
     var dirtM = new T.MeshBasicMaterial({ color: 0xb08a52 });
@@ -5617,7 +6010,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       extra: 2 * (bx + bw / 2 + 0.15 - W / 2), center: new T.Vector3(bx, by + bh / 2, bz),
       group: g, parts: parts, jet: jet, spout: new T.Vector3(xR, SURFACE - 0.14, zT + 0.5), dir: new T.Vector3(-0.15, -0.12, 1).normalize(), spin: 0,
       disp: { canvas: dc, tex: dTex, sig: '' },
-      labels: [['Filter unit (proposal)', new T.Vector3(bx, by + bh + 0.55, bz)], ['Sponge', new T.Vector3(bx - bw / 2 + 0.1, trayY + spH * 0.6, bz + bd / 2)],
+      labels: [['Filter unit (proposal)', new T.Vector3(bx, by + bh + 0.55, bz)], ['1 Mechanical: sponge', new T.Vector3(cx0, trayY + spH * 0.85, bz + bd / 2)],
+        ['2 Biological media', new T.Vector3(cx0 + cw, trayY + spH * 0.5, bz + bd / 2)], ['3 Chemical: carbon', new T.Vector3(cx0 + cw * 2, trayY + spH * 0.15, bz + bd / 2)],
         ['Pump', new T.Vector3(bx - bw / 2 + 0.1, pumpY, bz + bd / 2)], ['Intake strainer (in tank)', new T.Vector3(xI, 0.8, zT)], ['Return', new T.Vector3(xR, SURFACE + 0.05, zT + 0.45)]]
     };
     g.visible = !!(this.filtView && this.filtView.enabled);
@@ -5913,6 +6307,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       }
       if (fon) {
         this.filtSpongeMat.color.set(0xe7d48c).lerp(new T.Color(0x4f3b24), Math.min(1, fv.load * 1.1));
+        this.filtBioMat.color.set(0x9fb0b6).lerp(new T.Color(0xa9793f), Math.min(1, (fv.bio || 0) / 100));
+        this.filtCarbon.visible = !!fv.carbonOn;
+        this.filtCarbonMat.color.set(0x8d9499).lerp(new T.Color(0x24282b), Math.min(1, (fv.carbonLeft == null ? 100 : fv.carbonLeft) / 100));
         this.filtLed.material.color.setHex(fv.state === 'RUNNING' ? 0x9cec7c : fv.state === 'FAULT' ? 0xff6852 : (fv.state === 'WARNING' || fv.state === 'STARTING') ? 0xffc262 : 0x354438);
         this.drawFilterDisplay();
         this.placeFilterParts(0);
@@ -6747,10 +7144,12 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       bubbles: bub || s.bubblesScn > 0,
       probes: { ph: sv.ph.status, temp: sv.temp.status, tds: sv.tds.status, turb: sv.turb.status },
       upkeep: upk,
-      filter: s.filter ? { enabled: s.filter.enabled, state: s.filter.state, flow: s.filter.flow, flowSet: s.filter.flowSet, flowMax: AquaFilter.maxFlow(engine.filterVolume()), load: s.filter.load } : null
+      filter: s.filter ? { enabled: s.filter.enabled, state: s.filter.state, flow: s.filter.flow, flowSet: s.filter.flowSet, flowMax: AquaFilter.maxFlow(engine.filterVolume()), load: s.filter.load,
+        bio: s.water ? AquaFilterStages.bioPct(s.water) : 0, carbonOn: !!(s.water && s.water.carbonOn), carbonLeft: s.water ? AquaFilterStages.carbonLeftPct(s.water) : 100 } : null
     });
     renderUpkeep(upk);
     renderFilter();
+    renderFilterSystem();
 
     // architecture
     var off = s.power !== 'on';
@@ -6903,6 +7302,66 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     $('filtStats').innerHTML = rows.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
     $('filtHist').innerHTML = f.history.length ? f.history.map(function (h) { return '<li><time>Day ' + (Math.floor(h.t / 86400000) + 1) + ' ' + F.hhmm(h.t) + '</time> ' + esc(h.text) + '</li>'; }).join('') : '<li>No entries yet</li>';
   }
+  // ---------- Filter System panel (proposal) ----------
+  function fsSpark(hist, key, label, unit, dp) {
+    var vals = hist.map(function (h) { return h[key]; }), max = Math.max.apply(null, vals.concat([1e-6]));
+    var pts = vals.map(function (v, i) { return (vals.length > 1 ? i / (vals.length - 1) * 300 : 0).toFixed(1) + ',' + (58 - v / max * 54).toFixed(1); }).join(' ');
+    return '<figure><figcaption>' + label + ': now ' + vals[vals.length - 1].toFixed(dp) + ' ' + unit + ', peak ' + max.toFixed(dp) + ' ' + unit + '</figcaption><svg viewBox="0 0 300 60" preserveAspectRatio="none" role="img" aria-label="' + label + ' over the run, simulation data"><polyline points="' + pts + '"></polyline></svg></figure>';
+  }
+  function renderFilterSystem() {
+    var s = engine.s, f = s.filter, w = s.water, St = window.AquaFilterStages;
+    if (!f || !w || !St || $('pane-filter').hidden) return;
+    var V = engine.filterVolume(), mx = AquaFilter.maxFlow(V), set = AquaFilter.target(f, V), proc = AquaFilter.processing(f, V);
+    var sv = s.sensors, nxt = AquaFilter.nextInspection(f, V), low = St.carbonLow(w);
+    var num = function (x, dp, unit) { return x == null ? 'No data' : x.toFixed(dp) + ' ' + unit; };
+    var water = [['Turbidity', num(sv.turb.value, 0, 'NTU')], ['pH', num(sv.ph.value, 2, '')], ['TDS', num(sv.tds.value, 0, 'ppm')], ['Temperature', num(sv.temp.value, 1, '°C')],
+      ['Dissolved oxygen', w.doMg.toFixed(1) + ' mg/L'], ['Ammonia', w.tan.toFixed(2) + ' mg/L'], ['Nitrite', w.no2.toFixed(2) + ' mg/L'], ['Nitrate', w.no3.toFixed(1) + ' mg/L'], ['Water level', Math.round(w.level) + ' %']];
+    var status = AquaFilter.status(f, low), tone = status === 'Normal' ? 'ok' : status === 'Off' ? 'off' : status === 'Maintenance' ? 'attn' : 'fault';
+    var pump = AquaFilter.pumpLabel(f), pumpTone = pump === 'ON' ? 'ok' : pump === 'FAULT' ? 'fault' : 'off';
+    var service = (f.lastClean == null ? 'Sponge not cleaned this run' : 'Sponge rinsed day ' + (Math.floor(f.lastClean / 86400000) + 1) + ' ' + F.hhmm(f.lastClean)) + (w.lastCarbon == null ? '' : '; carbon replaced day ' + (Math.floor(w.lastCarbon / 86400000) + 1));
+    var rows = [
+      ['Pump status', '<span class="st" data-tone="' + pumpTone + '">' + pump + '</span><small>' + esc(f.why) + '</small>'],
+      ['Control mode', '<b>' + (f.mode === 'auto' ? 'Automatic' : 'Manual') + '</b>' + (f.boostActive ? '<small>Turbidity boost active</small>' : '')],
+      ['Water flow', '<b>' + Math.round(f.flow) + ' L/h</b><small>' + (set > 0 ? Math.round(f.flow / set * 100) : 0) + ' % of ' + set + ' L/h set</small>'],
+      ['Mechanical', '<span class="upk__bar"><i style="width:' + AquaFilter.condition(f) + '%"></i></span><b>' + AquaFilter.condition(f) + ' %</b><small>condition</small>'],
+      ['Biological', '<span class="upk__bar"><i style="width:' + St.bioPct(w) + '%"></i></span><b>' + St.bioPct(w) + ' %</b><small>maturity' + (proc ? '' : ', not processing') + '</small>'],
+      ['Chemical', w.carbonOn ? '<span class="upk__bar"><i style="width:' + St.carbonLeftPct(w).toFixed(0) + '%"></i></span><b>' + St.carbonLeftPct(w).toFixed(0) + ' %</b><small>capacity remaining</small>' : '<b>Disabled</b>'],
+      ['Resistance', '<b>' + f.R.toFixed(1) + '×</b><small>simulated pressure loss vs a clean sponge</small>'],
+      ['Filtration', '<span class="st" data-tone="' + tone + '">' + status + '</span>' + (f.interlock ? '<small>Dry-run protection active</small>' : f.sensorWarn ? '<small>Turbidity sensor error</small>' : low ? '<small>Replace the carbon</small>' : '')],
+      ['Maintenance', '<b>' + esc(service) + '</b><small>' + (nxt == null ? 'Filter off' : nxt <= 0 ? 'Inspect now' : 'Next inspection in about ' + Math.max(1, Math.round(nxt)) + ' simulated days') + '</small>']
+    ];
+    var sig = [JSON.stringify(rows), JSON.stringify(water), f.history.length, f.enabled, f.pumpCmd, f.flowSet, mx, f.boost, w.carbonOn, w.level, $('fsPerf').open ? w.hist.length : 0].join('|');
+    if (sig === ui.sigFS) return;
+    ui.sigFS = sig;
+    $('fsStats').innerHTML = rows.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
+    $('fsWater').innerHTML = water.map(function (r) { return '<div><span>' + r[0] + '</span><b>' + r[1] + '</b></div>'; }).join('');
+    var running = f.flow > 0, loop = $('fsLoop');
+    loop.setAttribute('data-run', String(running));
+    loop.style.setProperty('--fs-dur', (running ? Math.max(0.3, Math.min(4, 1.2 * mx / 2 / f.flow)) : 1.5).toFixed(2) + 's');
+    $('fsStage3').classList.toggle('is-off', !w.carbonOn);
+    $('fsLoopNote').textContent = !f.enabled ? 'Filter off: no water circulates.' : running ? (proc ? 'Water is circulating through the stages.' : 'Flow is too low for the stages to process water.') : 'Pump stopped: no water circulates and no filtering happens.';
+    $('fsPump').textContent = !f.enabled ? 'Enable filter and start' : (f.pumpCmd && f.state !== 'OFF' ? 'Stop pump' : 'Start pump');
+    $('fsMode').textContent = f.mode === 'auto' ? 'Switch to manual' : 'Switch to automatic';
+    var sl = $('fsFlow'); sl.max = String(mx); if (document.activeElement !== sl) sl.value = String(f.flowSet);
+    $('fsFlowOut').textContent = f.flowSet + ' L/h';
+    $('fsBoost').checked = f.boost; $('fsCarbon').checked = w.carbonOn;
+    var lv = $('fsLevel'); if (document.activeElement !== lv) lv.value = String(w.level);
+    $('fsLevelOut').textContent = Math.round(w.level) + ' %';
+    $('fsHist').innerHTML = f.history.length ? f.history.map(function (h) { return '<li><time>Day ' + (Math.floor(h.t / 86400000) + 1) + ' ' + F.hhmm(h.t) + '</time> ' + esc(h.text) + '</li>'; }).join('') : '<li>No entries yet</li>';
+    if ($('fsPerf').open) $('fsCharts').innerHTML = w.hist.length < 2 ? '<p class="fine">Performance builds up as the run advances.</p>' :
+      fsSpark(w.hist, 'tan', 'Ammonia', 'mg/L', 2) + fsSpark(w.hist, 'no2', 'Nitrite', 'mg/L', 2) + fsSpark(w.hist, 'no3', 'Nitrate', 'mg/L', 1) + fsSpark(w.hist, 'doMg', 'Dissolved oxygen', 'mg/L', 1) + fsSpark(w.hist, 'flow', 'Flow', 'L/h', 0) + fsSpark(w.hist, 'bio', 'Biological maturity', '%', 0);
+  }
+  function fsAct(fn) { return function () { fn.call(this); ui.sigFilt = ''; ui.sigFS = ''; save(); render(); }; }
+  $('fsPump').addEventListener('click', fsAct(function () { var f = engine.s.filter; if (!f.enabled) engine.setFilter(true); else engine.filterPump(!(f.pumpCmd && f.state !== 'OFF')); }));
+  $('fsMode').addEventListener('click', fsAct(function () { engine.setFilterMode(engine.s.filter.mode === 'auto' ? 'manual' : 'auto'); }));
+  $('fsFlow').addEventListener('input', fsAct(function () { engine.setFilterFlow(+this.value); }));
+  $('fsBoost').addEventListener('change', fsAct(function () { engine.setFilterBoost(this.checked); }));
+  $('fsCarbon').addEventListener('change', fsAct(function () { engine.setCarbon(this.checked); }));
+  $('fsClean').addEventListener('click', fsAct(function () { engine.cleanFilter(); }));
+  $('fsCarbonNew').addEventListener('click', fsAct(function () { engine.replaceCarbon(); }));
+  $('fsLevel').addEventListener('input', fsAct(function () { engine.setWaterLevel(+this.value); }));
+  $('fsPerf').addEventListener('toggle', function () { ui.sigFS = ''; renderFilterSystem(); });
+
   $('filtQuick').addEventListener('click', function () {
     var f = engine.s.filter; if (!f) return;
     var on = !f.enabled;
@@ -8148,8 +8607,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       target: '#bay', act: function (live) { if (live) show3d('top'); }
     },
     {
-      title: 'Proposal: mechanical filter',
-      body: '<p>A pump and sponge loop beside the tank, <b>off by default</b>. It changes <b>turbidity only</b>, never pH, temperature, TDS or feeding. The sponge clogs over time: below 60% of set flow it warns, and below 30% it makes a protective stop until the sponge is cleaned.</p><p>All constants are illustrative, to confirm by measurement. Needs project-team confirmation. Press <b>Filter: off</b> under the tank to try it.</p><p>Exit to keep exploring this run, or use Reset run to start fresh.</p>',
+      title: 'Proposal: multi-stage filter',
+      body: '<p>A pump loop beside the tank, <b>off by default</b>, with a sponge, biological media and optional carbon. Bacteria mature over weeks, so ammonia and nitrite fall gradually. It never regulates pH or TDS. Low flow and low water both protect the pump.</p><p>All constants are illustrative, to confirm by measurement. Needs project-team confirmation. Open <b>Water &rarr; Filter System</b> to try it.</p><p>Exit to keep exploring this run, or use Reset run to start fresh.</p>',
       target: '#bay', act: function (live) { if (live) show3d('reset'); }
     }
   ];

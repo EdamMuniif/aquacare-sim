@@ -105,7 +105,7 @@
       <li><b>Universal controller.</b> A fixed 24 &times; 7 &times; 4.5 cm housing rests on the front rim. Rails slide out of both ends to corner clamps, spanning 31.4&ndash;49.9 cm wide and 15.7&ndash;24.9 cm deep across the six tank settings.</li>
       <li><b>Mini 4-axis feeder arm.</b> Turntable, shoulder, elbow and wrist, with a reach of about 8.7 cm from the housing centre. An IR gate on the scoop lip confirms the drop, and no passage is a fault. The tank button still decides whether to feed, with the same cap of 3 a day. The camera only picks where to pour.</li>
       <li><b>Top camera and blind spots.</b> One fixed 120&deg; lens sees about 81&deg; under water. It covers about 100&nbsp;% of the floor but only about 3&ndash;8&nbsp;% of the water just under the surface, so the upper ends and sides are blind. The behaviour analysis is a rule-based stand-in, not a trained model.</li>
-      <li><b>Mechanical filter.</b> Off by default. A pump and sponge loop that changes turbidity only. It warns below 60&nbsp;% of set flow and makes a protective stop below 30&nbsp;% until the sponge is cleaned. All constants are illustrative, to confirm by measurement.</li>
+      <li><b>Multi-stage filter.</b> Off by default. A pump loop with a sponge, biological media and optional activated carbon. It warns below 60&nbsp;% of set flow, makes a protective stop below 30&nbsp;% until the sponge is cleaned, and stops on low water. It never regulates pH or TDS. All constants are illustrative, to confirm by measurement.</li>
     </ul>
   </section>
   <section class="sensorrow" id="sensorRow" data-views="tank water" aria-label="Water quality readings"></section>
@@ -370,6 +370,7 @@
     <button role="tab" data-view="feeding" id="tab-scen" aria-controls="pane-scen" aria-selected="false" tabindex="-1">Scenarios</button>
     <button role="tab" data-view="project" id="tab-alerts" aria-controls="pane-alerts" aria-selected="false" tabindex="-1">Alerts &amp; settings <span class="badge" id="alertBadge" hidden>0</span></button>
     <button role="tab" data-view="water" id="tab-cal" aria-controls="pane-cal" aria-selected="false" tabindex="-1">pH calibration</button>
+    <button role="tab" data-view="water" id="tab-filter" aria-controls="pane-filter" aria-selected="false" tabindex="-1">Filter System</button>
     <button role="tab" data-view="project" id="tab-arch" aria-controls="pane-arch" aria-selected="false" tabindex="-1">Architecture</button>
     <button role="tab" data-view="records" id="tab-app" aria-controls="pane-app" aria-selected="false" tabindex="-1">App view</button>
     <button role="tab" data-view="project" id="tab-assume" aria-controls="pane-assume" aria-selected="false" tabindex="-1">Assumptions</button>
@@ -666,6 +667,49 @@
     </div>
   </div>
 
+  <!-- Filter System (proposal) -->
+  <div class="pane" role="tabpanel" id="pane-filter" aria-labelledby="tab-filter" hidden>
+    <p class="callout callout--attn"><b>SIMULATION / DEMO DATA. Proposal, needs project-team confirmation.</b> Flow, clogging, biological and carbon constants are illustrative, to confirm by measurement. Ammonia, nitrite, nitrate, oxygen and water level are modelled values with no sensor in the design.</p>
+    <ol class="fsloop" id="fsLoop" data-run="false" aria-label="Filter circulation path">
+      <li>Aquarium</li><li>Intake</li><li id="fsStage1">Mechanical</li><li id="fsStage2">Biological</li><li id="fsStage3">Chemical</li><li>Pump</li><li>Return</li>
+    </ol>
+    <p class="fine" id="fsLoopNote" role="status"></p>
+    <div class="grid2">
+      <section>
+        <h3 class="h3">Filter status</h3>
+        <dl class="filt fsstats" id="fsStats"></dl>
+      </section>
+      <section>
+        <h3 class="h3">Controls</h3>
+        <div class="fsctl">
+          <div class="row2">
+            <button class="btn btn--primary" type="button" id="fsPump">Start pump</button>
+            <button class="btn" type="button" id="fsMode">Switch to manual</button>
+          </div>
+          <div class="field">
+            <label class="field__label" for="fsFlow">Set flow <output id="fsFlowOut" for="fsFlow"></output></label>
+            <input type="range" id="fsFlow" min="0" max="190" step="5" value="95">
+          </div>
+          <label class="switch"><input type="checkbox" id="fsBoost"><span>Raise flow when turbidity rises <em>(automatic mode)</em></span></label>
+          <label class="switch"><input type="checkbox" id="fsCarbon"><span>Chemical stage (activated carbon)</span></label>
+          <div class="row2">
+            <button class="btn" type="button" id="fsClean">Clean mechanical filter</button>
+            <button class="btn" type="button" id="fsCarbonNew">Replace chemical media</button>
+          </div>
+          <div class="field">
+            <label class="field__label" for="fsLevel">Water level, demo test <output id="fsLevelOut" for="fsLevel">100 %</output></label>
+            <input type="range" id="fsLevel" min="40" max="100" step="1" value="100">
+          </div>
+        </div>
+      </section>
+    </div>
+    <h3 class="h3">Water quality</h3>
+    <div class="fswater" id="fsWater"></div>
+    <p class="fine">Alert limits for ammonia, nitrite, nitrate and oxygen: <b>Not configured</b>. The filter does not regulate pH or TDS, and there is no water-change function in this simulation.</p>
+    <details class="filt__hist" id="fsPerf"><summary>View filter performance</summary><div class="fscharts" id="fsCharts"></div></details>
+    <details class="filt__hist"><summary>Maintenance history</summary><ol id="fsHist"></ol></details>
+  </div>
+
   <!-- Calibration -->
   <div class="pane" role="tabpanel" id="pane-cal" aria-labelledby="tab-cal" hidden>
     <div class="grid2">
@@ -758,6 +802,7 @@
         <tr><td>Portion size</td><td>Not configured. The animation shows one dispense cycle, not a measured amount.</td><td><span class="pill">From brief</span></td></tr>
         <tr><td>Food consumption</td><td>Not detected. The IR beam-break only shows that food left the chute.</td><td><span class="pill">From brief</span></td></tr>
         <tr><td>Sensor fault display</td><td>Shows "No data" instead of the last good value and raises an equipment alert.</td><td><span class="pill pill--attn">Assumption</span></td></tr>
+        <tr><td>Filter stages and tank chemistry</td><td>Ammonia, nitrite, nitrate, oxygen, organics, water level, biological maturity and carbon capacity use illustrative constants. They do not change the four sensor readings, and feeding does not raise the turbidity reading. Nitrate keeps rising because no water-change function exists.</td><td><span class="pill pill--attn">Requires team confirmation</span></td></tr>
         <tr><td>Tank size</td><td>Changes the illustration only. The number of fish and shrimp does not change and is not stocking advice.</td><td><span class="pill">Demo setting</span></td></tr>
       </tbody>
     </table></div>
@@ -890,7 +935,7 @@
 
     <fieldset class="grp" id="filtGrp">
       <legend>Filter <small>(proposal, needs project-team confirmation)</small></legend>
-      <p class="fine">Mechanical stage only. A pump pushes tank water through a sponge that traps suspended matter, so turbidity clears faster. It never changes pH, temperature or TDS. Flow, clogging and capture constants are illustrative, to confirm by measurement.</p>
+      <p class="fine">A pump circulates tank water through a sponge, biological media and optional carbon. It never regulates pH, temperature or TDS. All constants are illustrative, to confirm by measurement. Full controls are in <b>Water → Filter System</b>.</p>
       <label class="switch"><input type="checkbox" id="filtOn"><span>Filter enabled</span></label>
       <div class="filt__ctl" id="filtCtl">
         <div class="row2">
@@ -963,6 +1008,7 @@
 <div class="sr-only" aria-live="polite" id="liveState"></div>
 <div class="sr-only" aria-live="assertive" id="liveAlert"></div>
 
+<script src="js/filterstages.js"></script>
 <script src="js/filter.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/selftest.js"></script>
