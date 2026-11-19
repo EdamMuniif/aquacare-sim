@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AquaCare Research Simulation</title>
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="research/research.css">
+</head>
+<body class="rs">
+<div class="rs-tape" role="note"><b>SIMULATION / DEMO DATA.</b> Research mode, separate from the AquaCare v5 demo. Model output has not been validated against a real aquarium.</div>
+<header class="rs-head">
+  <div>
+    <p class="eyebrow">AquaCare &middot; Real-Life Aquarium Research Simulation</p>
+    <h1>Freshwater aquarium digital twin</h1>
+  </div>
+  <div class="rs-clock"><b id="rClock">Day 1 00:00</b><span id="rState">Paused</span></div>
+</header>
+
+<main class="rs-grid">
+  <section class="rs-col">
+    <figure class="bay rs-bay" aria-labelledby="rTankCap">
+      <div class="bay__chips"><span class="simtag simtag--dark">SIMULATION</span></div>
+      <div class="tank3d" id="tank3d">
+        <div class="tank3d__viewport" tabindex="0" role="region" aria-label="Interactive 3D aquarium showing the simulated water"></div>
+        <div class="tank3d__tools" role="group" aria-label="3D camera controls">
+          <label class="sr-only" for="tankView">Camera view</label>
+          <select id="tankView">
+            <option value="reset">Whole tank</option>
+            <option value="front">Front</option>
+            <option value="surface">Water surface</option>
+            <option value="fish">Fish close-up</option>
+            <option value="filter">Filter unit</option>
+            <option value="top">Top view</option>
+          </select>
+          <button type="button" data-camera="in" aria-label="Zoom in">+</button>
+          <button type="button" data-camera="out" aria-label="Zoom out">&minus;</button>
+          <button type="button" data-camera="pan" aria-pressed="false">Pan</button>
+          <button type="button" data-camera="reset">Reset view</button>
+        </div>
+      </div>
+      <figcaption id="rTankCap" class="bay__cap">Water haze, settled waste, heater, power, filter flow and sponge colour follow the calculated state. Algae and fish behaviour are not modelled.</figcaption>
+    </figure>
+
+    <section class="card">
+      <header class="card__head"><h2 class="card__title">Run</h2><span class="simtag">SIM</span></header>
+      <div class="rs-row">
+        <button class="btn btn--primary" type="button" id="rRun">Start</button>
+        <label class="rs-field">Speed
+          <select id="rSpeed">
+            <option value="1">1 min per second</option>
+            <option value="10" selected>10 min per second</option>
+            <option value="60">1 hour per second</option>
+            <option value="360">6 hours per second</option>
+            <option value="1440">1 day per second</option>
+          </select>
+        </label>
+        <label class="rs-field">Biofilter at start
+          <select id="rStart"><option value="established">Established</option><option value="new">New, not cycled</option></select>
+        </label>
+        <button class="btn" type="button" id="rReset">Reset run</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <header class="card__head"><h2 class="card__title">Actions and conditions</h2><span class="simtag">SIM</span></header>
+      <div class="rs-actions">
+        <button class="btn" type="button" id="rFeed">Feed now</button>
+        <button class="btn" type="button" id="rWater">Change 25 % of water</button>
+        <button class="btn" type="button" id="rSiphon">Siphon gravel</button>
+        <button class="btn" type="button" id="rSponge">Rinse sponge</button>
+        <button class="btn" type="button" id="rPump">Stop pump</button>
+        <button class="btn" type="button" id="rHeater">Disable heater</button>
+        <button class="btn" type="button" id="rPower">Cut power</button>
+      </div>
+      <div class="rs-sliders">
+        <label class="rs-field">Room temperature <output id="rAmbOut"></output><input type="range" id="rAmb" min="18" max="34" step="0.5"></label>
+        <label class="rs-field">Heater setpoint <output id="rSetOut"></output><input type="range" id="rSet" min="22" max="30" step="0.5"></label>
+      </div>
+      <div class="rs-row">
+        <label class="rs-field">Virtual sensor
+          <select id="rSensor"><option value="temp">Temperature</option><option value="ph">pH</option><option value="tds">TDS</option><option value="turb">Turbidity</option></select>
+        </label>
+        <label class="rs-field">Condition
+          <select id="rFault"><option value="ok">Healthy</option><option value="drift">Drifting</option><option value="stuck">Stuck</option><option value="disconnected">Disconnected</option></select>
+        </label>
+      </div>
+    </section>
+  </section>
+
+  <section class="rs-col">
+    <section class="card">
+      <header class="card__head"><h2 class="card__title">Water state and sensor readings</h2><span class="simtag">SIM</span></header>
+      <p class="rs-key"><span class="rtag rtag--calculated">Calculated</span> model state <span class="rtag rtag--virtual">Virtual</span> simulated sensor <span class="rtag rtag--measured">Measured</span> real data</p>
+      <div class="rs-tablewrap"><table class="table rs-table">
+        <thead><tr><th scope="col">Parameter</th><th scope="col">Calculated</th><th scope="col">Virtual sensor</th><th scope="col">Measured</th></tr></thead>
+        <tbody id="rRows"></tbody>
+      </table></div>
+      <p class="fine">No measured aquarium data has been loaded. pH is held constant because carbonate chemistry is not modelled. The turbidity sensor has no published NTU calibration.</p>
+    </section>
+
+    <section class="card">
+      <header class="card__head"><h2 class="card__title">Filter and biofilter</h2><span class="simtag">SIM</span></header>
+      <dl class="rs-stats" id="rFilter"></dl>
+    </section>
+
+    <section class="card">
+      <header class="card__head"><h2 class="card__title">Trends</h2><span class="simtag">SIM</span></header>
+      <div class="fscharts rs-charts" id="rCharts"></div>
+    </section>
+
+    <section class="card">
+      <header class="card__head"><h2 class="card__title">Event log</h2><span class="simtag">SIM</span></header>
+      <ol class="rs-log" id="rLog"></ol>
+    </section>
+  </section>
+
+  <section class="card rs-wide">
+    <header class="card__head"><h2 class="card__title">Model assumptions</h2><span class="simtag">SIM</span></header>
+    <p class="fine"><span class="rtag rtag--published">Published</span> from a cited document. <span class="rtag rtag--calculated">Calculated</span> from physical laws. <span class="rtag rtag--illustrative">Illustrative</span> a stand-in that must not be reported as a finding. <span class="rtag rtag--user">User</span> an operating condition.</p>
+    <div class="rs-tablewrap"><table class="table rs-table">
+      <thead><tr><th scope="col">Class</th><th scope="col">Parameter</th><th scope="col">Value</th><th scope="col">Source</th><th scope="col">Note</th></tr></thead>
+      <tbody id="rParams"></tbody>
+    </table></div>
+    <p class="fine">Published equations: oxygen saturation from Benson and Krause, as given in USGS Technical Memorandum 2011.03. Un-ionised ammonia from Emerson et al. 1975, as given in EPA-822-R-13-001. Sensor limits come from the manufacturers' documents.</p>
+  </section>
+</main>
+<script src="js/filterstages.js"></script>
+<script src="js/filter.js"></script>
+<script src="vendor/three-r160.min.js"></script>
+<script src="js/tank3d.js"></script>
+<script src="research/model.js"></script>
+<script src="research/ui.js"></script>
+</body>
+</html>
