@@ -36,13 +36,14 @@ Every parameter is labelled on the page as **Published**, **Calculated**, **Illu
 - **Temperature sensitivity:** the published values apply at 20 °C and are extrapolated to tank temperatures.
 - **Stoichiometry:** nitrification oxygen demand uses molar masses and ignores bacterial growth.
 - **Food decay and organic turbidity:** the source register found no usable published values. They are included only because they are needed for the cause-and-effect chain, and they are labelled illustrative.
-- **Not modelled:** pH and carbonate chemistry, alkalinity, CO₂, evaporation and water level, algae and plants, fish health and behaviour, fish growth, nitrification inhibition, and activated carbon.
+- **Optional realism modules:** pH, alkalinity, CO₂, evaporation and water level are available on the page. See `docs/REALISM-MVP.md`.
+- **Not modelled:** algae and plants, bacteria outside the filter, fish health and behaviour, fish growth, nitrification inhibition, and activated carbon.
 - **Turbidity sensor:** the manufacturer publishes no NTU range, curve or accuracy, so readings are flagged uncalibrated.
 - **Sensor error:** a fixed error is drawn inside the published bound. The distribution is an illustrative choice.
 
 ## Checks
 
-Run `node source/tests/research.test.js`. The checks verify the software against equations and conservation laws. They do not validate the model against real aquarium behaviour.
+Run `node source/tests/research.test.js` and `node source/tests/research-realism.test.js`. The checks verify the software against equations and conservation laws. They do not validate the model against real aquarium behaviour.
 
 ## Rebuild
 

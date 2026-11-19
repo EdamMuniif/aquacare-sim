@@ -33,6 +33,9 @@
     p('sourceTempC', 25, '°C', 'user', '', 'Replacement water temperature'),
     p('sourceTdsPpm', 150, 'ppm', 'user', '', 'Replacement water TDS'),
     p('feedMg', 30, 'mg dry', 'user', '', 'Dry food per feed'),
+    p('alkMeqL', 2.0, 'meq/L', 'user', '', 'Starting alkalinity (100 mg/L as CaCO₃). Measure with a KH test'),
+    p('sourceAlkMeqL', 2.0, 'meq/L', 'user', '', 'Replacement water alkalinity. Measure with a KH test'),
+    p('pco2Atm', 0.00042, 'atm', 'user', '', 'CO₂ in room air. Occupied rooms are often higher'),
     // physical constants
     p('cpJ', 4186, 'J/(kg·K)', 'calculated', '', 'Specific heat of water'),
     p('rhoKgL', 1.0, 'kg/L', 'calculated', '', 'Water density, rounded'),
@@ -68,7 +71,11 @@
     p('koMgL', SC.koDo, 'mg/L', 'illustrative', '', 'Half-saturation, oxygen'),
     p('aobGrowthDay', SC.aobGrowthPerDay, '1/day', 'illustrative', '', 'Biofilm development'),
     p('nobGrowthDay', SC.nobGrowthPerDay, '1/day', 'illustrative', '', 'Biofilm development'),
-    p('bioDecayDay', SC.bioDecayPerDay, '1/day', 'illustrative', '', 'Biofilm decline with no flow')
+    p('bioDecayDay', SC.bioDecayPerDay, '1/day', 'illustrative', '', 'Biofilm decline with no flow'),
+    // illustrative: realism modules
+    p('rqCo2', 1.0, 'mol CO₂/mol O₂', 'illustrative', '', 'CO₂ released per oxygen used by fish and decay'),
+    p('kLaCo2Ratio', 0.9, 'ratio', 'illustrative', '', 'CO₂ transfer rate relative to oxygen transfer'),
+    p('evapLDay', 0.08, 'L/day', 'illustrative', '', 'Depends on room air, lid and surface area. Measure from the water-level drop')
   ];
 
   // Virtual sensor limits. accuracy is the manufacturer's published bound.
@@ -103,6 +110,38 @@
     return 1 / (Math.pow(10, pKa - pH) + 1);
   }
 
+  // Published: USGS PHREEQC database phreeqc.dat analytic expressions (R11). log10 K = A1 + A2 T + A3/T + A4 log10 T + A5/T^2 + A6 T^2.
+  var LOGK = {
+    co3h: [107.8871, 0.03252849, -5151.79, -38.92561, 563713.9, 0],                 // CO3-2 + H+ = HCO3-
+    co32h: [464.1965, 0.09344813, -26986.16, -165.75951, 2248628.9, 0],             // CO3-2 + 2H+ = CO2 + H2O
+    henry: [10.5624, -2.3547e-2, -3972.8, 0, 5.8746e5, 1.9194e-5],                  // CO2(g) = CO2
+    water: [293.29227, 0.1360833, -10576.913, -123.73158, 0, -6.996455e-5]          // H2O = OH- + H+
+  };
+  function logK(c, T) { return c[0] + c[1] * T + c[2] / T + c[3] * Math.log10(T) + c[4] / (T * T) + c[5] * T * T; }
+  // Activity corrections are ignored, which is a simplification for low-salt fresh water.
+  function carbonateK(tC) {
+    var T = tC + 273.15, a = logK(LOGK.co3h, T), b = logK(LOGK.co32h, T);
+    return { K1: Math.pow(10, a - b), K2: Math.pow(10, -a), KH: Math.pow(10, logK(LOGK.henry, T)), Kw: Math.pow(10, logK(LOGK.water, T)) };
+  }
+  // Inorganic carbon species in mmol/L.
+  function carbonSpecies(dic, pH, k) {
+    var H = Math.pow(10, -pH), D = H * H + H * k.K1 + k.K1 * k.K2;
+    return { co2: dic * H * H / D, hco3: dic * H * k.K1 / D, co3: dic * k.K1 * k.K2 / D };
+  }
+  function bisectPH(f) { var lo = 2, hi = 12; for (var i = 0; i < 45; i++) { var m = (lo + hi) / 2; if (f(m) > 0) hi = m; else lo = m; } return (lo + hi) / 2; }
+  // pH from alkalinity and dissolved inorganic carbon, by charge balance (both mmol/L).
+  function solvePH(alk, dic, tC) {
+    var k = carbonateK(tC);
+    return bisectPH(function (pH) { var H = Math.pow(10, -pH), s = carbonSpecies(dic, pH, k); return s.hco3 + 2 * s.co3 + (k.Kw / H - H) * 1000 - alk; });
+  }
+  // Water in equilibrium with air at the given alkalinity.
+  function airEquilibrium(alk, pco2, tC) {
+    var k = carbonateK(tC), co2 = k.KH * pco2 * 1000;
+    var pH = bisectPH(function (x) { var H = Math.pow(10, -x); return co2 * (k.K1 / H + 2 * k.K1 * k.K2 / (H * H)) + (k.Kw / H - H) * 1000 - alk; });
+    var H = Math.pow(10, -pH);
+    return { pH: pH, dic: co2 * (1 + k.K1 / H + k.K1 * k.K2 / (H * H)), co2: co2 };
+  }
+
   function create(opts) {
     opts = opts || {};
     var P = {};
@@ -114,11 +153,14 @@
       lastFeedDay: {}, feedCount: 0,
       tempC: opts.tempC == null ? P.setpointC : opts.tempC, doMg: doSaturation(P.setpointC) - 1,
       tan: 0.05, no2: 0.02, no3: 5, tssMgL: 0, detritusMg: 50, spongeMg: 0,
+      vol: P.volumeL, alk: P.alkMeqL, dic: 0,
+      mods: { chemistry: !!(opts.modules && opts.modules.chemistry), evaporation: !!(opts.modules && opts.modules.evaporation) },
       aob: mature, nob: mature, pH: P.pH, tds: P.tdsPpm,
       nIn: 0, nOut: 0, nFish: 0,
       filter: Filt.create({ enabled: opts.filter !== false, flowLph: null, mode: 'auto' }, P.volumeL, 0),
       rng: rng, sensors: {}, hist: [], nextHist: 0, events: []
     };
+    if (S.mods.chemistry) { var eq = airEquilibrium(S.alk, P.pco2Atm, S.tempC); S.dic = eq.dic; S.pH = eq.pH; }
     S.n0 = totalNitrogen(S);
     Object.keys(SENSORS).forEach(function (k) {
       var d = SENSORS[k];
@@ -133,7 +175,7 @@
 
   function totalNitrogen(S) {
     var P = S.P;
-    return (S.tan + S.no2 + S.no3 + S.tssMgL * P.feedNFrac) * P.volumeL + (S.detritusMg + S.spongeMg) * P.feedNFrac;
+    return (S.tan + S.no2 + S.no3 + S.tssMgL * P.feedNFrac) * S.vol + (S.detritusMg + S.spongeMg) * P.feedNFrac;
   }
   // Nitrogen in the tank plus what left it, minus what entered. Must stay at zero.
   function nitrogenError(S) { return totalNitrogen(S) + S.nOut + S.nFish - S.n0 - S.nIn; }
@@ -147,21 +189,35 @@
     var excreted = eatenN * P.excretedFrac, fecesN = eatenN * P.fecesFrac;
     S.nIn += mg * P.feedNFrac;
     S.nFish += eatenN - excreted - fecesN;
-    S.tan += excreted / P.volumeL;
-    S.tssMgL += (uneaten + fecesN / P.feedNFrac) / P.volumeL;
+    S.tan += excreted / S.vol;
+    if (S.mods.chemistry) S.alk += excreted / 14 / S.vol;
+    S.tssMgL += (uneaten + fecesN / P.feedNFrac) / S.vol;
     S.feedCount++;
     log(S, 'Feed: ' + mg + ' mg dry food');
   }
   // Instant exchange of a share of the water. The biofilter, sponge and gravel stay in place.
   function waterChange(S, share) {
-    var f = clamp(share, 0, 1), P = S.P, V = P.volumeL;
-    S.nOut += f * V * (S.tan + S.no2 + S.no3 + S.tssMgL * P.feedNFrac);
-    S.tan *= 1 - f; S.no2 *= 1 - f; S.no3 *= 1 - f; S.tssMgL *= 1 - f;
-    S.tempC += f * (P.sourceTempC - S.tempC);
-    S.doMg += f * (doSaturation(P.sourceTempC) - S.doMg);
-    S.tds += f * (P.sourceTdsPpm - S.tds);
+    var f = clamp(share, 0, 1);
+    exchange(S, f);
     log(S, 'Water change: ' + Math.round(f * 100) + ' %');
   }
+  // Removes a share of the tank water, then refills to the full level with replacement water.
+  function exchange(S, f) {
+    var P = S.P, V = S.vol, V0 = P.volumeL, keep = (1 - f) * V / V0, add = V === V0 ? f : 1 - keep;
+    S.nOut += f * V * (S.tan + S.no2 + S.no3 + S.tssMgL * P.feedNFrac);
+    S.tan *= keep; S.no2 *= keep; S.no3 *= keep; S.tssMgL *= keep;
+    S.tempC += add * (P.sourceTempC - S.tempC);
+    S.doMg += add * (doSaturation(P.sourceTempC) - S.doMg);
+    S.tds += add * (P.sourceTdsPpm - S.tds);
+    if (S.mods.chemistry) {
+      var src = airEquilibrium(P.sourceAlkMeqL, P.pco2Atm, P.sourceTempC);
+      S.alk = S.alk * keep + P.sourceAlkMeqL * add; S.dic = S.dic * keep + src.dic * add;
+      S.pH = solvePH(S.alk, S.dic, S.tempC);
+    }
+    S.vol = V0;
+  }
+  // Refills evaporated water. Nothing is removed from the tank.
+  function topUp(S) { var added = S.P.volumeL - S.vol; exchange(S, 0); log(S, 'Topped up: ' + added.toFixed(2) + ' L'); }
   function siphon(S, share) {
     var f = clamp(share, 0, 1), out = S.detritusMg * f;
     S.detritusMg -= out; S.nOut += out * S.P.feedNFrac;
@@ -184,14 +240,21 @@
 
   // ---------- one simulated minute ----------
   function step(S) {
-    var P = S.P, V = P.volumeL, dtH = 1 / 60, dtD = 1 / 1440;
+    var P = S.P, dtH = 1 / 60, dtD = 1 / 1440;
     S.minute++;
+    // evaporation removes water only, so everything dissolved becomes more concentrated
+    if (S.mods.evaporation && S.vol > 0.2 * P.volumeL) {
+      var newV = S.vol - P.evapLDay * dtD, cf = S.vol / newV;
+      S.tan *= cf; S.no2 *= cf; S.no3 *= cf; S.tssMgL *= cf; S.tds *= cf; S.alk *= cf; S.dic *= cf;
+      S.vol = newV;
+    }
+    var V = S.vol;
     var day = Math.floor(S.minute / 1440), tod = S.minute % 1440;
     if (S.autoFeed) S.feeds.forEach(function (m) { var k = day + ':' + m; if (tod === m && !S.lastFeedDay[k]) { S.lastFeedDay[k] = 1; feed(S); } });
 
     // pump and sponge: reuses the existing AquaCare controller
     var F = S.filter, turb = S.sensors.turb;
-    Filt.step(F, 1, { power: S.power, V: V, t: S.minute * 60000, turbNtu: turb.value, turbStatus: turb.status });
+    Filt.step(F, 1, { power: S.power, V: P.volumeL, t: S.minute * 60000, turbNtu: turb.value, turbStatus: turb.status, levelPct: S.mods.evaporation ? 100 * S.vol / P.volumeL : null });
     var Q = Filt.processing(F, V) ? F.flow : 0, turnover = Q / V;
 
     // temperature: lumped energy balance
@@ -216,14 +279,14 @@
     S.tan += (decayed * P.feedNFrac + fishN) / V;
 
     // biofilter
-    var fDo = S.doMg / (S.doMg + P.koMgL), used = 0;
+    var fDo = S.doMg / (S.doMg + P.koMgL), used = 0, oxidised = 0;
     if (Q > 0) {
       var fFlow = Math.min(1, turnover / SC.fullFlowTurnover);
       var sA = S.tan / (P.ksMgL + S.tan), sN = S.no2 / (P.ksMgL + S.no2);
       var tA = Math.max(0, 1 + (fDo < sA ? P.nitrifPerCDoLimited : P.nitrifPerCTanLimited) * (S.tempC - 20));
       var tN = Math.max(0, 1 + (fDo < sN ? P.nitrifPerCDoLimited : P.nitrifPerCTanLimited) * (S.tempC - 20));
       var a = Math.min(S.tan * V, P.aobMaxMgDay * S.aob * fDo * fFlow * sA * tA * dtD);
-      S.tan -= a / V; S.no2 += a / V;
+      S.tan -= a / V; S.no2 += a / V; oxidised = a;
       var n = Math.min(S.no2 * V, P.nobMaxMgDay * S.nob * fDo * fFlow * sN * tN * dtD);
       S.no2 -= n / V; S.no3 += n / V;
       used = (a * P.o2PerNAmmonia + n * P.o2PerNNitrite) / V;
@@ -238,6 +301,15 @@
     var sat = doSaturation(S.tempC), kLa = P.kLaSurface + P.kLaFlow * Math.min(1, turnover / P.kLaTurnover);
     S.doMg += (sat - S.doMg) * (1 - Math.exp(-kLa * dtH)) - (P.fishO2MgH * P.fishCount * dtH + decayed * P.bodMgMg) / V - used;
     S.doMg = Math.max(0, S.doMg);
+
+    // carbonate chemistry: ammonia release adds alkalinity, nitrification removes it, CO2 follows respiration and gas exchange
+    if (S.mods.chemistry) {
+      S.alk += ((decayed * P.feedNFrac + fishN) / 14 - 2 * oxidised / 14) / V;
+      S.dic += (P.fishO2MgH * P.fishCount * dtH + decayed * P.bodMgMg) / 32 * P.rqCo2 / V;
+      var ck = carbonateK(S.tempC), pH1 = solvePH(S.alk, S.dic, S.tempC), co2Now = carbonSpecies(S.dic, pH1, ck).co2;
+      S.dic = Math.max(1e-6, S.dic + (ck.KH * P.pco2Atm * 1000 - co2Now) * (1 - Math.exp(-kLa * P.kLaCo2Ratio * dtH)));
+      S.pH = solvePH(S.alk, S.dic, S.tempC);
+    }
 
     readSensors(S);
     if (S.minute >= S.nextHist) record(S);
@@ -265,7 +337,8 @@
       calculated: {
         tempC: S.tempC, doMg: S.doMg, doSat: sat, doPct: 100 * S.doMg / sat, tan: S.tan, nh3: S.tan * f, nh3Pct: f * 100, no2: S.no2, no3: S.no3,
         tssMgL: S.tssMgL, turbNtu: turbidityNtu(S), detritusMg: S.detritusMg, spongeMg: S.spongeMg, pH: S.pH, tds: S.tds,
-        bioPct: 100 * Math.min(S.aob, S.nob), flowLph: S.filter.flow
+        bioPct: 100 * Math.min(S.aob, S.nob), flowLph: S.filter.flow, alkMeqL: S.alk, levelPct: 100 * S.vol / P.volumeL,
+        co2MgL: S.mods.chemistry ? carbonSpecies(S.dic, S.pH, carbonateK(S.tempC)).co2 * 44.01 : null
       },
       virtual: Object.keys(SENSORS).reduce(function (o, k) { o[k] = { value: S.sensors[k].value, status: S.sensors[k].status, uncalibrated: !!SENSORS[k].uncalibrated }; return o; }, {}),
       measured: null,
@@ -274,7 +347,7 @@
   }
   function record(S) {
     var c = snapshot(S).calculated;
-    S.hist.push({ minute: S.minute, tempC: c.tempC, doMg: c.doMg, tan: c.tan, no2: c.no2, no3: c.no3, turbNtu: c.turbNtu, flowLph: c.flowLph });
+    S.hist.push({ minute: S.minute, tempC: c.tempC, doMg: c.doMg, tan: c.tan, no2: c.no2, no3: c.no3, turbNtu: c.turbNtu, flowLph: c.flowLph, pH: c.pH, alk: c.alkMeqL, levelPct: c.levelPct });
     if (S.hist.length > 1440) S.hist.shift();
     S.nextHist = S.minute + 60;
   }
@@ -294,9 +367,75 @@
     };
   }
 
+  // ---------- real-tank data: never generated by the model ----------
+  var MEASURES = [
+    { key: 'tempC', col: 'temperature_c', label: 'Temperature', unit: '°C', min: 0, max: 50 },
+    { key: 'pH', col: 'ph', label: 'pH', unit: 'pH', min: 0, max: 14 },
+    { key: 'alk', col: 'alkalinity_meq_l', label: 'Alkalinity', unit: 'meq/L', min: 0, max: 50 },
+    { key: 'doMg', col: 'dissolved_oxygen_mg_l', label: 'Dissolved oxygen', unit: 'mg/L', min: 0, max: 30 },
+    { key: 'tan', col: 'ammonia_mg_n_l', label: 'Total ammonia', unit: 'mg N/L', min: 0, max: 100 },
+    { key: 'no2', col: 'nitrite_mg_n_l', label: 'Nitrite', unit: 'mg N/L', min: 0, max: 100 },
+    { key: 'no3', col: 'nitrate_mg_n_l', label: 'Nitrate', unit: 'mg N/L', min: 0, max: 500 },
+    { key: 'turbNtu', col: 'turbidity_ntu', label: 'Turbidity', unit: 'NTU', min: 0, max: 3000 }
+  ];
+  function measuredTemplate() {
+    return ['# AquaCare real-tank measurements. Enter only values you measured on a real aquarium.', '# day = days since the start of the simulated run. Leave a cell empty if it was not measured.', 'day,' + MEASURES.map(function (m) { return m.col; }).join(','), ''].join('\r\n');
+  }
+  function parseMeasuredCSV(text) {
+    var lines = String(text).replace(/^\uFEFF/, '').split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l && l.charAt(0) !== '#'; });
+    var out = { rows: [], errors: [], columns: [] };
+    if (!lines.length) { out.errors.push('The file has no data.'); return out; }
+    var head = lines[0].split(',').map(function (h) { return h.trim().toLowerCase(); }), dayAt = head.indexOf('day');
+    if (dayAt < 0) { out.errors.push('The first row must include a "day" column.'); return out; }
+    var used = MEASURES.filter(function (m) { return head.indexOf(m.col) >= 0; });
+    out.columns = used.map(function (m) { return m.key; });
+    if (!used.length) { out.errors.push('No recognised measurement columns were found.'); return out; }
+    lines.slice(1).forEach(function (line, i) {
+      var c = line.split(','), day = Number(c[dayAt]), row = { day: day }, bad = null;
+      if (c[dayAt] === undefined || c[dayAt].trim() === '' || !isFinite(day) || day < 0) bad = 'invalid day';
+      used.forEach(function (m) {
+        var raw = (c[head.indexOf(m.col)] || '').trim(); if (raw === '') return;
+        var v = Number(raw); if (!isFinite(v) || v < m.min || v > m.max) bad = m.col + ' is out of range'; else row[m.key] = v;
+      });
+      if (bad) out.errors.push('Row ' + (i + 2) + ': ' + bad); else out.rows.push(row);
+    });
+    out.rows.sort(function (a, b) { return a.day - b.day; });
+    return out;
+  }
+  function historyAt(hist, minute, key) {
+    if (!hist.length || minute < hist[0].minute || minute > hist[hist.length - 1].minute) return null;
+    var lo = 0, hi = hist.length - 1;
+    while (hi - lo > 1) { var m = (lo + hi) >> 1; if (hist[m].minute <= minute) lo = m; else hi = m; }
+    var a = hist[lo], b = hist[hi], f = b.minute > a.minute ? (minute - a.minute) / (b.minute - a.minute) : 0;
+    return a[key] + (b[key] - a[key]) * f;
+  }
+  // Model minus measured, at each measured time inside the simulated history.
+  function compareMeasured(hist, rows) {
+    return MEASURES.map(function (m) {
+      var e = [];
+      rows.forEach(function (r) { if (r[m.key] == null) return; var v = historyAt(hist, r.day * 1440, m.key); if (v != null) e.push(v - r[m.key]); });
+      if (!e.length) return null;
+      var sum = function (f) { return e.reduce(function (a, x) { return a + f(x); }, 0) / e.length; };
+      return { key: m.key, label: m.label, unit: m.unit, n: e.length, bias: sum(function (x) { return x; }), mae: sum(Math.abs), rmse: Math.sqrt(sum(function (x) { return x * x; })) };
+    }).filter(Boolean);
+  }
+
+  // Honest status of each realism stage, shown on the page.
+  var ROADMAP = [
+    { stage: 'Nitrogen, oxygen, heat and filtration', status: 'Working', note: 'Equations work, but many rates are stand-ins' },
+    { stage: 'pH, alkalinity and CO₂', status: 'Working', note: 'Published carbonate equilibrium. Gas transfer is a stand-in' },
+    { stage: 'Evaporation, water level and top-ups', status: 'Working', note: 'Evaporation rate is a stand-in until measured' },
+    { stage: 'Real-tank data comparison', status: 'Ready for data', note: 'Import measurements to compare them with the model' },
+    { stage: 'Automatic calibration to a real tank', status: 'Needs real data', note: 'Requires about 30 days of measurements' },
+    { stage: 'Bacteria on gravel and glass', status: 'Planned', note: 'Needs published surface-area data' },
+    { stage: 'Algae, plants and light cycle', status: 'Planned', note: 'Needs published growth data' },
+    { stage: 'Fish health, stress, appetite and growth', status: 'Planned', note: 'Needs a chosen species and species data' }
+  ];
+
   var Model = {
     PARAMS: PARAMS, SENSORS: SENSORS, create: create, step: step, advance: advance, snapshot: snapshot, toTank3D: toTank3D,
-    feed: feed, waterChange: waterChange, siphon: siphon, cleanSponge: cleanSponge, setPump: setPump, setPower: setPower, setHeater: setHeater, setSensor: setSensor,
+    feed: feed, waterChange: waterChange, topUp: topUp, carbonateK: carbonateK, carbonSpecies: carbonSpecies, solvePH: solvePH, airEquilibrium: airEquilibrium,
+    MEASURES: MEASURES, ROADMAP: ROADMAP, measuredTemplate: measuredTemplate, parseMeasuredCSV: parseMeasuredCSV, compareMeasured: compareMeasured, siphon: siphon, cleanSponge: cleanSponge, setPump: setPump, setPower: setPower, setHeater: setHeater, setSensor: setSensor,
     doSaturation: doSaturation, nh3Fraction: nh3Fraction, nitrogenError: nitrogenError, turbidityNtu: turbidityNtu
   };
   root.AquaResearchModel = Model;

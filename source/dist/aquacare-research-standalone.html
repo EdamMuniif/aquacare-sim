@@ -1205,6 +1205,9 @@ body.rs { margin: 0; padding: 0; background: #e9eff2; color: var(--ink); font-fa
 .rs-stats dt { font-size: 12px; color: var(--muted); }
 .rs-stats dd { margin: 2px 0 0; font: 650 14.5px var(--mono); overflow-wrap: anywhere; }
 .rs-charts { margin-top: 0; }
+.rs-file { position: relative; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.rs-file input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.rs-file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rs-log { margin: 0; padding-left: 18px; max-height: 180px; overflow: auto; font-size: 13px; color: var(--ink-2); }
 .rs-log time { font: 600 11.5px var(--mono); color: var(--muted); margin-right: 5px; }
 @media (max-width: 980px) { .rs-grid { grid-template-columns: minmax(0, 1fr); } .rs-head h1 { font-size: 20px; } }
@@ -1216,7 +1219,7 @@ body.rs { margin: 0; padding: 0; background: #e9eff2; color: var(--ink); font-fa
 <header class="rs-head">
   <div>
     <p class="eyebrow">AquaCare &middot; Real-Life Aquarium Research Simulation</p>
-    <h1>Freshwater aquarium digital twin</h1>
+    <h1>Freshwater aquarium research simulation</h1>
   </div>
   <div class="rs-clock"><b id="rClock">Day 1 00:00</b><span id="rState">Paused</span></div>
 </header>
@@ -1267,12 +1270,20 @@ body.rs { margin: 0; padding: 0; background: #e9eff2; color: var(--ink); font-fa
     </section>
 
     <section class="card">
+      <header class="card__head"><h2 class="card__title">Realism upgrades</h2><span class="simtag">SIM</span></header>
+      <label class="switch"><input type="checkbox" id="rChem" checked><span>Calculate pH, alkalinity and CO₂</span></label>
+      <label class="switch"><input type="checkbox" id="rEvap" checked><span>Include evaporation and water level</span></label>
+      <p class="fine">Changing either option restarts the run. Turn both off to return to the earlier simplified model.</p>
+    </section>
+
+    <section class="card">
       <header class="card__head"><h2 class="card__title">Actions and conditions</h2><span class="simtag">SIM</span></header>
       <div class="rs-actions">
         <button class="btn" type="button" id="rFeed">Feed now</button>
         <button class="btn" type="button" id="rWater">Change 25 % of water</button>
         <button class="btn" type="button" id="rSiphon">Siphon gravel</button>
         <button class="btn" type="button" id="rSponge">Rinse sponge</button>
+        <button class="btn" type="button" id="rTopUp">Top up water</button>
         <button class="btn" type="button" id="rPump">Stop pump</button>
         <button class="btn" type="button" id="rHeater">Disable heater</button>
         <button class="btn" type="button" id="rPower">Cut power</button>
@@ -1300,7 +1311,22 @@ body.rs { margin: 0; padding: 0; background: #e9eff2; color: var(--ink); font-fa
         <thead><tr><th scope="col">Parameter</th><th scope="col">Calculated</th><th scope="col">Virtual sensor</th><th scope="col">Measured</th></tr></thead>
         <tbody id="rRows"></tbody>
       </table></div>
-      <p class="fine">No measured aquarium data has been loaded. pH is held constant because carbonate chemistry is not modelled. The turbidity sensor has no published NTU calibration.</p>
+      <p class="fine" id="rWaterNote"></p>
+    </section>
+
+    <section class="card">
+      <header class="card__head"><h2 class="card__title">Compare with a real tank</h2><span class="rtag rtag--measured">Measured</span></header>
+      <p class="fine">Download the template, enter measurements from a real aquarium, then load the file here. The file stays in this browser tab and is never uploaded.</p>
+      <div class="rs-row">
+        <button class="btn" type="button" id="rTemplate">Download template</button>
+        <label class="btn rs-file">Load measurements<input type="file" id="rMeasured" accept=".csv,text/csv"></label>
+        <button class="btn" type="button" id="rClearMeasured" disabled>Clear data</button>
+      </div>
+      <p class="fine" id="rMeasuredState" role="status">No measured data loaded.</p>
+      <div class="rs-tablewrap" id="rCompareWrap" hidden><table class="table rs-table">
+        <thead><tr><th scope="col">Parameter</th><th scope="col">Points</th><th scope="col">Model bias</th><th scope="col">Mean error</th><th scope="col">RMSE</th></tr></thead>
+        <tbody id="rCompare"></tbody>
+      </table></div>
     </section>
 
     <section class="card">
@@ -1320,13 +1346,22 @@ body.rs { margin: 0; padding: 0; background: #e9eff2; color: var(--ink); font-fa
   </section>
 
   <section class="card rs-wide">
+    <header class="card__head"><h2 class="card__title">Road to a realistic aquarium</h2><span class="simtag">SIM</span></header>
+    <p class="fine">This simulation is not yet as realistic as a real aquarium. Only comparison with real tank measurements can show how closely it matches one.</p>
+    <div class="rs-tablewrap"><table class="table rs-table">
+      <thead><tr><th scope="col">Stage</th><th scope="col">Status</th><th scope="col">What it still depends on</th></tr></thead>
+      <tbody id="rRoadmap"></tbody>
+    </table></div>
+  </section>
+
+  <section class="card rs-wide">
     <header class="card__head"><h2 class="card__title">Model assumptions</h2><span class="simtag">SIM</span></header>
     <p class="fine"><span class="rtag rtag--published">Published</span> from a cited document. <span class="rtag rtag--calculated">Calculated</span> from physical laws. <span class="rtag rtag--illustrative">Illustrative</span> a stand-in that must not be reported as a finding. <span class="rtag rtag--user">User</span> an operating condition.</p>
     <div class="rs-tablewrap"><table class="table rs-table">
       <thead><tr><th scope="col">Class</th><th scope="col">Parameter</th><th scope="col">Value</th><th scope="col">Source</th><th scope="col">Note</th></tr></thead>
       <tbody id="rParams"></tbody>
     </table></div>
-    <p class="fine">Published equations: oxygen saturation from Benson and Krause, as given in USGS Technical Memorandum 2011.03. Un-ionised ammonia from Emerson et al. 1975, as given in EPA-822-R-13-001. Sensor limits come from the manufacturers' documents.</p>
+    <p class="fine">Published equations: oxygen saturation from Benson and Krause, as given in USGS Technical Memorandum 2011.03. Un-ionised ammonia from Emerson et al. 1975, as given in EPA-822-R-13-001. Carbonate equilibrium constants from the USGS PHREEQC database. Sensor limits come from the manufacturers' documents.</p>
   </section>
 </main>
 <script>
@@ -3660,6 +3695,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     p('sourceTempC', 25, '°C', 'user', '', 'Replacement water temperature'),
     p('sourceTdsPpm', 150, 'ppm', 'user', '', 'Replacement water TDS'),
     p('feedMg', 30, 'mg dry', 'user', '', 'Dry food per feed'),
+    p('alkMeqL', 2.0, 'meq/L', 'user', '', 'Starting alkalinity (100 mg/L as CaCO₃). Measure with a KH test'),
+    p('sourceAlkMeqL', 2.0, 'meq/L', 'user', '', 'Replacement water alkalinity. Measure with a KH test'),
+    p('pco2Atm', 0.00042, 'atm', 'user', '', 'CO₂ in room air. Occupied rooms are often higher'),
     // physical constants
     p('cpJ', 4186, 'J/(kg·K)', 'calculated', '', 'Specific heat of water'),
     p('rhoKgL', 1.0, 'kg/L', 'calculated', '', 'Water density, rounded'),
@@ -3695,7 +3733,11 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     p('koMgL', SC.koDo, 'mg/L', 'illustrative', '', 'Half-saturation, oxygen'),
     p('aobGrowthDay', SC.aobGrowthPerDay, '1/day', 'illustrative', '', 'Biofilm development'),
     p('nobGrowthDay', SC.nobGrowthPerDay, '1/day', 'illustrative', '', 'Biofilm development'),
-    p('bioDecayDay', SC.bioDecayPerDay, '1/day', 'illustrative', '', 'Biofilm decline with no flow')
+    p('bioDecayDay', SC.bioDecayPerDay, '1/day', 'illustrative', '', 'Biofilm decline with no flow'),
+    // illustrative: realism modules
+    p('rqCo2', 1.0, 'mol CO₂/mol O₂', 'illustrative', '', 'CO₂ released per oxygen used by fish and decay'),
+    p('kLaCo2Ratio', 0.9, 'ratio', 'illustrative', '', 'CO₂ transfer rate relative to oxygen transfer'),
+    p('evapLDay', 0.08, 'L/day', 'illustrative', '', 'Depends on room air, lid and surface area. Measure from the water-level drop')
   ];
 
   // Virtual sensor limits. accuracy is the manufacturer's published bound.
@@ -3730,6 +3772,38 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     return 1 / (Math.pow(10, pKa - pH) + 1);
   }
 
+  // Published: USGS PHREEQC database phreeqc.dat analytic expressions (R11). log10 K = A1 + A2 T + A3/T + A4 log10 T + A5/T^2 + A6 T^2.
+  var LOGK = {
+    co3h: [107.8871, 0.03252849, -5151.79, -38.92561, 563713.9, 0],                 // CO3-2 + H+ = HCO3-
+    co32h: [464.1965, 0.09344813, -26986.16, -165.75951, 2248628.9, 0],             // CO3-2 + 2H+ = CO2 + H2O
+    henry: [10.5624, -2.3547e-2, -3972.8, 0, 5.8746e5, 1.9194e-5],                  // CO2(g) = CO2
+    water: [293.29227, 0.1360833, -10576.913, -123.73158, 0, -6.996455e-5]          // H2O = OH- + H+
+  };
+  function logK(c, T) { return c[0] + c[1] * T + c[2] / T + c[3] * Math.log10(T) + c[4] / (T * T) + c[5] * T * T; }
+  // Activity corrections are ignored, which is a simplification for low-salt fresh water.
+  function carbonateK(tC) {
+    var T = tC + 273.15, a = logK(LOGK.co3h, T), b = logK(LOGK.co32h, T);
+    return { K1: Math.pow(10, a - b), K2: Math.pow(10, -a), KH: Math.pow(10, logK(LOGK.henry, T)), Kw: Math.pow(10, logK(LOGK.water, T)) };
+  }
+  // Inorganic carbon species in mmol/L.
+  function carbonSpecies(dic, pH, k) {
+    var H = Math.pow(10, -pH), D = H * H + H * k.K1 + k.K1 * k.K2;
+    return { co2: dic * H * H / D, hco3: dic * H * k.K1 / D, co3: dic * k.K1 * k.K2 / D };
+  }
+  function bisectPH(f) { var lo = 2, hi = 12; for (var i = 0; i < 45; i++) { var m = (lo + hi) / 2; if (f(m) > 0) hi = m; else lo = m; } return (lo + hi) / 2; }
+  // pH from alkalinity and dissolved inorganic carbon, by charge balance (both mmol/L).
+  function solvePH(alk, dic, tC) {
+    var k = carbonateK(tC);
+    return bisectPH(function (pH) { var H = Math.pow(10, -pH), s = carbonSpecies(dic, pH, k); return s.hco3 + 2 * s.co3 + (k.Kw / H - H) * 1000 - alk; });
+  }
+  // Water in equilibrium with air at the given alkalinity.
+  function airEquilibrium(alk, pco2, tC) {
+    var k = carbonateK(tC), co2 = k.KH * pco2 * 1000;
+    var pH = bisectPH(function (x) { var H = Math.pow(10, -x); return co2 * (k.K1 / H + 2 * k.K1 * k.K2 / (H * H)) + (k.Kw / H - H) * 1000 - alk; });
+    var H = Math.pow(10, -pH);
+    return { pH: pH, dic: co2 * (1 + k.K1 / H + k.K1 * k.K2 / (H * H)), co2: co2 };
+  }
+
   function create(opts) {
     opts = opts || {};
     var P = {};
@@ -3741,11 +3815,14 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       lastFeedDay: {}, feedCount: 0,
       tempC: opts.tempC == null ? P.setpointC : opts.tempC, doMg: doSaturation(P.setpointC) - 1,
       tan: 0.05, no2: 0.02, no3: 5, tssMgL: 0, detritusMg: 50, spongeMg: 0,
+      vol: P.volumeL, alk: P.alkMeqL, dic: 0,
+      mods: { chemistry: !!(opts.modules && opts.modules.chemistry), evaporation: !!(opts.modules && opts.modules.evaporation) },
       aob: mature, nob: mature, pH: P.pH, tds: P.tdsPpm,
       nIn: 0, nOut: 0, nFish: 0,
       filter: Filt.create({ enabled: opts.filter !== false, flowLph: null, mode: 'auto' }, P.volumeL, 0),
       rng: rng, sensors: {}, hist: [], nextHist: 0, events: []
     };
+    if (S.mods.chemistry) { var eq = airEquilibrium(S.alk, P.pco2Atm, S.tempC); S.dic = eq.dic; S.pH = eq.pH; }
     S.n0 = totalNitrogen(S);
     Object.keys(SENSORS).forEach(function (k) {
       var d = SENSORS[k];
@@ -3760,7 +3837,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
   function totalNitrogen(S) {
     var P = S.P;
-    return (S.tan + S.no2 + S.no3 + S.tssMgL * P.feedNFrac) * P.volumeL + (S.detritusMg + S.spongeMg) * P.feedNFrac;
+    return (S.tan + S.no2 + S.no3 + S.tssMgL * P.feedNFrac) * S.vol + (S.detritusMg + S.spongeMg) * P.feedNFrac;
   }
   // Nitrogen in the tank plus what left it, minus what entered. Must stay at zero.
   function nitrogenError(S) { return totalNitrogen(S) + S.nOut + S.nFish - S.n0 - S.nIn; }
@@ -3774,21 +3851,35 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var excreted = eatenN * P.excretedFrac, fecesN = eatenN * P.fecesFrac;
     S.nIn += mg * P.feedNFrac;
     S.nFish += eatenN - excreted - fecesN;
-    S.tan += excreted / P.volumeL;
-    S.tssMgL += (uneaten + fecesN / P.feedNFrac) / P.volumeL;
+    S.tan += excreted / S.vol;
+    if (S.mods.chemistry) S.alk += excreted / 14 / S.vol;
+    S.tssMgL += (uneaten + fecesN / P.feedNFrac) / S.vol;
     S.feedCount++;
     log(S, 'Feed: ' + mg + ' mg dry food');
   }
   // Instant exchange of a share of the water. The biofilter, sponge and gravel stay in place.
   function waterChange(S, share) {
-    var f = clamp(share, 0, 1), P = S.P, V = P.volumeL;
-    S.nOut += f * V * (S.tan + S.no2 + S.no3 + S.tssMgL * P.feedNFrac);
-    S.tan *= 1 - f; S.no2 *= 1 - f; S.no3 *= 1 - f; S.tssMgL *= 1 - f;
-    S.tempC += f * (P.sourceTempC - S.tempC);
-    S.doMg += f * (doSaturation(P.sourceTempC) - S.doMg);
-    S.tds += f * (P.sourceTdsPpm - S.tds);
+    var f = clamp(share, 0, 1);
+    exchange(S, f);
     log(S, 'Water change: ' + Math.round(f * 100) + ' %');
   }
+  // Removes a share of the tank water, then refills to the full level with replacement water.
+  function exchange(S, f) {
+    var P = S.P, V = S.vol, V0 = P.volumeL, keep = (1 - f) * V / V0, add = V === V0 ? f : 1 - keep;
+    S.nOut += f * V * (S.tan + S.no2 + S.no3 + S.tssMgL * P.feedNFrac);
+    S.tan *= keep; S.no2 *= keep; S.no3 *= keep; S.tssMgL *= keep;
+    S.tempC += add * (P.sourceTempC - S.tempC);
+    S.doMg += add * (doSaturation(P.sourceTempC) - S.doMg);
+    S.tds += add * (P.sourceTdsPpm - S.tds);
+    if (S.mods.chemistry) {
+      var src = airEquilibrium(P.sourceAlkMeqL, P.pco2Atm, P.sourceTempC);
+      S.alk = S.alk * keep + P.sourceAlkMeqL * add; S.dic = S.dic * keep + src.dic * add;
+      S.pH = solvePH(S.alk, S.dic, S.tempC);
+    }
+    S.vol = V0;
+  }
+  // Refills evaporated water. Nothing is removed from the tank.
+  function topUp(S) { var added = S.P.volumeL - S.vol; exchange(S, 0); log(S, 'Topped up: ' + added.toFixed(2) + ' L'); }
   function siphon(S, share) {
     var f = clamp(share, 0, 1), out = S.detritusMg * f;
     S.detritusMg -= out; S.nOut += out * S.P.feedNFrac;
@@ -3811,14 +3902,21 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
   // ---------- one simulated minute ----------
   function step(S) {
-    var P = S.P, V = P.volumeL, dtH = 1 / 60, dtD = 1 / 1440;
+    var P = S.P, dtH = 1 / 60, dtD = 1 / 1440;
     S.minute++;
+    // evaporation removes water only, so everything dissolved becomes more concentrated
+    if (S.mods.evaporation && S.vol > 0.2 * P.volumeL) {
+      var newV = S.vol - P.evapLDay * dtD, cf = S.vol / newV;
+      S.tan *= cf; S.no2 *= cf; S.no3 *= cf; S.tssMgL *= cf; S.tds *= cf; S.alk *= cf; S.dic *= cf;
+      S.vol = newV;
+    }
+    var V = S.vol;
     var day = Math.floor(S.minute / 1440), tod = S.minute % 1440;
     if (S.autoFeed) S.feeds.forEach(function (m) { var k = day + ':' + m; if (tod === m && !S.lastFeedDay[k]) { S.lastFeedDay[k] = 1; feed(S); } });
 
     // pump and sponge: reuses the existing AquaCare controller
     var F = S.filter, turb = S.sensors.turb;
-    Filt.step(F, 1, { power: S.power, V: V, t: S.minute * 60000, turbNtu: turb.value, turbStatus: turb.status });
+    Filt.step(F, 1, { power: S.power, V: P.volumeL, t: S.minute * 60000, turbNtu: turb.value, turbStatus: turb.status, levelPct: S.mods.evaporation ? 100 * S.vol / P.volumeL : null });
     var Q = Filt.processing(F, V) ? F.flow : 0, turnover = Q / V;
 
     // temperature: lumped energy balance
@@ -3843,14 +3941,14 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     S.tan += (decayed * P.feedNFrac + fishN) / V;
 
     // biofilter
-    var fDo = S.doMg / (S.doMg + P.koMgL), used = 0;
+    var fDo = S.doMg / (S.doMg + P.koMgL), used = 0, oxidised = 0;
     if (Q > 0) {
       var fFlow = Math.min(1, turnover / SC.fullFlowTurnover);
       var sA = S.tan / (P.ksMgL + S.tan), sN = S.no2 / (P.ksMgL + S.no2);
       var tA = Math.max(0, 1 + (fDo < sA ? P.nitrifPerCDoLimited : P.nitrifPerCTanLimited) * (S.tempC - 20));
       var tN = Math.max(0, 1 + (fDo < sN ? P.nitrifPerCDoLimited : P.nitrifPerCTanLimited) * (S.tempC - 20));
       var a = Math.min(S.tan * V, P.aobMaxMgDay * S.aob * fDo * fFlow * sA * tA * dtD);
-      S.tan -= a / V; S.no2 += a / V;
+      S.tan -= a / V; S.no2 += a / V; oxidised = a;
       var n = Math.min(S.no2 * V, P.nobMaxMgDay * S.nob * fDo * fFlow * sN * tN * dtD);
       S.no2 -= n / V; S.no3 += n / V;
       used = (a * P.o2PerNAmmonia + n * P.o2PerNNitrite) / V;
@@ -3865,6 +3963,15 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var sat = doSaturation(S.tempC), kLa = P.kLaSurface + P.kLaFlow * Math.min(1, turnover / P.kLaTurnover);
     S.doMg += (sat - S.doMg) * (1 - Math.exp(-kLa * dtH)) - (P.fishO2MgH * P.fishCount * dtH + decayed * P.bodMgMg) / V - used;
     S.doMg = Math.max(0, S.doMg);
+
+    // carbonate chemistry: ammonia release adds alkalinity, nitrification removes it, CO2 follows respiration and gas exchange
+    if (S.mods.chemistry) {
+      S.alk += ((decayed * P.feedNFrac + fishN) / 14 - 2 * oxidised / 14) / V;
+      S.dic += (P.fishO2MgH * P.fishCount * dtH + decayed * P.bodMgMg) / 32 * P.rqCo2 / V;
+      var ck = carbonateK(S.tempC), pH1 = solvePH(S.alk, S.dic, S.tempC), co2Now = carbonSpecies(S.dic, pH1, ck).co2;
+      S.dic = Math.max(1e-6, S.dic + (ck.KH * P.pco2Atm * 1000 - co2Now) * (1 - Math.exp(-kLa * P.kLaCo2Ratio * dtH)));
+      S.pH = solvePH(S.alk, S.dic, S.tempC);
+    }
 
     readSensors(S);
     if (S.minute >= S.nextHist) record(S);
@@ -3892,7 +3999,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       calculated: {
         tempC: S.tempC, doMg: S.doMg, doSat: sat, doPct: 100 * S.doMg / sat, tan: S.tan, nh3: S.tan * f, nh3Pct: f * 100, no2: S.no2, no3: S.no3,
         tssMgL: S.tssMgL, turbNtu: turbidityNtu(S), detritusMg: S.detritusMg, spongeMg: S.spongeMg, pH: S.pH, tds: S.tds,
-        bioPct: 100 * Math.min(S.aob, S.nob), flowLph: S.filter.flow
+        bioPct: 100 * Math.min(S.aob, S.nob), flowLph: S.filter.flow, alkMeqL: S.alk, levelPct: 100 * S.vol / P.volumeL,
+        co2MgL: S.mods.chemistry ? carbonSpecies(S.dic, S.pH, carbonateK(S.tempC)).co2 * 44.01 : null
       },
       virtual: Object.keys(SENSORS).reduce(function (o, k) { o[k] = { value: S.sensors[k].value, status: S.sensors[k].status, uncalibrated: !!SENSORS[k].uncalibrated }; return o; }, {}),
       measured: null,
@@ -3901,7 +4009,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   }
   function record(S) {
     var c = snapshot(S).calculated;
-    S.hist.push({ minute: S.minute, tempC: c.tempC, doMg: c.doMg, tan: c.tan, no2: c.no2, no3: c.no3, turbNtu: c.turbNtu, flowLph: c.flowLph });
+    S.hist.push({ minute: S.minute, tempC: c.tempC, doMg: c.doMg, tan: c.tan, no2: c.no2, no3: c.no3, turbNtu: c.turbNtu, flowLph: c.flowLph, pH: c.pH, alk: c.alkMeqL, levelPct: c.levelPct });
     if (S.hist.length > 1440) S.hist.shift();
     S.nextHist = S.minute + 60;
   }
@@ -3921,9 +4029,75 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     };
   }
 
+  // ---------- real-tank data: never generated by the model ----------
+  var MEASURES = [
+    { key: 'tempC', col: 'temperature_c', label: 'Temperature', unit: '°C', min: 0, max: 50 },
+    { key: 'pH', col: 'ph', label: 'pH', unit: 'pH', min: 0, max: 14 },
+    { key: 'alk', col: 'alkalinity_meq_l', label: 'Alkalinity', unit: 'meq/L', min: 0, max: 50 },
+    { key: 'doMg', col: 'dissolved_oxygen_mg_l', label: 'Dissolved oxygen', unit: 'mg/L', min: 0, max: 30 },
+    { key: 'tan', col: 'ammonia_mg_n_l', label: 'Total ammonia', unit: 'mg N/L', min: 0, max: 100 },
+    { key: 'no2', col: 'nitrite_mg_n_l', label: 'Nitrite', unit: 'mg N/L', min: 0, max: 100 },
+    { key: 'no3', col: 'nitrate_mg_n_l', label: 'Nitrate', unit: 'mg N/L', min: 0, max: 500 },
+    { key: 'turbNtu', col: 'turbidity_ntu', label: 'Turbidity', unit: 'NTU', min: 0, max: 3000 }
+  ];
+  function measuredTemplate() {
+    return ['# AquaCare real-tank measurements. Enter only values you measured on a real aquarium.', '# day = days since the start of the simulated run. Leave a cell empty if it was not measured.', 'day,' + MEASURES.map(function (m) { return m.col; }).join(','), ''].join('\r\n');
+  }
+  function parseMeasuredCSV(text) {
+    var lines = String(text).replace(/^\uFEFF/, '').split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l && l.charAt(0) !== '#'; });
+    var out = { rows: [], errors: [], columns: [] };
+    if (!lines.length) { out.errors.push('The file has no data.'); return out; }
+    var head = lines[0].split(',').map(function (h) { return h.trim().toLowerCase(); }), dayAt = head.indexOf('day');
+    if (dayAt < 0) { out.errors.push('The first row must include a "day" column.'); return out; }
+    var used = MEASURES.filter(function (m) { return head.indexOf(m.col) >= 0; });
+    out.columns = used.map(function (m) { return m.key; });
+    if (!used.length) { out.errors.push('No recognised measurement columns were found.'); return out; }
+    lines.slice(1).forEach(function (line, i) {
+      var c = line.split(','), day = Number(c[dayAt]), row = { day: day }, bad = null;
+      if (c[dayAt] === undefined || c[dayAt].trim() === '' || !isFinite(day) || day < 0) bad = 'invalid day';
+      used.forEach(function (m) {
+        var raw = (c[head.indexOf(m.col)] || '').trim(); if (raw === '') return;
+        var v = Number(raw); if (!isFinite(v) || v < m.min || v > m.max) bad = m.col + ' is out of range'; else row[m.key] = v;
+      });
+      if (bad) out.errors.push('Row ' + (i + 2) + ': ' + bad); else out.rows.push(row);
+    });
+    out.rows.sort(function (a, b) { return a.day - b.day; });
+    return out;
+  }
+  function historyAt(hist, minute, key) {
+    if (!hist.length || minute < hist[0].minute || minute > hist[hist.length - 1].minute) return null;
+    var lo = 0, hi = hist.length - 1;
+    while (hi - lo > 1) { var m = (lo + hi) >> 1; if (hist[m].minute <= minute) lo = m; else hi = m; }
+    var a = hist[lo], b = hist[hi], f = b.minute > a.minute ? (minute - a.minute) / (b.minute - a.minute) : 0;
+    return a[key] + (b[key] - a[key]) * f;
+  }
+  // Model minus measured, at each measured time inside the simulated history.
+  function compareMeasured(hist, rows) {
+    return MEASURES.map(function (m) {
+      var e = [];
+      rows.forEach(function (r) { if (r[m.key] == null) return; var v = historyAt(hist, r.day * 1440, m.key); if (v != null) e.push(v - r[m.key]); });
+      if (!e.length) return null;
+      var sum = function (f) { return e.reduce(function (a, x) { return a + f(x); }, 0) / e.length; };
+      return { key: m.key, label: m.label, unit: m.unit, n: e.length, bias: sum(function (x) { return x; }), mae: sum(Math.abs), rmse: Math.sqrt(sum(function (x) { return x * x; })) };
+    }).filter(Boolean);
+  }
+
+  // Honest status of each realism stage, shown on the page.
+  var ROADMAP = [
+    { stage: 'Nitrogen, oxygen, heat and filtration', status: 'Working', note: 'Equations work, but many rates are stand-ins' },
+    { stage: 'pH, alkalinity and CO₂', status: 'Working', note: 'Published carbonate equilibrium. Gas transfer is a stand-in' },
+    { stage: 'Evaporation, water level and top-ups', status: 'Working', note: 'Evaporation rate is a stand-in until measured' },
+    { stage: 'Real-tank data comparison', status: 'Ready for data', note: 'Import measurements to compare them with the model' },
+    { stage: 'Automatic calibration to a real tank', status: 'Needs real data', note: 'Requires about 30 days of measurements' },
+    { stage: 'Bacteria on gravel and glass', status: 'Planned', note: 'Needs published surface-area data' },
+    { stage: 'Algae, plants and light cycle', status: 'Planned', note: 'Needs published growth data' },
+    { stage: 'Fish health, stress, appetite and growth', status: 'Planned', note: 'Needs a chosen species and species data' }
+  ];
+
   var Model = {
     PARAMS: PARAMS, SENSORS: SENSORS, create: create, step: step, advance: advance, snapshot: snapshot, toTank3D: toTank3D,
-    feed: feed, waterChange: waterChange, siphon: siphon, cleanSponge: cleanSponge, setPump: setPump, setPower: setPower, setHeater: setHeater, setSensor: setSensor,
+    feed: feed, waterChange: waterChange, topUp: topUp, carbonateK: carbonateK, carbonSpecies: carbonSpecies, solvePH: solvePH, airEquilibrium: airEquilibrium,
+    MEASURES: MEASURES, ROADMAP: ROADMAP, measuredTemplate: measuredTemplate, parseMeasuredCSV: parseMeasuredCSV, compareMeasured: compareMeasured, siphon: siphon, cleanSponge: cleanSponge, setPump: setPump, setPower: setPower, setHeater: setHeater, setSensor: setSensor,
     doSaturation: doSaturation, nh3Fraction: nh3Fraction, nitrogenError: nitrogenError, turbidityNtu: turbidityNtu
   };
   root.AquaResearchModel = Model;
@@ -3936,14 +4110,14 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 (function () {
   'use strict';
   var M = window.AquaResearchModel, $ = function (id) { return document.getElementById(id); };
-  var S, running = false, carry = 0, last = 0, lastPaint = 0, lastFeeds = 0, tank = null;
+  var S, running = false, carry = 0, last = 0, lastPaint = 0, lastFeeds = 0, tank = null, measured = [];
 
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function clock(m) { var d = Math.floor(m / 1440) + 1, t = m % 1440; return 'Day ' + d + ' ' + ('0' + Math.floor(t / 60)).slice(-2) + ':' + ('0' + t % 60).slice(-2); }
   function fix(x, dp) { return x == null ? '' : x.toFixed(dp); }
 
   function reset() {
-    S = M.create({ start: $('rStart').value });
+    S = M.create({ start: $('rStart').value, modules: { chemistry: $('rChem').checked, evaporation: $('rEvap').checked } });
     lastFeeds = 0; carry = 0;
     $('rAmb').value = S.P.ambientC; $('rSet').value = S.P.setpointC;
     $('rFault').value = 'ok';
@@ -3956,20 +4130,34 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     if (v.value == null) return '<span class="none">No data' + (v.status === 'ok' ? '' : ' (' + esc(v.status) + ')') + '</span>';
     return esc(v.value.toFixed(dp)) + (v.status === 'ok' ? '' : ' <span class="none">' + esc(v.status) + '</span>') + (d.uncalibrated ? ' <span class="none">uncalibrated</span>' : '');
   }
+  function latestMeasured(key, dp) {
+    var hit = null;
+    measured.forEach(function (r) { if (r[key] != null && r.day * 1440 <= S.minute) hit = r; });
+    return hit ? esc(hit[key].toFixed(dp)) + ' <span class="none">day ' + esc(hit.day) + '</span>' : '<span class="none">None</span>';
+  }
   function paintRows() {
-    var c = M.snapshot(S).calculated, none = '<span class="none">No sensor</span>', meas = '<span class="none">None</span>';
+    var c = M.snapshot(S).calculated, none = '<span class="none">No sensor</span>', chem = S.mods.chemistry, na = '<span class="none">Not calculated</span>';
     var rows = [
-      ['Temperature (°C)', fix(c.tempC, 2), reading('temp', 2)],
-      ['pH (held constant)', fix(c.pH, 2), reading('ph', 2)],
-      ['TDS (ppm)', fix(c.tds, 0), reading('tds', 0)],
-      ['Turbidity (NTU)', fix(c.turbNtu, 1), reading('turb', 1)],
-      ['Dissolved oxygen (mg/L)', fix(c.doMg, 2) + ' <span class="none">' + Math.round(c.doPct) + ' % sat.</span>', none],
-      ['Total ammonia (mg N/L)', fix(c.tan, 3), none],
-      ['Un-ionised NH₃ (mg N/L)', fix(c.nh3, 4), none],
-      ['Nitrite (mg N/L)', fix(c.no2, 3), none],
-      ['Nitrate (mg N/L)', fix(c.no3, 1), none]
+      ['Temperature (°C)', fix(c.tempC, 2), reading('temp', 2), latestMeasured('tempC', 2)],
+      [chem ? 'pH' : 'pH (held constant)', fix(c.pH, 2), reading('ph', 2), latestMeasured('pH', 2)],
+      ['Alkalinity (meq/L)', chem ? fix(c.alkMeqL, 2) : na, none, latestMeasured('alk', 2)],
+      ['Dissolved CO₂ (mg/L)', chem ? fix(c.co2MgL, 1) : na, none, '<span class="none">None</span>'],
+      ['Water level (%)', S.mods.evaporation ? fix(c.levelPct, 1) : '<span class="none">Fixed at 100</span>', none, '<span class="none">None</span>'],
+      ['TDS (ppm)', fix(c.tds, 0), reading('tds', 0), '<span class="none">None</span>'],
+      ['Turbidity (NTU)', fix(c.turbNtu, 1), reading('turb', 1), latestMeasured('turbNtu', 1)],
+      ['Dissolved oxygen (mg/L)', fix(c.doMg, 2) + ' <span class="none">' + Math.round(c.doPct) + ' % sat.</span>', none, latestMeasured('doMg', 2)],
+      ['Total ammonia (mg N/L)', fix(c.tan, 3), none, latestMeasured('tan', 3)],
+      ['Un-ionised NH₃ (mg N/L)', fix(c.nh3, 4), none, '<span class="none">None</span>'],
+      ['Nitrite (mg N/L)', fix(c.no2, 3), none, latestMeasured('no2', 3)],
+      ['Nitrate (mg N/L)', fix(c.no3, 1), none, latestMeasured('no3', 1)]
     ];
-    $('rRows').innerHTML = rows.map(function (r) { return '<tr><th scope="row">' + r[0] + '</th><td class="num">' + r[1] + '</td><td class="num">' + r[2] + '</td><td>' + meas + '</td></tr>'; }).join('');
+    $('rRows').innerHTML = rows.map(function (r) { return '<tr><th scope="row">' + r[0] + '</th><td class="num">' + r[1] + '</td><td class="num">' + r[2] + '</td><td class="num">' + r[3] + '</td></tr>'; }).join('');
+    $('rWaterNote').textContent = (measured.length ? 'Measured values come from the file you loaded. ' : 'No measured aquarium data has been loaded. ') + (chem ? 'pH is calculated from alkalinity and dissolved CO₂. ' : 'pH is held constant in this mode. ') + 'The turbidity sensor has no published NTU calibration.';
+  }
+  function paintCompare() {
+    var rows = measured.length ? M.compareMeasured(S.hist, measured) : [];
+    $('rCompareWrap').hidden = !rows.length;
+    $('rCompare').innerHTML = rows.map(function (r) { var d = r.key === 'tan' || r.key === 'no2' ? 3 : 2; return '<tr><th scope="row">' + esc(r.label) + ' (' + esc(r.unit) + ')</th><td class="num">' + r.n + '</td><td class="num">' + r.bias.toFixed(d) + '</td><td class="num">' + r.mae.toFixed(d) + '</td><td class="num">' + r.rmse.toFixed(d) + '</td></tr>'; }).join('');
   }
   function paintFilter() {
     var c = M.snapshot(S).calculated, F = S.filter, rows = [
@@ -3985,7 +4173,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   }
   function paintCharts() {
     $('rCharts').innerHTML = S.hist.length < 2 ? '<p class="fine">Trends appear after the first simulated hours.</p>' :
-      spark('tempC', 'Temperature', '°C', 2) + spark('doMg', 'Dissolved oxygen', 'mg/L', 2) + spark('tan', 'Total ammonia', 'mg N/L', 3) + spark('no2', 'Nitrite', 'mg N/L', 3) + spark('no3', 'Nitrate', 'mg N/L', 1) + spark('turbNtu', 'Turbidity', 'NTU', 1);
+      spark('tempC', 'Temperature', '°C', 2) + (S.mods.chemistry ? spark('pH', 'pH', 'pH', 2) + spark('alk', 'Alkalinity', 'meq/L', 2) : '') + (S.mods.evaporation ? spark('levelPct', 'Water level', '%', 1) : '') + spark('doMg', 'Dissolved oxygen', 'mg/L', 2) + spark('tan', 'Total ammonia', 'mg N/L', 3) + spark('no2', 'Nitrite', 'mg N/L', 3) + spark('no3', 'Nitrate', 'mg N/L', 1) + spark('turbNtu', 'Turbidity', 'NTU', 1);
   }
   function paint(all) {
     $('rClock').textContent = clock(S.minute);
@@ -3996,7 +4184,8 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     $('rHeater').textContent = S.heaterEnabled ? 'Disable heater' : 'Enable heater';
     $('rPower').textContent = S.power === 'on' ? 'Cut power' : 'Restore power';
     $('rAmbOut').textContent = S.P.ambientC + ' °C'; $('rSetOut').textContent = S.P.setpointC + ' °C';
-    paintRows(); paintFilter(); paintCharts();
+    $('rTopUp').disabled = !S.mods.evaporation;
+    paintRows(); paintCompare(); paintFilter(); paintCharts();
     $('rLog').innerHTML = S.events.length ? S.events.slice(0, 30).map(function (e) { return '<li><time>' + clock(e.minute) + '</time>' + esc(e.text) + '</li>'; }).join('') : '<li>No events yet</li>';
     if (tank) tank.update(M.toTank3D(S));
   }
@@ -4020,6 +4209,31 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var v = typeof x.value === 'number' && !Number.isInteger(x.value) ? +x.value.toPrecision(4) : x.value;
     return '<tr><td><span class="rtag rtag--' + x.cls + '">' + x.cls.charAt(0).toUpperCase() + x.cls.slice(1) + '</span></td><td>' + esc(x.key) + '</td><td class="num">' + esc(v) + ' ' + esc(x.unit) + '</td><td>' + esc(x.source || '-') + '</td><td>' + esc(x.note) + '</td></tr>';
   }).join('');
+
+  $('rRoadmap').innerHTML = M.ROADMAP.map(function (r) { return '<tr><th scope="row">' + esc(r.stage) + '</th><td>' + esc(r.status) + '</td><td>' + esc(r.note) + '</td></tr>'; }).join('');
+
+  $('rChem').addEventListener('change', function () { running = false; reset(); });
+  $('rEvap').addEventListener('change', function () { running = false; reset(); });
+  $('rTopUp').addEventListener('click', act(function () { M.topUp(S); }));
+  $('rTemplate').addEventListener('click', function () {
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([M.measuredTemplate()], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'aquacare-real-tank-measurements-template.csv'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  });
+  $('rMeasured').addEventListener('change', function () {
+    var file = this.files[0], input = this; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var p = M.parseMeasuredCSV(reader.result);
+      measured = p.rows;
+      $('rClearMeasured').disabled = !measured.length;
+      $('rMeasuredState').textContent = measured.length ? 'Loaded ' + measured.length + ' measured rows from ' + file.name + (p.errors.length ? '. Skipped ' + p.errors.length + ' invalid rows: ' + p.errors.slice(0, 3).join('; ') : '.') : 'No rows loaded. ' + p.errors.slice(0, 3).join('; ');
+      input.value = ''; paint(true);
+    };
+    reader.onerror = function () { $('rMeasuredState').textContent = 'The file could not be read.'; };
+    reader.readAsText(file);
+  });
+  $('rClearMeasured').addEventListener('click', act(function () { measured = []; this.disabled = true; $('rMeasuredState').textContent = 'No measured data loaded.'; }));
 
   $('rRun').addEventListener('click', function () { running = !running; paint(); });
   $('rReset').addEventListener('click', function () { running = false; reset(); });
