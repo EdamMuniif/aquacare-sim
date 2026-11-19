@@ -97,7 +97,7 @@
   }
 
   // assumptions table
-  $('rParams').innerHTML = M.PARAMS.map(function (x) {
+  $('rParams').innerHTML = M.PARAMS.concat(M.HIDDEN_PARAMS).map(function (x) {
     var v = typeof x.value === 'number' && !Number.isInteger(x.value) ? +x.value.toPrecision(4) : x.value;
     return '<tr><td><span class="rtag rtag--' + x.cls + '">' + x.cls.charAt(0).toUpperCase() + x.cls.slice(1) + '</span></td><td>' + esc(x.key) + '</td><td class="num">' + esc(v) + ' ' + esc(x.unit) + '</td><td>' + esc(x.source || '-') + '</td><td>' + esc(x.note) + '</td></tr>';
   }).join('');

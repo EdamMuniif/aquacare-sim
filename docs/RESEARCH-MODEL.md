@@ -36,7 +36,8 @@ Every parameter is labelled on the page as **Published**, **Calculated**, **Illu
 - **Temperature sensitivity:** the published values apply at 20 °C and are extrapolated to tank temperatures.
 - **Stoichiometry:** nitrification oxygen demand uses molar masses and ignores bacterial growth.
 - **Food decay and organic turbidity:** the source register found no usable published values. They are included only because they are needed for the cause-and-effect chain, and they are labelled illustrative.
-- **Optional realism modules:** pH, alkalinity, CO₂, evaporation and water level are available on the page. See `docs/REALISM-MVP.md`.
+- **Optional realism modules:** pH, alkalinity, CO₂, evaporation and water level are available on the page. See `docs/REALISM-MVP.md`. Evaporation also removes its latent heat (2.44 MJ/kg), so the heater works harder when evaporation is on.
+- **Constants set in code:** filter and start-up values from `filter.js`, `filterstages.js` and `model.js` are listed on the page beside the other settings. All are illustrative.
 - **Not modelled:** algae and plants, bacteria outside the filter, fish health and behaviour, fish growth, nitrification inhibition, and activated carbon.
 - **Turbidity sensor:** the manufacturer publishes no NTU range, curve or accuracy, so readings are flagged uncalibrated.
 - **Sensor error:** a fixed error is drawn inside the published bound. The distribution is an illustrative choice.

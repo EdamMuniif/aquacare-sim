@@ -107,6 +107,29 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   check('14 The measured-data template is blank, and the model holds no measured data', t.rows.length === 0 && t.columns.length === M.MEASURES.length && M.snapshot(M.create({ modules: FULL })).measured === null, t.columns.length + ' columns');
 }
 
+// 15. evaporation carries away latent heat, and the energy budget still closes
+{
+  const run = evap => {
+    const S = M.create({ autoFeed: false, modules: { evaporation: evap } }), P = S.P; let heat = 0, loss = 0, latent = 0, stored = 0;
+    for (let i = 0; i < 3 * DAY; i++) {
+      const T = S.tempC, V = S.vol, evaporating = evap && S.vol > 0.2 * P.volumeL; M.step(S);
+      heat += (S.heaterOn ? P.heaterW : 0) * 60; loss += P.uaWK * (T - P.ambientC) * 60;
+      if (evaporating) latent += P.evapLDay / 1440 * P.rhoKgL * P.latentHeatJkg;
+      stored += P.rhoKgL * S.vol * P.cpJ * (S.tempC - T);
+    }
+    return { heat, residual: Math.abs(heat - loss - latent - stored), latent };
+  };
+  const on = run(true), off = run(false), expected = 0.08 * 2.44e6 * 3;
+  check('15 Evaporation removes latent heat, so the heater works harder, and energy is conserved', on.residual < 1e-3 && off.residual < 1e-3 && Math.abs(on.latent - expected) < 1 && on.heat > off.heat, `heater ${(off.heat / 3600).toFixed(0)} -> ${(on.heat / 3600).toFixed(0)} Wh over 3 days`);
+}
+
+// 16. constants set in code are listed for the page with their live values
+{
+  const Filt = require(path.join(__dirname, '..', 'js', 'filter.js'));
+  const h = Object.fromEntries(M.HIDDEN_PARAMS.map(p => [p.key, p]));
+  check('16 Constants set in code are listed with live values and a class', M.HIDDEN_PARAMS.length === 12 && h.filterCapture.value === Filt.CFG.capture && h.spongeLoadPerDay.value === Filt.CFG.loadPerDay && h.stopFlowShare.value === Filt.CFG.faultFlow && M.HIDDEN_PARAMS.every(p => p.cls === 'illustrative'), M.HIDDEN_PARAMS.length + ' constants');
+}
+
 console.log(out.join('\n'));
 console.log(pass + '/' + (pass + fail) + ' research realism checks passed');
 if (fail) process.exit(1);

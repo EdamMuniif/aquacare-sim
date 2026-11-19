@@ -3700,6 +3700,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     p('pco2Atm', 0.00042, 'atm', 'user', '', 'CO₂ in room air. Occupied rooms are often higher'),
     // physical constants
     p('cpJ', 4186, 'J/(kg·K)', 'calculated', '', 'Specific heat of water'),
+    p('latentHeatJkg', 2.44e6, 'J/kg', 'calculated', '', 'Latent heat of evaporation of water near 25 °C, rounded. Used only when evaporation is on'),
     p('rhoKgL', 1.0, 'kg/L', 'calculated', '', 'Water density, rounded'),
     p('o2PerNAmmonia', 48 / 14, 'mg O₂/mg N', 'calculated', '', 'NH₄⁺ to NO₂⁻, molar masses (1.5 O₂ per N), biomass ignored'),
     p('o2PerNNitrite', 16 / 14, 'mg O₂/mg N', 'calculated', '', 'NO₂⁻ to NO₃⁻, molar masses (0.5 O₂ per N), biomass ignored'),
@@ -3749,6 +3750,23 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   };
 
   var DEFAULT_FEEDS = [8 * 60, 13 * 60, 18 * 60];   // minutes after midnight
+  var ESTABLISHED_MATURITY = 0.9;
+
+  // Values the model uses that are set in code rather than in PARAMS. Read live, so the page always shows what runs.
+  var HIDDEN_PARAMS = [
+    p('filterCapture', Filt.CFG.capture, 'share per pass', 'illustrative', '', 'Solids caught per pass through the sponge. Set in filter.js'),
+    p('spongeResistanceK', Filt.CFG.resK, '-', 'illustrative', '', 'Flow resistance = 1 + K × load³. Set in filter.js'),
+    p('spongeLoadPerDay', Filt.CFG.loadPerDay, 'load/day', 'illustrative', '', 'Background clogging at full flow. Set in filter.js'),
+    p('spongeLoadPerNtuL', Filt.CFG.loadPerNtuL, 'load per NTU·L', 'illustrative', '', 'Clogging per amount of solids trapped. Set in filter.js'),
+    p('minTurnover', Filt.CFG.minTurnover, 'volumes/h', 'illustrative', '', 'Below this flow the filter stages do not process water. Set in filter.js'),
+    p('warnFlowShare', Filt.CFG.warnFlow, 'share of set flow', 'illustrative', '', 'Clean-sponge warning below this flow. Set in filter.js'),
+    p('stopFlowShare', Filt.CFG.faultFlow, 'share of set flow', 'illustrative', '', 'Protective pump stop below this flow. Set in filter.js'),
+    p('newFilterMaturity', SC.bioSeed, 'share', 'illustrative', '', 'Starting bacteria in a new filter. Set in filterstages.js'),
+    p('establishedMaturity', ESTABLISHED_MATURITY, 'share', 'illustrative', '', 'Starting bacteria in an established filter. Set in model.js'),
+    p('fullFlowTurnover', SC.fullFlowTurnover, 'volumes/h', 'illustrative', '', 'Flow at which bacteria are no longer flow-limited. Set in filterstages.js'),
+    p('startState', 'TAN 0.05, nitrite 0.02, nitrate 5 mg N/L; 50 mg settled waste; oxygen 1 mg/L below saturation', '', 'illustrative', '', 'Water condition at the start of every run. Set in model.js'),
+    p('sourceWaterN', 0, 'mg N/L', 'illustrative', '', 'Replacement water is assumed to carry no nitrogen. Set in model.js')
+  ];
 
   function mulberry32(seed) {
     return function () {
@@ -3809,7 +3827,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var P = {};
     PARAMS.forEach(function (x) { P[x.key] = x.value; });
     Object.keys(opts.params || {}).forEach(function (k) { if (k in P) P[k] = opts.params[k]; });
-    var mature = opts.start === 'new' ? SC.bioSeed : 0.9, seed = opts.seed || 20261122, rng = mulberry32(seed);
+    var mature = opts.start === 'new' ? SC.bioSeed : ESTABLISHED_MATURITY, seed = opts.seed || 20261122, rng = mulberry32(seed);
     var S = {
       P: P, seed: seed, minute: 0, power: 'on', heaterEnabled: true, heaterOn: false, autoFeed: opts.autoFeed !== false, feeds: DEFAULT_FEEDS.slice(),
       lastFeedDay: {}, feedCount: 0,
@@ -3905,9 +3923,11 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   function step(S) {
     var P = S.P, dtH = 1 / 60, dtD = 1 / 1440;
     S.minute++;
-    // evaporation removes water only, so everything dissolved becomes more concentrated
+    // evaporation removes water only, so everything dissolved becomes more concentrated, and it carries away latent heat
+    var evapJ = 0;
     if (S.mods.evaporation && S.vol > 0.2 * P.volumeL) {
       var newV = S.vol - P.evapLDay * dtD, cf = S.vol / newV;
+      evapJ = P.evapLDay * dtD * P.rhoKgL * P.latentHeatJkg;
       S.tan *= cf; S.no2 *= cf; S.no3 *= cf; S.tssMgL *= cf; S.tds *= cf; S.alk *= cf; S.dic *= cf;
       S.vol = newV;
     }
@@ -3924,7 +3944,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     if (S.power !== 'on' || !S.heaterEnabled) S.heaterOn = false;
     else if (S.tempC < P.setpointC - P.heaterBandC) S.heaterOn = true;
     else if (S.tempC > P.setpointC + P.heaterBandC) S.heaterOn = false;
-    S.tempC += ((S.heaterOn ? P.heaterW : 0) - P.uaWK * (S.tempC - P.ambientC)) * 60 / (P.rhoKgL * V * P.cpJ);
+    S.tempC += (((S.heaterOn ? P.heaterW : 0) - P.uaWK * (S.tempC - P.ambientC)) * 60 - evapJ) / (P.rhoKgL * V * P.cpJ);
 
     // solids: suspended -> settled or trapped -> ammonia
     var tssMg = S.tssMgL * V;
@@ -4098,7 +4118,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   var Model = {
     PARAMS: PARAMS, SENSORS: SENSORS, create: create, step: step, advance: advance, snapshot: snapshot, toTank3D: toTank3D,
     feed: feed, waterChange: waterChange, topUp: topUp, carbonateK: carbonateK, carbonSpecies: carbonSpecies, solvePH: solvePH, airEquilibrium: airEquilibrium,
-    MEASURES: MEASURES, ROADMAP: ROADMAP, measuredTemplate: measuredTemplate, parseMeasuredCSV: parseMeasuredCSV, compareMeasured: compareMeasured, siphon: siphon, cleanSponge: cleanSponge, setPump: setPump, setPower: setPower, setHeater: setHeater, setSensor: setSensor,
+    HIDDEN_PARAMS: HIDDEN_PARAMS, MEASURES: MEASURES, ROADMAP: ROADMAP, measuredTemplate: measuredTemplate, parseMeasuredCSV: parseMeasuredCSV, compareMeasured: compareMeasured, siphon: siphon, cleanSponge: cleanSponge, setPump: setPump, setPower: setPower, setHeater: setHeater, setSensor: setSensor,
     doSaturation: doSaturation, nh3Fraction: nh3Fraction, nitrogenError: nitrogenError, turbidityNtu: turbidityNtu
   };
   root.AquaResearchModel = Model;
@@ -4206,7 +4226,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   }
 
   // assumptions table
-  $('rParams').innerHTML = M.PARAMS.map(function (x) {
+  $('rParams').innerHTML = M.PARAMS.concat(M.HIDDEN_PARAMS).map(function (x) {
     var v = typeof x.value === 'number' && !Number.isInteger(x.value) ? +x.value.toPrecision(4) : x.value;
     return '<tr><td><span class="rtag rtag--' + x.cls + '">' + x.cls.charAt(0).toUpperCase() + x.cls.slice(1) + '</span></td><td>' + esc(x.key) + '</td><td class="num">' + esc(v) + ' ' + esc(x.unit) + '</td><td>' + esc(x.source || '-') + '</td><td>' + esc(x.note) + '</td></tr>';
   }).join('');
