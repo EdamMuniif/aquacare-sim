@@ -785,7 +785,7 @@ button, a, input, select, label { touch-action: manipulation; }
 .appbar__name { font-size: 18px; font-weight: 750; letter-spacing: -0.015em; }
 .appbar__sub { font-size: 11.5px; font-weight: 650; color: var(--muted); letter-spacing: .03em; }
 .appbar__sim { padding-top: 3px; padding-bottom: 3px; }
-.appbar__clock { display: grid; justify-items: end; line-height: 1.15; margin-left: auto; min-width: 0; }
+.appbar__clock { display: grid; justify-items: end; line-height: 1.15; margin-left: auto; flex: none; }
 .appbar .clock__time { font-size: 24px; font-weight: 650; line-height: 1.1; }
 .clock__meta { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
 .clock__meta b { color: var(--ink); }
@@ -806,6 +806,15 @@ button, a, input, select, label { touch-action: manipulation; }
 .viewnav button:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 .viewnav button[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(15, 31, 39, .14), inset 0 -3px 0 var(--accent); }
 .viewnav button[aria-current="page"] svg { color: var(--accent); }
+.viewnav a.viewnav__link { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 9px; color: var(--muted); font: 650 15px/1 var(--sans); white-space: nowrap; text-decoration: none; }
+.viewnav a.viewnav__link:hover { color: var(--ink); background: rgba(255, 255, 255, .7); }
+.viewnav a.viewnav__link:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+/* top bar between 1200 and 1499 px: tighter tabs, icon-only Realistic tab, clock without the calendar date */
+@media (min-width: 1200px) and (max-width: 1499px) {
+  .viewnav button, .viewnav a.viewnav__link { padding: 0 10px; }
+  .viewnav a.viewnav__link span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .appbar__clock .clock__date { display: none; }
+}
 
 /* ---------- page frame ---------- */
 .resume, .strip { max-width: calc(var(--maxw) - 2 * var(--pad)); }
@@ -927,7 +936,7 @@ button, a, input, select, label { touch-action: manipulation; }
 /* ---------- wide desktops and monitors ---------- */
 @media (min-width: 1800px) { :root { --maxw: 1720px; --gap: 24px; } }
 @media (min-width: 2300px) { :root { --maxw: 2040px; } body { font-size: 17px; } .appbar .clock__time { font-size: 28px; } }
-@media (max-width: 1599px) { .appbar__chips { display: none; } .clock__spd { display: inline; } }
+@media (max-width: 1799px) { .appbar__chips { display: none; } .clock__spd { display: inline; } }
 @media (max-width: 1439px) { .appbar__tour .lbl { display: none; } .appbar__tour { padding: 8px 14px; } .appbar__tour .btn--tour__icon { margin: 0; } }
 @media (max-width: 1359px) { .appbar__sub { display: none; } }
 
@@ -936,11 +945,12 @@ button, a, input, select, label { touch-action: manipulation; }
   :root { --navh: 64px; }
   .viewnav {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; margin: 0; border: 0; border-top: 1px solid var(--line-2); border-radius: 0;
-    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; background: rgba(251, 252, 252, .98);
+    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; background: rgba(251, 252, 252, .98);
     padding: 6px max(8px, env(safe-area-inset-right), calc((100% - 760px) / 2)) calc(6px + env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left), calc((100% - 760px) / 2));
     box-shadow: 0 -8px 24px -20px rgba(15, 31, 39, .6);
   }
-  .viewnav button { flex-direction: column; justify-content: center; gap: 3px; min-height: 52px; padding: 4px 2px; font-size: 12px; border-radius: 12px; }
+  .viewnav button, .viewnav a.viewnav__link { flex-direction: column; justify-content: center; gap: 3px; min-height: 52px; padding: 4px 2px; font-size: 12px; border-radius: 12px; }
+  .viewnav a.viewnav__link:hover { background: var(--surface-2); }
   .viewnav button[aria-current="page"] { box-shadow: none; background: var(--accent-soft); color: var(--accent-ink); }
   .viewnav button:hover { background: var(--surface-2); }
   .viewnav button[aria-current="page"]:hover { background: var(--accent-soft); }
@@ -950,7 +960,7 @@ button, a, input, select, label { touch-action: manipulation; }
   body.touring { padding-bottom: 0; }
   body.touring .tour { bottom: calc(12px + env(safe-area-inset-bottom)); }
 }
-@media (min-width: 700px) and (max-width: 1199px) { .viewnav button { flex-direction: row; gap: 8px; font-size: 14px; min-height: 48px; } }
+@media (min-width: 700px) and (max-width: 1199px) { .viewnav button, .viewnav a.viewnav__link { flex-direction: row; gap: 8px; font-size: 14px; min-height: 48px; } }
 
 /* ---------- phones ---------- */
 @media (max-width: 699px) {
@@ -1001,7 +1011,7 @@ button, a, input, select, label { touch-action: manipulation; }
   .simbar__more { display: none; }
   .appbar__in { min-height: 50px; padding-top: 4px; padding-bottom: 4px; }
   .viewnav { padding-top: 3px; padding-bottom: calc(3px + env(safe-area-inset-bottom)); }
-  .viewnav button { flex-direction: row; gap: 6px; min-height: 44px; font-size: 13px; }
+  .viewnav button, .viewnav a.viewnav__link { flex-direction: row; gap: 6px; min-height: 44px; font-size: 13px; }
   .stage .tank { max-height: calc(100dvh - 130px); }
   .presenter { width: min(420px, 70vw); max-height: none; top: 0; left: auto; border-radius: 16px 0 0 16px; transform: translateX(105%); }
   .presenter__head::before { display: none; }
@@ -1266,6 +1276,7 @@ html.fv-open, html.fv-open body { overflow: hidden; }
       <button type="button" data-view="feeding"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><circle cx="8.5" cy="14" r="1.2"/><circle cx="12" cy="14" r="1.2"/><circle cx="15.5" cy="14" r="1.2"/></svg><span>Feeding</span></button>
       <button type="button" data-view="records"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg><span>Records</span></button>
       <button type="button" data-view="project"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".6"/></svg><span>Project</span></button>
+      <a class="viewnav__link" href="research.html" title="Open the realistic aquarium research simulation (separate page)" aria-label="Realistic aquarium: open the research simulation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6.5L4.8 18.2A2 2 0 0 0 6.5 21h11a2 2 0 0 0 1.7-2.8L14 9.5V3"/><path d="M7.2 15h9.6"/></svg><span>Realistic</span></a>
     </nav>
     <div class="appbar__clock" aria-label="Simulated clock">
       <span id="clockTime" class="clock__time mono">07:58:00</span>
