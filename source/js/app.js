@@ -265,7 +265,7 @@
     ph: 'Accuracy target ±0.1 pH: project target only, not yet verified.',
     temp: 'Accuracy target ±0.5 °C: project target only, not yet verified.',
     tds: 'From reviewed paper [2]. Not yet in the AquaCare design.',
-    turb: 'From reviewed paper [2]. Not yet in the AquaCare design.'
+    turb: 'From reviewed paper [2]. Not yet in the AquaCare design. Uncalibrated: no NTU calibration data.'
   };
   function fmtV(k, v) { return v == null ? '-' : v.toFixed(SENS[k].dp); }
   function limitsOf(k) { var lk = SENS[k].lim; return [settings.limits[lk[0]], settings.limits[lk[1]]]; }
@@ -602,7 +602,7 @@
     var V = engine.filterVolume(), mx = AquaFilter.maxFlow(V), set = AquaFilter.target(f, V), proc = AquaFilter.processing(f, V);
     var sv = s.sensors, nxt = AquaFilter.nextInspection(f, V), low = St.carbonLow(w);
     var num = function (x, dp, unit) { return x == null ? 'No data' : x.toFixed(dp) + ' ' + unit; };
-    var water = [['Turbidity', num(sv.turb.value, 0, 'NTU')], ['pH', num(sv.ph.value, 2, '')], ['TDS', num(sv.tds.value, 0, 'ppm')], ['Temperature', num(sv.temp.value, 1, '°C')],
+    var water = [['Turbidity (uncalibrated)', num(sv.turb.value, 0, 'NTU')], ['pH', num(sv.ph.value, 2, '')], ['TDS', num(sv.tds.value, 0, 'ppm')], ['Temperature', num(sv.temp.value, 1, '°C')],
       ['Dissolved oxygen', w.doMg.toFixed(1) + ' mg/L'], ['Ammonia', w.tan.toFixed(2) + ' mg/L'], ['Nitrite', w.no2.toFixed(2) + ' mg/L'], ['Nitrate', w.no3.toFixed(1) + ' mg/L'], ['Water level', Math.round(w.level) + ' %']];
     var status = AquaFilter.status(f, low), tone = status === 'Normal' ? 'ok' : status === 'Off' ? 'off' : status === 'Maintenance' ? 'attn' : 'fault';
     var pump = AquaFilter.pumpLabel(f), pumpTone = pump === 'ON' ? 'ok' : pump === 'FAULT' ? 'fault' : 'off';
@@ -1486,7 +1486,7 @@
   });
   $('expRead').addEventListener('click', function () {
     var L = csvHead('Readings (one sample per simulated minute; raw and 5-sample smoothed)');
-    L.splice(3, 0, '# TDS and turbidity sensors come from reviewed paper [2] and are not yet in the AquaCare design. Operating ranges: ' + KEYS.map(function (k) { return SHORT[k] + ' ' + rangeText(k); }).join('; ') + (settings.limitsSource === 'reference' ? ' (reference values from paper [2])' : ''));
+    L.splice(3, 0, '# TDS and turbidity sensors come from reviewed paper [2] and are not yet in the AquaCare design. Operating ranges: ' + KEYS.map(function (k) { return SHORT[k] + ' ' + rangeText(k); }).join('; ') + (settings.limitsSource === 'reference' ? ' (reference values from paper [2])' : '') + '. Turbidity values are uncalibrated. Simulated noise is a demo choice, not the accuracy of the real sensor modules.');
     L.push('label,sim_day,date,time,' + KEYS.map(function (k) { var u = { ph: 'ph', temp: 'temperature_c', tds: 'tds_ppm', turb: 'turbidity_ntu' }[k]; return u + '_raw,' + u + '_raw_valid,' + u + '_smoothed'; }).join(',') + ',controller,wifi');
     var cacheDate = {};
     engine.s.samples.forEach(function (r) {

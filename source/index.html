@@ -269,12 +269,13 @@
       <header class="card__head"><h2 class="card__title">Processing rule</h2><span class="simtag">SIM</span></header>
       <ol class="chain" aria-label="Processing steps">
         <li><b>Measure</b><span>raw reading every simulated minute</span></li>
-        <li><b>Calibrate</b><span>no calibration data yet (identity)</span></li>
+        <li><b>Calibrate</b><span>no calibration data yet (identity); turbidity is uncalibrated</span></li>
         <li><b>Validate</b><span>reject impossible values</span></li>
         <li><b>Smooth</b><span>mean of last 5 valid samples</span></li>
         <li><b>Compare</b><span>with the operating range</span></li>
         <li><b>Alert</b><span>when the smoothed value leaves it</span></li>
       </ol>
+      <p class="fine">Simulated sensor noise is a demo choice. It does not represent the accuracy of the real sensor modules, which must be checked by calibration.</p>
       <button class="link" type="button" data-goto-tab="sens">See it live for each sensor</button>
     </article>
   <article class="card" id="healthCard" data-views="tank water">

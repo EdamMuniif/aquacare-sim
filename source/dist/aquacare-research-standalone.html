@@ -3826,8 +3826,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     S.n0 = totalNitrogen(S);
     Object.keys(SENSORS).forEach(function (k) {
       var d = SENSORS[k];
-      // One fixed error per run, anywhere inside the published bound. The distribution is an illustrative choice.
-      var bias = d.accuracy == null ? 0 : (rng() * 2 - 1) * d.accuracy;
+      // One fixed error per run, drawn inside the published bound minus the largest noise swing (3 x noise), so a
+      // healthy reading never needs clamping at the limit. The distribution is an illustrative choice.
+      var bias = d.accuracy == null ? 0 : (rng() * 2 - 1) * Math.max(0, d.accuracy - 3 * d.noise);
       S.sensors[k] = { status: 'ok', bias: bias, drift: 0, value: null, held: null };
     });
     readSensors(S);
