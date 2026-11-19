@@ -3694,7 +3694,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     p('tdsPpm', 230, 'ppm', 'user', '', 'Changes only through water changes'),
     p('sourceTempC', 25, '°C', 'user', '', 'Replacement water temperature'),
     p('sourceTdsPpm', 150, 'ppm', 'user', '', 'Replacement water TDS'),
-    p('feedMg', 30, 'mg dry', 'user', '', 'Dry food per feed'),
+    p('feedMgPerFish', 5, 'mg dry per fish', 'user', '', 'Dry food per fish at each feed. Each feed is this times the fish count (30 mg for 6 fish)'),
     p('alkMeqL', 2.0, 'meq/L', 'user', '', 'Starting alkalinity (100 mg/L as CaCO₃). Measure with a KH test'),
     p('sourceAlkMeqL', 2.0, 'meq/L', 'user', '', 'Replacement water alkalinity. Measure with a KH test'),
     p('pco2Atm', 0.00042, 'atm', 'user', '', 'CO₂ in room air. Occupied rooms are often higher'),
@@ -3721,7 +3721,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     p('uneatenFrac', 0.10, 'share', 'illustrative', '', 'Share of each feed left uneaten'),
     p('excretedFrac', 0.50, 'share', 'illustrative', '', 'Share of eaten nitrogen excreted as ammonia'),
     p('fecesFrac', 0.25, 'share', 'illustrative', '', 'Share of eaten nitrogen leaving as solid waste'),
-    p('fishTanMgDay', SC.fishTanPerDay, 'mg N/day', 'illustrative', '', 'Steady excretion by the stock between feeds'),
+    p('fishTanMgDayPerFish', SC.fishTanPerDay / 6, 'mg N/day per fish', 'illustrative', '', 'Steady excretion per fish between feeds: the demo stock value in filterstages.js shared over 6 fish. Scales with the fish count'),
     p('settlePerH', 0.5, '1/h', 'illustrative', '', 'Suspended solids settling to the gravel'),
     p('decayPerDay', 0.2, '1/day', 'illustrative', '', 'Breakdown of organic solids to ammonia'),
     p('bodMgMg', 1.0, 'mg O₂/mg', 'illustrative', '', 'Oxygen used per mg of solids broken down'),
@@ -3866,7 +3866,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
   // ---------- actions ----------
   function feed(S) {
-    var P = S.P, mg = P.feedMg, uneaten = mg * P.uneatenFrac, eatenN = (mg - uneaten) * P.feedNFrac;
+    var P = S.P, mg = P.feedMgPerFish * P.fishCount, uneaten = mg * P.uneatenFrac, eatenN = (mg - uneaten) * P.feedNFrac;
     var excreted = eatenN * P.excretedFrac, fecesN = eatenN * P.fecesFrac;
     S.nIn += mg * P.feedNFrac;
     S.nFish += eatenN - excreted - fecesN;
@@ -3957,7 +3957,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     var dA = tssMg * share, dB = S.detritusMg * share, dC = S.spongeMg * share, decayed = dA + dB + dC;
     tssMg -= dA; S.detritusMg -= dB; S.spongeMg -= dC;
     S.tssMgL = tssMg / V;
-    var fishN = P.fishTanMgDay * dtD;
+    var fishN = P.fishTanMgDayPerFish * P.fishCount * dtD;   // feed and excretion both scale with the stock
     S.nIn += fishN;
     S.tan += (decayed * P.feedNFrac + fishN) / V;
 

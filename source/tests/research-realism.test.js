@@ -30,7 +30,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
 
 // 4. alkalinity follows nitrification stoichiometry exactly
 {
-  const S = M.create({ autoFeed: false, modules: { chemistry: true }, params: { fishTanMgDay: 0 } });
+  const S = M.create({ autoFeed: false, modules: { chemistry: true }, params: { fishTanMgDayPerFish: 0 } });
   S.detritusMg = 0; S.tan = 3;
   const alk0 = S.alk, n0 = S.no2 + S.no3; M.advance(S, 3 * DAY);
   const expected = -2 * ((S.no2 + S.no3) - n0) / 14;
@@ -52,7 +52,7 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
 
 // 7. evaporation concentrates dissolved matter and conserves mass
 {
-  const S = M.create({ autoFeed: false, modules: { evaporation: true }, params: { fishTanMgDay: 0 } });
+  const S = M.create({ autoFeed: false, modules: { evaporation: true }, params: { fishTanMgDayPerFish: 0 } });
   M.setPump(S, false);
   const tds = S.tds * S.vol, no3 = S.no3; M.advance(S, 10 * DAY);
   check('7 Evaporation lowers the level, concentrates solids, and conserves mass', S.vol < S.P.volumeL && near(S.tds * S.vol, tds, 1e-6) && S.no3 > no3 && Math.abs(M.nitrogenError(S)) < 1e-8, `level ${(100 * S.vol / S.P.volumeL).toFixed(1)} %, TDS ${S.tds.toFixed(1)} ppm`);
@@ -128,6 +128,15 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
   const Filt = require(path.join(__dirname, '..', 'js', 'filter.js'));
   const h = Object.fromEntries(M.HIDDEN_PARAMS.map(p => [p.key, p]));
   check('16 Constants set in code are listed with live values and a class', M.HIDDEN_PARAMS.length === 12 && h.filterCapture.value === Filt.CFG.capture && h.spongeLoadPerDay.value === Filt.CFG.loadPerDay && h.stopFlowShare.value === Filt.CFG.faultFlow && M.HIDDEN_PARAMS.every(p => p.cls === 'illustrative'), M.HIDDEN_PARAMS.length + ' constants');
+}
+
+// 17. feed and steady fish ammonia scale with the fish count; 6 fish reproduce the earlier per-tank results exactly
+{
+  const run = fish => { const S = M.create({ params: { fishCount: fish } }); M.advance(S, 30 * DAY); return S; };
+  const s3 = run(3), s6 = run(6), s12 = run(12);
+  const ok6 = s6.no3 === 14.641500525321016 && s6.P.feedMgPerFish * s6.P.fishCount === 30;
+  check('17 Feed and fish ammonia scale with fish count; 6 fish match the earlier per-tank defaults exactly', ok6 && near(s12.nIn / s3.nIn, 4, 1e-9) && s3.no3 < s6.no3 && s6.no3 < s12.no3 && [s3, s6, s12].every(s => Math.abs(M.nitrogenError(s)) < 1e-6),
+    `nitrate at day 30: ${s3.no3.toFixed(2)} / ${s6.no3.toFixed(2)} / ${s12.no3.toFixed(2)} mg N/L for 3 / 6 / 12 fish`);
 }
 
 console.log(out.join('\n'));

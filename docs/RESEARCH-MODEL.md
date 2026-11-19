@@ -15,7 +15,7 @@ It reuses three v5 files without changing them:
 
 | Process | Model | Basis |
 |---|---|---|
-| Feeding | Food splits into uneaten solids, solid waste, excreted ammonia and nitrogen kept by the fish | Mass balance, illustrative shares |
+| Feeding | Food splits into uneaten solids, solid waste, excreted ammonia and nitrogen kept by the fish. Food per feed and steady fish ammonia are set per fish, so both scale with the fish count (default 5 mg per fish, 30 mg for 6 fish) | Mass balance, illustrative shares |
 | Solids | Suspended solids settle, get trapped in the sponge, or break down to ammonia | First-order rates, illustrative |
 | Turbidity | Clear-water baseline plus suspended solids | Illustrative conversion |
 | Mechanical filter | Trapped solids load the sponge, raising resistance and reducing flow | Existing `filter.js`, illustrative |
