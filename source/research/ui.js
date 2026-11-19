@@ -9,7 +9,7 @@
   function fix(x, dp) { return x == null ? '' : x.toFixed(dp); }
 
   function reset() {
-    S = M.create({ start: $('rStart').value, modules: { chemistry: $('rChem').checked, evaporation: $('rEvap').checked } });
+    S = M.create({ start: $('rStart').value, modules: { chemistry: $('rChem').checked, evaporation: $('rEvap').checked, dayNight: $('rDay').checked } });
     lastFeeds = 0; carry = 0;
     $('rAmb').value = S.P.ambientC; $('rSet').value = S.P.setpointC;
     $('rFault').value = 'ok';
@@ -65,7 +65,7 @@
   }
   function paintCharts() {
     $('rCharts').innerHTML = S.hist.length < 2 ? '<p class="fine">Trends appear after the first simulated hours.</p>' :
-      spark('tempC', 'Temperature', '°C', 2) + (S.mods.chemistry ? spark('pH', 'pH', 'pH', 2) + spark('alk', 'Alkalinity', 'meq/L', 2) : '') + (S.mods.evaporation ? spark('levelPct', 'Water level', '%', 1) : '') + spark('doMg', 'Dissolved oxygen', 'mg/L', 2) + spark('tan', 'Total ammonia', 'mg N/L', 3) + spark('no2', 'Nitrite', 'mg N/L', 3) + spark('no3', 'Nitrate', 'mg N/L', 1) + spark('turbNtu', 'Turbidity', 'NTU', 1);
+      spark('tempC', 'Temperature', '°C', 2) + (S.mods.dayNight ? spark('roomC', 'Room air', '°C', 1) : '') + (S.mods.chemistry ? spark('pH', 'pH', 'pH', 2) + spark('alk', 'Alkalinity', 'meq/L', 2) : '') + (S.mods.evaporation ? spark('levelPct', 'Water level', '%', 1) : '') + spark('doMg', 'Dissolved oxygen', 'mg/L', 2) + spark('tan', 'Total ammonia', 'mg N/L', 3) + spark('no2', 'Nitrite', 'mg N/L', 3) + spark('no3', 'Nitrate', 'mg N/L', 1) + spark('turbNtu', 'Turbidity', 'NTU', 1);
   }
   function paint(all) {
     $('rClock').textContent = clock(S.minute);
@@ -75,7 +75,7 @@
     $('rPump').textContent = pumpOn ? 'Stop pump' : 'Start pump';
     $('rHeater').textContent = S.heaterEnabled ? 'Disable heater' : 'Enable heater';
     $('rPower').textContent = S.power === 'on' ? 'Cut power' : 'Restore power';
-    $('rAmbOut').textContent = S.P.ambientC + ' °C'; $('rSetOut').textContent = S.P.setpointC + ' °C';
+    $('rAmbOut').textContent = S.mods.dayNight ? S.P.ambientC + ' °C average, now ' + M.roomTempC(S).toFixed(1) + ' °C' : S.P.ambientC + ' °C'; $('rSetOut').textContent = S.P.setpointC + ' °C';
     $('rTopUp').disabled = !S.mods.evaporation;
     paintRows(); paintCompare(); paintFilter(); paintCharts();
     $('rLog').innerHTML = S.events.length ? S.events.slice(0, 30).map(function (e) { return '<li><time>' + clock(e.minute) + '</time>' + esc(e.text) + '</li>'; }).join('') : '<li>No events yet</li>';
@@ -106,6 +106,7 @@
 
   $('rChem').addEventListener('change', function () { running = false; reset(); });
   $('rEvap').addEventListener('change', function () { running = false; reset(); });
+  $('rDay').addEventListener('change', function () { running = false; reset(); });
   $('rTopUp').addEventListener('click', act(function () { M.topUp(S); }));
   $('rTemplate').addEventListener('click', function () {
     var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([M.measuredTemplate()], { type: 'text/csv;charset=utf-8' }));

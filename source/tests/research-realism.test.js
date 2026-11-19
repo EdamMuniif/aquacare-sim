@@ -139,6 +139,22 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
     `nitrate at day 30: ${s3.no3.toFixed(2)} / ${s6.no3.toFixed(2)} / ${s12.no3.toFixed(2)} mg N/L for 3 / 6 / 12 fish`);
 }
 
+// 18. day/night room temperature: the room cycle averages to the set value, and with the heater off the water follows the
+//     analytic first-order response (amplitude ratio 1/sqrt(1+(wt)^2), lag atan(wt)/w) with t = rho*V*cp/UA
+{
+  const S = M.create({ autoFeed: false, modules: { dayNight: true } }), P = S.P;
+  let sum = 0, hi = -Infinity, hiMin = 0; for (let m = 0; m < DAY; m++) { const r = M.roomTempC(S, m); sum += r; if (r > hi) { hi = r; hiMin = m; } }
+  const roomOk = near(sum / DAY, P.ambientC, 1e-9) && near(hi, P.ambientC + P.roomSwingC, 1e-9) && hiMin === P.roomPeakHour * 60;
+  M.setHeater(S, false); M.advance(S, 12 * DAY);
+  let tMax = -Infinity, tMin = Infinity, tMaxMin = 0;
+  for (let m = 0; m < DAY; m++) { M.step(S); if (S.tempC > tMax) { tMax = S.tempC; tMaxMin = S.minute % DAY; } tMin = Math.min(tMin, S.tempC); }
+  const tau = P.rhoKgL * P.volumeL * P.cpJ / P.uaWK, w = 2 * Math.PI / 86400, wt = w * tau;
+  const ampExp = P.roomSwingC / Math.sqrt(1 + wt * wt), lagExpMin = Math.atan(wt) / w / 60, amp = (tMax - tMin) / 2, lag = tMaxMin - P.roomPeakHour * 60;
+  const off = M.create({ autoFeed: false }); M.advance(off, DAY);
+  check('18 Day/night room temperature averages to the set value, and the water follows the analytic lagged response', roomOk && near(amp, ampExp, 0.02 * ampExp) && Math.abs(lag - lagExpMin) <= 10 && M.roomTempC(off) === off.P.ambientC,
+    `water swing ±${amp.toFixed(3)} °C (expected ±${ampExp.toFixed(3)}), peak ${(lag / 60).toFixed(2)} h after the room (expected ${(lagExpMin / 60).toFixed(2)} h)`);
+}
+
 console.log(out.join('\n'));
 console.log(pass + '/' + (pass + fail) + ' research realism checks passed');
 if (fail) process.exit(1);

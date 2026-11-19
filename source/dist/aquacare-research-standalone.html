@@ -1273,7 +1273,8 @@ body.rs { margin: 0; padding: 0; background: #e9eff2; color: var(--ink); font-fa
       <header class="card__head"><h2 class="card__title">Realism upgrades</h2><span class="simtag">SIM</span></header>
       <label class="switch"><input type="checkbox" id="rChem" checked><span>Calculate pH, alkalinity and CO₂</span></label>
       <label class="switch"><input type="checkbox" id="rEvap" checked><span>Include evaporation and water level</span></label>
-      <p class="fine">Changing either option restarts the run. Turn both off to return to the earlier simplified model.</p>
+      <label class="switch"><input type="checkbox" id="rDay" checked><span>Room temperature follows a day/night cycle</span></label>
+      <p class="fine">Changing any option restarts the run. Turn all three off to return to the earlier simplified model.</p>
     </section>
 
     <section class="card">
@@ -3687,7 +3688,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   var PARAMS = [
     // operating conditions
     p('volumeL', 18.9, 'L', 'user', '', '5 US gal nominal'),
-    p('ambientC', 24, '°C', 'user', '', 'Room air temperature'),
+    p('ambientC', 24, '°C', 'user', '', 'Room air temperature. With the day/night module on, this is the daily average'),
+    p('roomSwingC', 2, '°C', 'user', '', 'Day/night module: room air rises and falls this much either side of the average. Set it from a room thermometer'),
+    p('roomPeakHour', 15, 'h', 'user', '', 'Day/night module: hour of the warmest room air'),
     p('heaterW', 50, 'W', 'user', '', 'Heater electrical power'),
     p('setpointC', 26, '°C', 'user', '', 'Heater thermostat setpoint'),
     p('pH', 7.0, 'pH', 'user', '', 'Held constant: carbonate chemistry is not modelled'),
@@ -3834,7 +3837,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       tempC: opts.tempC == null ? P.setpointC : opts.tempC, doMg: doSaturation(P.setpointC) - 1,
       tan: 0.05, no2: 0.02, no3: 5, tssMgL: 0, detritusMg: 50, spongeMg: 0,
       vol: P.volumeL, alk: P.alkMeqL, dic: 0,
-      mods: { chemistry: !!(opts.modules && opts.modules.chemistry), evaporation: !!(opts.modules && opts.modules.evaporation) },
+      mods: { chemistry: !!(opts.modules && opts.modules.chemistry), evaporation: !!(opts.modules && opts.modules.evaporation), dayNight: !!(opts.modules && opts.modules.dayNight) },
       aob: mature, nob: mature, pH: P.pH, tds: P.tdsPpm,
       nIn: 0, nOut: 0, nFish: 0,
       filter: Filt.create({ enabled: opts.filter !== false, flowLph: null, mode: 'auto' }, P.volumeL, 0),
@@ -3860,6 +3863,11 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   }
   // Nitrogen in the tank plus what left it, minus what entered. Must stay at zero.
   function nitrogenError(S) { return totalNitrogen(S) + S.nOut + S.nFish - S.n0 - S.nIn; }
+  // Room air temperature at a given minute. A smooth daily cycle when the day/night module is on; the daily average stays at ambientC.
+  function roomTempC(S, minute) {
+    var P = S.P, m = minute == null ? S.minute : minute;
+    return S.mods.dayNight ? P.ambientC + P.roomSwingC * Math.cos(2 * Math.PI * ((m % 1440) / 60 - P.roomPeakHour) / 24) : P.ambientC;
+  }
   function turbidityNtu(S) { return S.P.baseNtu + S.tssMgL * S.P.ntuPerMgL; }
 
   function log(S, text) { S.events.unshift({ minute: S.minute, text: text }); if (S.events.length > 60) S.events.length = 60; }
@@ -3944,7 +3952,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     if (S.power !== 'on' || !S.heaterEnabled) S.heaterOn = false;
     else if (S.tempC < P.setpointC - P.heaterBandC) S.heaterOn = true;
     else if (S.tempC > P.setpointC + P.heaterBandC) S.heaterOn = false;
-    S.tempC += (((S.heaterOn ? P.heaterW : 0) - P.uaWK * (S.tempC - P.ambientC)) * 60 - evapJ) / (P.rhoKgL * V * P.cpJ);
+    S.tempC += (((S.heaterOn ? P.heaterW : 0) - P.uaWK * (S.tempC - roomTempC(S))) * 60 - evapJ) / (P.rhoKgL * V * P.cpJ);
 
     // solids: suspended -> settled or trapped -> ammonia
     var tssMg = S.tssMgL * V;
@@ -4020,7 +4028,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       calculated: {
         tempC: S.tempC, doMg: S.doMg, doSat: sat, doPct: 100 * S.doMg / sat, tan: S.tan, nh3: S.tan * f, nh3Pct: f * 100, no2: S.no2, no3: S.no3,
         tssMgL: S.tssMgL, turbNtu: turbidityNtu(S), detritusMg: S.detritusMg, spongeMg: S.spongeMg, pH: S.pH, tds: S.tds,
-        bioPct: 100 * Math.min(S.aob, S.nob), flowLph: S.filter.flow, alkMeqL: S.alk, levelPct: 100 * S.vol / P.volumeL,
+        bioPct: 100 * Math.min(S.aob, S.nob), flowLph: S.filter.flow, alkMeqL: S.alk, levelPct: 100 * S.vol / P.volumeL, roomC: roomTempC(S),
         co2MgL: S.mods.chemistry ? carbonSpecies(S.dic, S.pH, carbonateK(S.tempC)).co2 * 44.01 : null
       },
       virtual: Object.keys(SENSORS).reduce(function (o, k) { o[k] = { value: S.sensors[k].value, status: S.sensors[k].status, uncalibrated: !!SENSORS[k].uncalibrated }; return o; }, {}),
@@ -4030,7 +4038,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   }
   function record(S) {
     var c = snapshot(S).calculated;
-    S.hist.push({ minute: S.minute, tempC: c.tempC, doMg: c.doMg, tan: c.tan, no2: c.no2, no3: c.no3, turbNtu: c.turbNtu, flowLph: c.flowLph, pH: c.pH, alk: c.alkMeqL, levelPct: c.levelPct });
+    S.hist.push({ minute: S.minute, tempC: c.tempC, doMg: c.doMg, tan: c.tan, no2: c.no2, no3: c.no3, turbNtu: c.turbNtu, flowLph: c.flowLph, pH: c.pH, alk: c.alkMeqL, levelPct: c.levelPct, roomC: c.roomC });
     if (S.hist.length > 1440) S.hist.shift();
     S.nextHist = S.minute + 60;
   }
@@ -4108,6 +4116,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     { stage: 'Nitrogen, oxygen, heat and filtration', status: 'Working', note: 'Equations work, but many rates are stand-ins' },
     { stage: 'pH, alkalinity and CO₂', status: 'Working', note: 'Published carbonate equilibrium. Gas transfer is a stand-in' },
     { stage: 'Evaporation, water level and top-ups', status: 'Working', note: 'Evaporation rate is a stand-in until measured' },
+    { stage: 'Day/night room temperature', status: 'Working', note: 'Smooth daily cycle. Set the average, swing and warmest hour from your room' },
     { stage: 'Real-tank data comparison', status: 'Ready for data', note: 'Import measurements to compare them with the model' },
     { stage: 'Automatic calibration to a real tank', status: 'Needs real data', note: 'Requires about 30 days of measurements' },
     { stage: 'Bacteria on gravel and glass', status: 'Planned', note: 'Needs published surface-area data' },
@@ -4117,7 +4126,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
   var Model = {
     PARAMS: PARAMS, SENSORS: SENSORS, create: create, step: step, advance: advance, snapshot: snapshot, toTank3D: toTank3D,
-    feed: feed, waterChange: waterChange, topUp: topUp, carbonateK: carbonateK, carbonSpecies: carbonSpecies, solvePH: solvePH, airEquilibrium: airEquilibrium,
+    feed: feed, roomTempC: roomTempC, waterChange: waterChange, topUp: topUp, carbonateK: carbonateK, carbonSpecies: carbonSpecies, solvePH: solvePH, airEquilibrium: airEquilibrium,
     HIDDEN_PARAMS: HIDDEN_PARAMS, MEASURES: MEASURES, ROADMAP: ROADMAP, measuredTemplate: measuredTemplate, parseMeasuredCSV: parseMeasuredCSV, compareMeasured: compareMeasured, siphon: siphon, cleanSponge: cleanSponge, setPump: setPump, setPower: setPower, setHeater: setHeater, setSensor: setSensor,
     doSaturation: doSaturation, nh3Fraction: nh3Fraction, nitrogenError: nitrogenError, turbidityNtu: turbidityNtu
   };
@@ -4138,7 +4147,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   function fix(x, dp) { return x == null ? '' : x.toFixed(dp); }
 
   function reset() {
-    S = M.create({ start: $('rStart').value, modules: { chemistry: $('rChem').checked, evaporation: $('rEvap').checked } });
+    S = M.create({ start: $('rStart').value, modules: { chemistry: $('rChem').checked, evaporation: $('rEvap').checked, dayNight: $('rDay').checked } });
     lastFeeds = 0; carry = 0;
     $('rAmb').value = S.P.ambientC; $('rSet').value = S.P.setpointC;
     $('rFault').value = 'ok';
@@ -4194,7 +4203,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   }
   function paintCharts() {
     $('rCharts').innerHTML = S.hist.length < 2 ? '<p class="fine">Trends appear after the first simulated hours.</p>' :
-      spark('tempC', 'Temperature', '°C', 2) + (S.mods.chemistry ? spark('pH', 'pH', 'pH', 2) + spark('alk', 'Alkalinity', 'meq/L', 2) : '') + (S.mods.evaporation ? spark('levelPct', 'Water level', '%', 1) : '') + spark('doMg', 'Dissolved oxygen', 'mg/L', 2) + spark('tan', 'Total ammonia', 'mg N/L', 3) + spark('no2', 'Nitrite', 'mg N/L', 3) + spark('no3', 'Nitrate', 'mg N/L', 1) + spark('turbNtu', 'Turbidity', 'NTU', 1);
+      spark('tempC', 'Temperature', '°C', 2) + (S.mods.dayNight ? spark('roomC', 'Room air', '°C', 1) : '') + (S.mods.chemistry ? spark('pH', 'pH', 'pH', 2) + spark('alk', 'Alkalinity', 'meq/L', 2) : '') + (S.mods.evaporation ? spark('levelPct', 'Water level', '%', 1) : '') + spark('doMg', 'Dissolved oxygen', 'mg/L', 2) + spark('tan', 'Total ammonia', 'mg N/L', 3) + spark('no2', 'Nitrite', 'mg N/L', 3) + spark('no3', 'Nitrate', 'mg N/L', 1) + spark('turbNtu', 'Turbidity', 'NTU', 1);
   }
   function paint(all) {
     $('rClock').textContent = clock(S.minute);
@@ -4204,7 +4213,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     $('rPump').textContent = pumpOn ? 'Stop pump' : 'Start pump';
     $('rHeater').textContent = S.heaterEnabled ? 'Disable heater' : 'Enable heater';
     $('rPower').textContent = S.power === 'on' ? 'Cut power' : 'Restore power';
-    $('rAmbOut').textContent = S.P.ambientC + ' °C'; $('rSetOut').textContent = S.P.setpointC + ' °C';
+    $('rAmbOut').textContent = S.mods.dayNight ? S.P.ambientC + ' °C average, now ' + M.roomTempC(S).toFixed(1) + ' °C' : S.P.ambientC + ' °C'; $('rSetOut').textContent = S.P.setpointC + ' °C';
     $('rTopUp').disabled = !S.mods.evaporation;
     paintRows(); paintCompare(); paintFilter(); paintCharts();
     $('rLog').innerHTML = S.events.length ? S.events.slice(0, 30).map(function (e) { return '<li><time>' + clock(e.minute) + '</time>' + esc(e.text) + '</li>'; }).join('') : '<li>No events yet</li>';
@@ -4235,6 +4244,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
   $('rChem').addEventListener('change', function () { running = false; reset(); });
   $('rEvap').addEventListener('change', function () { running = false; reset(); });
+  $('rDay').addEventListener('change', function () { running = false; reset(); });
   $('rTopUp').addEventListener('click', act(function () { M.topUp(S); }));
   $('rTemplate').addEventListener('click', function () {
     var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([M.measuredTemplate()], { type: 'text/csv;charset=utf-8' }));

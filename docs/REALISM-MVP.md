@@ -8,9 +8,10 @@
 |---|---|---|
 | pH, alkalinity and CO₂ | Calculates pH from alkalinity and dissolved inorganic carbon. Ammonia release adds alkalinity, nitrification removes it, and CO₂ follows respiration and gas exchange | Equilibrium constants from the USGS PHREEQC database. Stoichiometry from reaction balances. CO₂ transfer and respiration are illustrative |
 | Evaporation and water level | Removes pure water, concentrates dissolved matter, lowers the level, and triggers the existing dry-run protection. Top-ups refill the tank | Mass balance. The evaporation rate is illustrative |
+| Day/night room temperature | Room air follows a smooth daily cycle around the set average, so the water warms and cools a little and the heater responds | Energy balance. With the heater off the water lags the room by about 5.3 h at about 17 % of its swing, matching the analytic answer for this tank. The default 2 °C swing and 15:00 peak are user settings, not measurements |
 | Real-tank comparison | Imports measured CSV data and reports model bias, mean error and RMSE | Standard error measures. Data stays in the browser tab |
 
-Both modules can be turned off on the page. With them off, the research model keeps its earlier behaviour. The AquaCare v5 demo does not load any of this code.
+All three modules can be turned off on the page. With them off, the research model keeps its earlier behaviour. The AquaCare v5 demo does not load any of this code.
 
 ## How to make the model realistic
 
@@ -18,7 +19,7 @@ Run a real tank for at least 30 days, using the template from the research page.
 
 | Measure | Suggested frequency | Parameter it can calibrate |
 |---|---|---|
-| Water and room temperature | Hourly logger | Heat-loss coefficient |
+| Water and room temperature | Hourly logger | Heat-loss coefficient, room swing and warmest hour |
 | Heater running time or energy | Continuous | Heater power and heat balance |
 | Dissolved oxygen | Daily, plus one pump-off recovery test | Oxygen transfer and respiration |
 | pH and KH | Daily | Alkalinity use and CO₂ transfer |
