@@ -112,7 +112,26 @@
   <figure class="bay" id="bay" aria-labelledby="bayCap" data-views="tank">
       <div class="bay__chips">
         <span class="simtag simtag--dark">SIMULATION</span>
-        <span class="bay__right"><span class="bay__size bay__upk" id="bayUpkeep">Algae: light</span><span class="bay__size" id="baySize">Tank: 5 US gal &middot; demo setting</span></span>
+        <span class="bay__right"><span class="bay__size bay__upk" id="bayUpkeep">Algae: light</span><span class="bay__size" id="baySize">Tank: 5 US gal &middot; demo setting</span><button type="button" class="bay__full" id="fullBtn" aria-pressed="false"><span aria-hidden="true">&#x26F6;</span> Full view</button></span>
+      </div>
+      <div class="fv fv-top" role="group" aria-label="Full view controls">
+        <div class="fv-top__id"><span class="simtag simtag--dark">SIMULATION</span><span class="fv-top__title">AquaCare tank</span></div>
+        <div class="fv-top__clock"><span class="fv-top__time mono" id="fvClock">-</span><span class="fv-top__day" id="fvDay">-</span></div>
+        <div class="fv-top__ctl">
+          <button type="button" class="fv-btn fv-btn--run" id="fvRun">Start</button>
+          <div class="fv-speed" role="group" aria-label="Simulation speed" id="fvSpeed">
+            <button type="button" data-speed="1" aria-pressed="false">1&times;</button><button type="button" data-speed="60" aria-pressed="false">60&times;</button><button type="button" data-speed="600" aria-pressed="false">600&times;</button><button type="button" data-speed="3600" aria-pressed="false">1 h/s</button>
+          </div>
+          <button type="button" class="fv-btn" id="fvMode">2D</button>
+          <button type="button" class="fv-btn fv-btn--exit" id="fvExit" aria-label="Exit full view (Esc)"><span aria-hidden="true">&#x2715;</span> Exit</button>
+        </div>
+      </div>
+      <div class="fv fv-read" id="fvRead" aria-label="Water readings (simulated)"></div>
+      <div class="fv fv-feed" aria-label="Feeding today (simulated)">
+        <div class="fv-feed__state" id="fvState" data-tone="ok"><span class="fv-dot" aria-hidden="true"></span><span id="fvStateText">-</span></div>
+        <div class="fv-feed__row"><span class="fv-feed__k">Fed today</span><b class="mono" id="fvCount">0/3</b><span class="fv-feed__k">Next</span><b class="mono" id="fvNext">-</b></div>
+        <div class="fv-feed__alert" id="fvAlerts" hidden></div>
+        <button type="button" class="fv-press" id="fvPress"><span class="btn--press__icon" aria-hidden="true"></span>Press tank button</button>
       </div>
       <div class="tank3d" id="tank3d" hidden>
         <div class="tank3d__viewport" tabindex="0" role="region" aria-label="Interactive 3D aquarium" aria-describedby="tank3dHelp"></div>

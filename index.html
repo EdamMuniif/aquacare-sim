@@ -1168,6 +1168,80 @@ button, a, input, select, label { touch-action: manipulation; }
 .tank3d__tag--filter::before { background: #6fc8ff; }
 .filtQuick[aria-pressed="true"] { border-color: #6fc8ff; color: #bfe9ff; background: rgba(43, 111, 158, .35); }
 
+/* ---------- full-page tank view (UI only) ---------- */
+.bay__full { font: 700 12px var(--sans); color: #0d222b; background: #9cd9e3; border: 1px solid #b4e5ed; border-radius: 6px; min-height: 32px; padding: 0 10px; cursor: pointer; }
+.bay__full:hover { background: #b4e5ed; }
+.bay__full:focus-visible, .fv button:focus-visible { outline: 3px solid #ffd257; outline-offset: 2px; }
+.fv { display: none; }
+html.fv-open, html.fv-open body { overflow: hidden; }
+.bay.is-full {
+  position: fixed; inset: 0; z-index: 56; margin: 0; border: 0; border-radius: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "top" "main" "tools";
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+.bay.is-full > .bay__chips, .bay.is-full .bay__cap, .bay.is-full #tank3dHelp { display: none; }
+.bay.is-full .tank3d:not([hidden]) { display: contents; }
+.bay.is-full .tank3d__viewport, .bay.is-full .tank { grid-area: main; height: 100%; max-height: none; min-height: 0; width: 100%; }
+.bay.is-full .tank3d__tools { grid-area: tools; flex-wrap: wrap; overflow-x: auto; padding: 10px 12px 12px; background: rgba(8, 18, 25, .92); border-top: 1px solid rgba(255,255,255,.08); scrollbar-width: thin; }
+.bay.is-full .tank3d__tools > * { flex: 0 0 auto; } .bay.is-full .tank3d__tools select { width: auto; max-width: 220px; }
+.bay.is-full .fv-top { grid-area: top; display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 10px 14px; background: rgba(8, 18, 25, .94); border-bottom: 1px solid rgba(255,255,255,.08); color: #e2f0f2; }
+.fv-top__id { display: flex; align-items: center; gap: 10px; }
+.fv-top__title { font: 700 16px var(--sans); }
+.fv-top__clock { display: flex; align-items: baseline; gap: 10px; }
+.fv-top__time { font-size: 22px; font-weight: 700; letter-spacing: .02em; }
+.fv-top__day { font-size: 13px; color: #b7c9cf; }
+.fv-top__ctl { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+.fv-btn, .fv-speed button { background: #152c39; color: #e2f0f2; border: 1px solid #456271; border-radius: 8px; min-height: 44px; min-width: 44px; padding: 0 14px; font: 700 14px var(--sans); cursor: pointer; }
+.fv-btn:hover, .fv-speed button:hover { border-color: #b4e5ed; }
+.fv-btn--run { background: #1baf7a; border-color: #1baf7a; color: #04130d; min-width: 92px; }
+.fv-btn--run[aria-pressed="true"] { background: #f2c230; border-color: #f2c230; }
+.fv-btn--exit { background: transparent; }
+.fv-speed { display: flex; border-radius: 8px; overflow: hidden; }
+.fv-speed button { border-radius: 0; padding: 0 10px; font-weight: 600; }
+.fv-speed button + button { border-left: 0; }
+.fv-speed button:first-child { border-radius: 8px 0 0 8px; }
+.fv-speed button:last-child { border-radius: 0 8px 8px 0; }
+.fv-speed button[aria-pressed="true"] { background: #9cd9e3; color: #0d222b; border-color: #9cd9e3; }
+.bay.is-full .fv-read { grid-area: main; align-self: start; z-index: 2; display: grid; grid-template-columns: repeat(4, minmax(0, 150px)); gap: 10px; padding: 14px; pointer-events: none; }
+.fv-tile { pointer-events: auto; background: rgba(8, 18, 25, .78); border: 1px solid rgba(207, 225, 231, .18); border-radius: 12px; padding: 10px 12px; color: #e2f0f2; backdrop-filter: blur(4px); }
+.fv-tile__k { font-size: 12px; color: #b7c9cf; font-weight: 600; }
+.fv-tile__v { font: 700 26px var(--mono); line-height: 1.15; }
+.fv-tile__v small { font: 600 12px var(--sans); color: #b7c9cf; margin-left: 4px; }
+.fv-tile__v.is-nodata { font-size: 18px; color: #c9c7c1; }
+.fv-tag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; margin-top: 2px; }
+.fv-tag::before, .fv-dot { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #9aa5a8; display: inline-block; }
+[data-tone="ok"]::before, [data-tone="ok"] > .fv-dot { background: #3fd38f; }
+[data-tone="fault"]::before, [data-tone="fault"] > .fv-dot { background: #ff6b5e; }
+[data-tone="attn"]::before, [data-tone="attn"] > .fv-dot, [data-tone="warn"] > .fv-dot, [data-tone="reminder"] > .fv-dot, [data-tone="info"] > .fv-dot { background: #f2c230; }
+[data-tone="accent"] > .fv-dot { background: #7fc6ff; }
+.fv-tile[data-tone="fault"] { border-color: #ff6b5e; }
+.bay.is-full .fv-feed { grid-area: main; align-self: end; justify-self: start; z-index: 2; display: flex; flex-direction: column; gap: 8px; margin: 14px; padding: 12px 14px; width: min(340px, calc(100% - 28px)); background: rgba(8, 18, 25, .82); border: 1px solid rgba(207, 225, 231, .18); border-radius: 14px; color: #e2f0f2; backdrop-filter: blur(4px); }
+.fv-feed__state { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+.fv-feed__row { display: flex; align-items: baseline; gap: 8px; font-size: 14px; flex-wrap: wrap; }
+.fv-feed__k { color: #b7c9cf; font-size: 12px; font-weight: 600; }
+.fv-feed__row b + .fv-feed__k { margin-left: 10px; }
+.fv-feed__alert { font-size: 13px; font-weight: 700; color: #ffb3ab; }
+.fv-press { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; border-radius: 12px; border: 0; background: #c23a2c; color: #fff; font: 700 16px var(--sans); cursor: pointer; }
+.fv-press:hover { background: #d94a3b; }
+.fv-press:disabled { background: #4b5559; color: #c9c7c1; cursor: not-allowed; }
+@media (max-width: 760px) {
+  .bay.is-full .fv-top { gap: 8px; padding: 8px 10px; } .bay.is-full .tank3d__tools { flex-wrap: nowrap; padding: 8px 10px 10px; }
+  .fv-top__title { display: none; }
+  .fv-top__time { font-size: 18px; }
+  .fv-top__ctl { margin-left: 0; width: 100%; }
+  .bay.is-full .fv-top { position: relative; } .fv-top__ctl .fv-btn--exit { position: absolute; top: 6px; right: 10px; min-height: 40px; padding: 0 12px; }
+  .bay.is-full .fv-read { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; padding: 8px; }
+  .fv-tile { padding: 5px 9px; border-radius: 10px; display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: 8px; } .fv-tile__k { font-size: 11px; grid-column: 1 / -1; } .fv-tag { font-size: 11px; justify-self: end; }
+  .fv-tile__v { font-size: 18px; }
+  .bay.is-full .fv-feed { justify-self: stretch; width: auto; margin: 8px; padding: 10px; gap: 6px; }
+  .fv-press { min-height: 46px; font-size: 15px; }
+}
+@media (max-width: 400px) {
+  .fv-speed button { padding: 0 7px; font-size: 13px; }
+  .fv-btn { padding: 0 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .fv-tile, .bay.is-full .fv-feed { backdrop-filter: none; } }
+
 </style>
 </head>
 <body>
@@ -1273,7 +1347,26 @@ button, a, input, select, label { touch-action: manipulation; }
   <figure class="bay" id="bay" aria-labelledby="bayCap" data-views="tank">
       <div class="bay__chips">
         <span class="simtag simtag--dark">SIMULATION</span>
-        <span class="bay__right"><span class="bay__size bay__upk" id="bayUpkeep">Algae: light</span><span class="bay__size" id="baySize">Tank: 5 US gal &middot; demo setting</span></span>
+        <span class="bay__right"><span class="bay__size bay__upk" id="bayUpkeep">Algae: light</span><span class="bay__size" id="baySize">Tank: 5 US gal &middot; demo setting</span><button type="button" class="bay__full" id="fullBtn" aria-pressed="false"><span aria-hidden="true">&#x26F6;</span> Full view</button></span>
+      </div>
+      <div class="fv fv-top" role="group" aria-label="Full view controls">
+        <div class="fv-top__id"><span class="simtag simtag--dark">SIMULATION</span><span class="fv-top__title">AquaCare tank</span></div>
+        <div class="fv-top__clock"><span class="fv-top__time mono" id="fvClock">-</span><span class="fv-top__day" id="fvDay">-</span></div>
+        <div class="fv-top__ctl">
+          <button type="button" class="fv-btn fv-btn--run" id="fvRun">Start</button>
+          <div class="fv-speed" role="group" aria-label="Simulation speed" id="fvSpeed">
+            <button type="button" data-speed="1" aria-pressed="false">1&times;</button><button type="button" data-speed="60" aria-pressed="false">60&times;</button><button type="button" data-speed="600" aria-pressed="false">600&times;</button><button type="button" data-speed="3600" aria-pressed="false">1 h/s</button>
+          </div>
+          <button type="button" class="fv-btn" id="fvMode">2D</button>
+          <button type="button" class="fv-btn fv-btn--exit" id="fvExit" aria-label="Exit full view (Esc)"><span aria-hidden="true">&#x2715;</span> Exit</button>
+        </div>
+      </div>
+      <div class="fv fv-read" id="fvRead" aria-label="Water readings (simulated)"></div>
+      <div class="fv fv-feed" aria-label="Feeding today (simulated)">
+        <div class="fv-feed__state" id="fvState" data-tone="ok"><span class="fv-dot" aria-hidden="true"></span><span id="fvStateText">-</span></div>
+        <div class="fv-feed__row"><span class="fv-feed__k">Fed today</span><b class="mono" id="fvCount">0/3</b><span class="fv-feed__k">Next</span><b class="mono" id="fvNext">-</b></div>
+        <div class="fv-feed__alert" id="fvAlerts" hidden></div>
+        <button type="button" class="fv-press" id="fvPress"><span class="btn--press__icon" aria-hidden="true"></span>Press tank button</button>
       </div>
       <div class="tank3d" id="tank3d" hidden>
         <div class="tank3d__viewport" tabindex="0" role="region" aria-label="Interactive 3D aquarium" aria-describedby="tank3dHelp"></div>
@@ -7182,6 +7275,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     if (now - ui.chartAt > (s.running && s.speed >= 600 ? 700 : 400)) { ui.chartAt = now; drawChart(); }
 
     if (code !== ui.lastState) { if (ui.lastState !== null && !engine.quiet) $('liveState').textContent = title; ui.lastState = code; }
+    renderFull();
   }
 
   var frozenLcd = null;
@@ -8031,6 +8125,58 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
   $('mRun').addEventListener('click', toggleRun);
   $('resetBtn').addEventListener('click', function () { engine.reset(); ui.selectedDay = null; ui.sigCal = ''; setRange('all'); tank.render(settings.tankGal); tank.setAnimate($('animChk').checked); render(); });
   $('pressBtn').addEventListener('click', function () { engine.pressTankButton(); tank.pulseButton(); render(); });
+
+  // ---------- full-page tank view (UI only; reads the same state as the page) ----------
+  var fv = { on: false };
+  $('fvRead').innerHTML = KEYS.map(function (k) {
+    return '<div class="fv-tile" id="fvt-' + k + '"><div class="fv-tile__k">' + SHORT[k] + '</div><div class="fv-tile__v" id="fvv-' + k + '">-</div><div class="fv-tag" id="fvs-' + k + '">-</div></div>';
+  }).join('');
+  function renderFull() {
+    if (!fv || !fv.on) return;
+    var s = engine.s, st = engine.systemState(), f = s.feeds;
+    setText('fvClock', F.hhmmss(s.simTime));
+    setText('fvDay', 'Day ' + s.day + ' of ' + settings.days + ' \u00b7 ' + (s.speed === 1 ? 'real time' : 'demo speed ' + speedName(s.speed)));
+    var rb = $('fvRun'); setText('fvRun', s.finished ? 'Done' : (s.running ? 'Pause' : 'Start')); rb.setAttribute('aria-pressed', String(!!s.running)); rb.disabled = !!s.finished;
+    Array.prototype.forEach.call($('fvSpeed').querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-speed') === s.speed)); });
+    var mode = $('tankMode'); $('fvMode').hidden = mode.hidden; setText('fvMode', mode.textContent.replace('Switch to ', ''));
+    KEYS.forEach(function (k) {
+      var v = $('val-' + k), rs = $('rs-' + k), out = $('fvv-' + k), unit = SENS[k].unit === 'pH' ? '' : SENS[k].unit;
+      var nodata = v.classList.contains('is-nodata');
+      var html = nodata ? 'No data' : esc(v.textContent) + (unit ? '<small>' + esc(unit) + '</small>' : '');
+      if (out.innerHTML !== html) out.innerHTML = html;
+      out.classList.toggle('is-nodata', nodata);
+      setText('fvs-' + k, rs.textContent || '-'); $('fvs-' + k).setAttribute('data-tone', rs.getAttribute('data-tone') || 'off');
+      $('fvt-' + k).setAttribute('data-tone', rs.getAttribute('data-tone') || 'off');
+    });
+    $('fvState').setAttribute('data-tone', TONE[st.code] || 'ok'); setText('fvStateText', $('feedTitle').textContent || st.text);
+    setText('fvCount', f.counted + '/' + CAP); setText('fvNext', $('stripNext').textContent);
+    var active = s.alerts.filter(function (a) { return !a.ack; });
+    $('fvAlerts').hidden = !active.length; setText('fvAlerts', active.length ? '\u26A0 ' + active[0].text + (active.length > 1 ? ' (+' + (active.length - 1) + ' more)' : '') : '');
+    $('fvPress').disabled = $('pressBtn').disabled;
+  }
+  function setFull(on) {
+    if (!!on === fv.on) return;
+    fv.on = !!on;
+    // <main> is a CSS size container, which would trap a fixed panel inside it, so the panel moves to <body> while full
+    var bay = $('bay');
+    if (fv.on) { fv.mark = document.createComment('bay'); bay.parentNode.insertBefore(fv.mark, bay); document.body.appendChild(bay); }
+    else if (fv.mark) { fv.mark.parentNode.insertBefore(bay, fv.mark); fv.mark.remove(); fv.mark = null; }
+    bay.classList.toggle('is-full', fv.on);
+    document.documentElement.classList.toggle('fv-open', fv.on);
+    $('fullBtn').setAttribute('aria-pressed', String(fv.on));
+    $('bay').setAttribute('aria-label', fv.on ? 'Full view of the simulated aquarium' : '');
+    if (!fv.on) $('bay').removeAttribute('aria-label');
+    renderFull();
+    (fv.on ? $('fvExit') : $('fullBtn')).focus();
+  }
+  $('fullBtn').addEventListener('click', function () { setFull(true); });
+  $('fvExit').addEventListener('click', function () { setFull(false); });
+  $('fvRun').addEventListener('click', function () { toggleRun(); renderFull(); });
+  $('fvSpeed').addEventListener('click', function (ev) { var b = ev.target.closest('button'); if (!b) return; engine.setSpeed(+b.getAttribute('data-speed')); render(); renderFull(); });
+  $('fvMode').addEventListener('click', function () { $('tankMode').click(); renderFull(); });
+  $('fvPress').addEventListener('click', function () { $('pressBtn').click(); renderFull(); });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && fv.on && !document.querySelector('.scrim:not([hidden])')) setFull(false); });
+
   $('jumpBtn').addEventListener('click', function () { engine.jumpToNextFeed(); render(); });
   $('dayBtn').addEventListener('click', function () { engine.fastForwardNextDay(); render(); });
   $('endBtn').addEventListener('click', function () { engine.runToEnd(); render(); });

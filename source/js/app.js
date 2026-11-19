@@ -467,6 +467,7 @@
     if (now - ui.chartAt > (s.running && s.speed >= 600 ? 700 : 400)) { ui.chartAt = now; drawChart(); }
 
     if (code !== ui.lastState) { if (ui.lastState !== null && !engine.quiet) $('liveState').textContent = title; ui.lastState = code; }
+    renderFull();
   }
 
   var frozenLcd = null;
@@ -1316,6 +1317,58 @@
   $('mRun').addEventListener('click', toggleRun);
   $('resetBtn').addEventListener('click', function () { engine.reset(); ui.selectedDay = null; ui.sigCal = ''; setRange('all'); tank.render(settings.tankGal); tank.setAnimate($('animChk').checked); render(); });
   $('pressBtn').addEventListener('click', function () { engine.pressTankButton(); tank.pulseButton(); render(); });
+
+  // ---------- full-page tank view (UI only; reads the same state as the page) ----------
+  var fv = { on: false };
+  $('fvRead').innerHTML = KEYS.map(function (k) {
+    return '<div class="fv-tile" id="fvt-' + k + '"><div class="fv-tile__k">' + SHORT[k] + '</div><div class="fv-tile__v" id="fvv-' + k + '">-</div><div class="fv-tag" id="fvs-' + k + '">-</div></div>';
+  }).join('');
+  function renderFull() {
+    if (!fv || !fv.on) return;
+    var s = engine.s, st = engine.systemState(), f = s.feeds;
+    setText('fvClock', F.hhmmss(s.simTime));
+    setText('fvDay', 'Day ' + s.day + ' of ' + settings.days + ' \u00b7 ' + (s.speed === 1 ? 'real time' : 'demo speed ' + speedName(s.speed)));
+    var rb = $('fvRun'); setText('fvRun', s.finished ? 'Done' : (s.running ? 'Pause' : 'Start')); rb.setAttribute('aria-pressed', String(!!s.running)); rb.disabled = !!s.finished;
+    Array.prototype.forEach.call($('fvSpeed').querySelectorAll('button'), function (b) { b.setAttribute('aria-pressed', String(+b.getAttribute('data-speed') === s.speed)); });
+    var mode = $('tankMode'); $('fvMode').hidden = mode.hidden; setText('fvMode', mode.textContent.replace('Switch to ', ''));
+    KEYS.forEach(function (k) {
+      var v = $('val-' + k), rs = $('rs-' + k), out = $('fvv-' + k), unit = SENS[k].unit === 'pH' ? '' : SENS[k].unit;
+      var nodata = v.classList.contains('is-nodata');
+      var html = nodata ? 'No data' : esc(v.textContent) + (unit ? '<small>' + esc(unit) + '</small>' : '');
+      if (out.innerHTML !== html) out.innerHTML = html;
+      out.classList.toggle('is-nodata', nodata);
+      setText('fvs-' + k, rs.textContent || '-'); $('fvs-' + k).setAttribute('data-tone', rs.getAttribute('data-tone') || 'off');
+      $('fvt-' + k).setAttribute('data-tone', rs.getAttribute('data-tone') || 'off');
+    });
+    $('fvState').setAttribute('data-tone', TONE[st.code] || 'ok'); setText('fvStateText', $('feedTitle').textContent || st.text);
+    setText('fvCount', f.counted + '/' + CAP); setText('fvNext', $('stripNext').textContent);
+    var active = s.alerts.filter(function (a) { return !a.ack; });
+    $('fvAlerts').hidden = !active.length; setText('fvAlerts', active.length ? '\u26A0 ' + active[0].text + (active.length > 1 ? ' (+' + (active.length - 1) + ' more)' : '') : '');
+    $('fvPress').disabled = $('pressBtn').disabled;
+  }
+  function setFull(on) {
+    if (!!on === fv.on) return;
+    fv.on = !!on;
+    // <main> is a CSS size container, which would trap a fixed panel inside it, so the panel moves to <body> while full
+    var bay = $('bay');
+    if (fv.on) { fv.mark = document.createComment('bay'); bay.parentNode.insertBefore(fv.mark, bay); document.body.appendChild(bay); }
+    else if (fv.mark) { fv.mark.parentNode.insertBefore(bay, fv.mark); fv.mark.remove(); fv.mark = null; }
+    bay.classList.toggle('is-full', fv.on);
+    document.documentElement.classList.toggle('fv-open', fv.on);
+    $('fullBtn').setAttribute('aria-pressed', String(fv.on));
+    $('bay').setAttribute('aria-label', fv.on ? 'Full view of the simulated aquarium' : '');
+    if (!fv.on) $('bay').removeAttribute('aria-label');
+    renderFull();
+    (fv.on ? $('fvExit') : $('fullBtn')).focus();
+  }
+  $('fullBtn').addEventListener('click', function () { setFull(true); });
+  $('fvExit').addEventListener('click', function () { setFull(false); });
+  $('fvRun').addEventListener('click', function () { toggleRun(); renderFull(); });
+  $('fvSpeed').addEventListener('click', function (ev) { var b = ev.target.closest('button'); if (!b) return; engine.setSpeed(+b.getAttribute('data-speed')); render(); renderFull(); });
+  $('fvMode').addEventListener('click', function () { $('tankMode').click(); renderFull(); });
+  $('fvPress').addEventListener('click', function () { $('pressBtn').click(); renderFull(); });
+  document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape' && fv.on && !document.querySelector('.scrim:not([hidden])')) setFull(false); });
+
   $('jumpBtn').addEventListener('click', function () { engine.jumpToNextFeed(); render(); });
   $('dayBtn').addEventListener('click', function () { engine.fastForwardNextDay(); render(); });
   $('endBtn').addEventListener('click', function () { engine.runToEnd(); render(); });
