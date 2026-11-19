@@ -7,6 +7,7 @@
     (typeof require === 'function' ? require('./config.js') : null);
   if (!Config) throw new Error('AquaEcosystemConfig must load before core.js');
   var STATE_VERSION = 1;
+  var MAX_STEPS_PER_CALL = 1000000; // guard against malicious or accidental huge advances
   function copy(o) { return JSON.parse(JSON.stringify(o)); }
   function validateElapsed(ms) {
     if (!Number.isSafeInteger(ms) || ms < 0) throw new RangeError('Duration must be a non-negative safe integer in milliseconds');
@@ -47,6 +48,7 @@
       }
       var total = state.remainderMs + ms;
       var count = Math.floor(total / cfg.fixedStepMs);
+      if (count > MAX_STEPS_PER_CALL) throw new RangeError('Advance exceeds per-call step limit; run in smaller batches');
       state.remainderMs = total % cfg.fixedStepMs;
       for (var i = 0; i < count; i++) applyStep();
       return count;
