@@ -75,4 +75,4 @@ The existing three reviewed AquaCare feeding/sensor papers are feature-specific 
 
 ## Acceptance gates
 
-Eight Phase 1 checks were executed locally against the isolated files. No existing AquaCare tests were executed in that local workspace because the full repository was not available there. Before merging or shipping, run the current engine/filter suites, verify that a seeded legacy 30-day run matches commit 91f88cf exactly, establish the standalone build procedure and conduct cross-browser mobile testing. Passing software tests is not physical validation.
+Nine Phase 1 checks were executed locally against the isolated files. No existing AquaCare tests were executed in that local workspace because the full repository was not available there. Before merging or shipping, run the current engine/filter suites, verify that a seeded legacy 30-day run matches commit 91f88cf exactly, establish the standalone build procedure and conduct cross-browser mobile testing. Passing software tests is not physical validation.
