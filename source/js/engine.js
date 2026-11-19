@@ -17,7 +17,7 @@
   var DAILY_CAP = 3;                // project requirement
   var SAMPLE_EVERY = MIN;           // demo sampling interval
   var DISPENSE_REAL_MS = 3400;
-  // Optional mechanical filter (proposal). Loaded before this file in the browser; required in Node.
+  // Optional three-stage filter (team-confirmed design). Loaded before this file in the browser; required in Node.
   var Stages = root.AquaFilterStages || (typeof require === 'function' ? (function () { try { return require('./filterstages.js'); } catch (e) { return null; } })() : null);
   var Filt = root.AquaFilter || (typeof require === 'function' ? (function () { try { return require('./filter.js'); } catch (e) { return null; } })() : null);      // animation length at slow speeds (not a hardware timing)
   var DISPENSE_SIM_MS = 60 * SEC;   // upper bound in simulated time, so fast runs stay exact
@@ -129,7 +129,7 @@
       dailyPattern: true,                              // synthetic day/night shape in demo readings
       owner: { mode: 'presenter', respondPct: 60 },    // who presses the tank button
       policy: { interruptedReminder: 'missed', countAfterRestart: 'retain' },
-      filter: { enabled: false, flowLph: null, mode: 'auto', boost: false, carbon: false },   // filter proposal; off by default
+      filter: { enabled: false, flowLph: null, mode: 'auto', boost: false, carbon: false },   // team-confirmed filter design; off by default
       scenarios: []
     };
   }
@@ -349,7 +349,7 @@
     this.emit('change');
   };
 
-  // ---------- mechanical filter (proposal) ----------
+  // ---------- three-stage filter (team-confirmed design) ----------
   P.filterVolume = function () { return Filt ? Filt.volumeL(this.settings.tankGal) : 0; };
   P.filterStep = function () {
     this.pumpStep();
@@ -367,7 +367,7 @@
   };
   P.waterEvent = function (e) {
     if (e.type !== 'carbonLow') return;
-    if (e.on) { Filt.note(this.s.filter, this.s.simTime, 'Carbon nearly exhausted: replace the media'); this.raise('filter-carbon', 'equipment', 'Filter (proposal): carbon nearly exhausted, replace the media'); }
+    if (e.on) { Filt.note(this.s.filter, this.s.simTime, 'Carbon nearly exhausted: replace the media'); this.raise('filter-carbon', 'equipment', 'Filter: carbon nearly exhausted, replace the media'); }
     else this.clear('filter-carbon');
   };
   P.saveFilterCfg = function () {
@@ -395,26 +395,26 @@
     var s = this.s, F = s.filter, self = this;
     (ev || []).forEach(function (e) {
       if (e.type === 'state') {
-        self.addLog('logic', 'Filter (proposal): ' + (e.from ? e.from + ' \u2192 ' : '') + e.to + '. ' + e.why);
-        if (e.to === 'WARNING') { Filt.note(F, s.simTime, 'Warning: ' + e.why); self.raise('filter', 'equipment', 'Filter (proposal): ' + e.why); }
+        self.addLog('logic', 'Filter: ' + (e.from ? e.from + ' \u2192 ' : '') + e.to + '. ' + e.why);
+        if (e.to === 'WARNING') { Filt.note(F, s.simTime, 'Warning: ' + e.why); self.raise('filter', 'equipment', 'Filter: ' + e.why); }
         else if (e.to === 'FAULT' && F.faultKind === 'dry') Filt.note(F, s.simTime, 'Fault: ' + e.why);
         else if (e.to === 'FAULT') {
           Filt.note(F, s.simTime, 'Fault: ' + e.why);
           var a = self.findAlert('filter');
-          if (a) a.text = 'Filter (proposal): ' + e.why; else self.raise('filter', 'equipment', 'Filter (proposal): ' + e.why);
+          if (a) a.text = 'Filter: ' + e.why; else self.raise('filter', 'equipment', 'Filter: ' + e.why);
         } else if (e.to === 'RUNNING' || (e.to === 'OFF' && !F.enabled)) self.clear('filter');
       }
       if (e.type === 'cleaned') self.clear('filter', 'Alert cleared: filter sponge cleaned');
       if (e.type === 'interlock') {
-        if (e.on) self.raise('filter-dry', 'equipment', 'Filter (proposal): water level too low, dry-run protection active');
+        if (e.on) self.raise('filter-dry', 'equipment', 'Filter: water level too low, dry-run protection active');
         else { Filt.note(F, s.simTime, 'Water level restored'); self.clear('filter-dry'); }
       }
       if (e.type === 'sensor') {
-        if (e.on) { Filt.note(F, s.simTime, 'Turbidity sensor error: automatic boost disabled'); self.raise('filter-sensor', 'equipment', 'Filter (proposal): turbidity sensor error, automatic boost disabled'); }
+        if (e.on) { Filt.note(F, s.simTime, 'Turbidity sensor error: automatic boost disabled'); self.raise('filter-sensor', 'equipment', 'Filter: turbidity sensor error, automatic boost disabled'); }
         else self.clear('filter-sensor');
       }
-      if (e.type === 'boost') { Filt.note(F, s.simTime, e.on ? 'Turbidity boost on' : 'Turbidity boost off'); self.addLog('logic', 'Filter (proposal): turbidity boost ' + (e.on ? 'on' : 'off')); }
-      if (e.type === 'refused') self.addLog('logic', 'Filter (proposal): ' + e.why);
+      if (e.type === 'boost') { Filt.note(F, s.simTime, e.on ? 'Turbidity boost on' : 'Turbidity boost off'); self.addLog('logic', 'Filter: turbidity boost ' + (e.on ? 'on' : 'off')); }
+      if (e.type === 'refused') self.addLog('logic', 'Filter: ' + e.why);
     });
   };
   P.setFilter = function (on) {
@@ -423,7 +423,7 @@
     this.filterEvents(Filt.setEnabled(F, on, s.simTime));
     this.saveFilterCfg();
     if (!on) { this.clear('filter-dry'); this.clear('filter-sensor'); }
-    this.addLog('demo', 'Filter (proposal) ' + (on ? 'enabled, ' + F.flowSet + ' L/h set flow' : 'disabled') + '. Never regulates pH or TDS.', { injected: true });
+    this.addLog('demo', 'Filter ' + (on ? 'enabled, ' + F.flowSet + ' L/h set flow' : 'disabled') + '. Never regulates pH or TDS.', { injected: true });
     this.emit('change');
   };
   P.filterPump = function (on) {
@@ -442,14 +442,14 @@
     var s = this.s, F = s.filter; if (!F) return;
     this.filterEvents(Filt.clean(F, s.simTime, s.power === 'on'));
     if (s.water) Stages.rinseSponge(s.water, this.filterVolume());
-    this.addLog('demo', 'Filter (proposal): sponge rinsed. Flow recovers; the water and the biological media are not changed by this action.', { injected: true });
+    this.addLog('demo', 'Filter: sponge rinsed. Flow recovers; the water and the biological media are not changed by this action.', { injected: true });
     this.emit('change');
   };
   P.setFilterMode = function (mode) {
     var s = this.s, F = s.filter; if (!F) return;
     this.filterEvents(Filt.setMode(F, mode, s.simTime));
     this.saveFilterCfg();
-    this.addLog('demo', 'Filter (proposal): ' + (F.mode === 'auto' ? 'automatic' : 'manual') + ' mode. Safety interlocks stay active.', { injected: true });
+    this.addLog('demo', 'Filter: ' + (F.mode === 'auto' ? 'automatic' : 'manual') + ' mode. Safety interlocks stay active.', { injected: true });
     this.emit('change');
   };
   P.setFilterBoost = function (on) {
@@ -469,7 +469,7 @@
     var s = this.s, W = s.water, self = this; if (!W) return;
     Stages.replaceCarbon(W, s.simTime).forEach(function (e) { self.waterEvent(e); });
     Filt.note(s.filter, s.simTime, 'Carbon media replaced');
-    this.addLog('demo', 'Filter (proposal): carbon replaced. Adsorption capacity restored; the water is not changed by this action.', { injected: true });
+    this.addLog('demo', 'Filter: carbon replaced. Adsorption capacity restored; the water is not changed by this action.', { injected: true });
     this.emit('change');
   };
   P.setWaterLevel = function (pct) {

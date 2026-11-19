@@ -1,5 +1,5 @@
 /*
- * AquaCare digital prototype - mechanical filter (PROPOSAL, needs project-team confirmation)
+ * AquaCare digital prototype - mechanical filter (team-confirmed design; values to confirm by measurement)
  * ------------------------------------------------------------------------------------------
  * SIMULATION ONLY. An optional pump + sponge loop that clears suspended matter (turbidity).
  * It never changes pH, temperature or TDS: a sponge does not regulate those.

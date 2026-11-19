@@ -550,7 +550,7 @@
       $('bayUpkeep').textContent = 'Algae: ' + upkWord(u.glass) + ' \u00b7 glass wiped ' + ago(u.days.glass);
     }
   }
-  // ---------- filter (proposal) ----------
+  // ---------- filter (team-confirmed design) ----------
   var FILT_WORD = { OFF: 'Off', STARTING: 'Starting', RUNNING: 'Running', WARNING: 'Warning', FAULT: 'Fault, pump stopped' };
   var FILT_TONE = { OFF: 'off', STARTING: 'attn', RUNNING: 'ok', WARNING: 'attn', FAULT: 'fault' };
   function renderFilter() {
@@ -566,7 +566,7 @@
     var camSel = document.querySelector('#tank3d select'), fOpt = camSel && camSel.querySelector('option[value="filter"]');
     if (fOpt) {
       fOpt.disabled = !f.enabled;
-      fOpt.textContent = f.enabled ? 'Filter (proposal)' : 'Filter (tap \u201cFilter: off\u201d first)';
+      fOpt.textContent = f.enabled ? 'Filter' : 'Filter (tap \u201cFilter: off\u201d first)';
       if (!f.enabled && camSel.value === 'filter') { camSel.value = 'reset'; camSel.dispatchEvent(new Event('change', { bubbles: true })); }
     }
     var fq = $('filtQuick');
@@ -590,7 +590,7 @@
     $('filtStats').innerHTML = rows.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
     $('filtHist').innerHTML = f.history.length ? f.history.map(function (h) { return '<li><time>Day ' + (Math.floor(h.t / 86400000) + 1) + ' ' + F.hhmm(h.t) + '</time> ' + esc(h.text) + '</li>'; }).join('') : '<li>No entries yet</li>';
   }
-  // ---------- Filter System panel (proposal) ----------
+  // ---------- Filter System panel ----------
   function fsSpark(hist, key, label, unit, dp) {
     var vals = hist.map(function (h) { return h[key]; }), max = Math.max.apply(null, vals.concat([1e-6]));
     var pts = vals.map(function (v, i) { return (vals.length > 1 ? i / (vals.length - 1) * 300 : 0).toFixed(1) + ',' + (58 - v / max * 54).toFixed(1); }).join(' ');
@@ -685,7 +685,7 @@
     rows.push(['LCD', s.power !== 'on' ? 'No power' : (s.lcdBug ? 'Status not updating (fault)' : 'Updating'), s.power !== 'on' ? 'off' : (s.lcdBug ? 'fault' : 'ok'), 1]);
     rows.push(['pH calibration', 'Not calibrated', 'attn', 0]);
     var ff = s.filter;
-    if (ff && ff.enabled) rows.push(['Filter pump <small>proposal</small>', s.power !== 'on' ? 'No power' : FILT_WORD[ff.state] + (ff.state === 'RUNNING' || ff.state === 'WARNING' ? ', ' + Math.round(ff.flow) + ' L/h' : ''), s.power !== 'on' ? 'off' : FILT_TONE[ff.state], 0, true]);
+    if (ff && ff.enabled) rows.push(['Filter pump', s.power !== 'on' ? 'No power' : FILT_WORD[ff.state] + (ff.state === 'RUNNING' || ff.state === 'WARNING' ? ', ' + Math.round(ff.flow) + ' L/h' : ''), s.power !== 'on' ? 'off' : FILT_TONE[ff.state], 0, true]);
     var u = engine.upkeep(), worst = Math.max(u.glass, u.detritus, u.probes);
     rows.push(['Tank upkeep <small>illustrative</small>', worst >= 0.7 ? 'Cleaning due' : (worst >= 0.4 ? 'Algae building up' : 'Clean enough'), worst >= 0.7 ? 'attn' : 'ok', 0, true]);
     setHTML($('health'), rows.map(function (r) {

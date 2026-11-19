@@ -1,4 +1,4 @@
-// Mechanical filter (proposal) checks. SIMULATION ONLY.  Run: node tests/filter.test.js
+// Mechanical filter checks. SIMULATION ONLY.  Run: node tests/filter.test.js
 'use strict';
 const path = require('path');
 const Engine = require(path.join(__dirname, '..', 'js', 'engine.js'));

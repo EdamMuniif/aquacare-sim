@@ -117,7 +117,7 @@
     },
     {
       title: 'Proposal: one controller for every tank',
-      body: '<p>The next four steps are <b>proposals that need project-team confirmation</b>. They are simulated only, and nothing has been built.</p><p>A fixed 24 cm housing rests on the front rim. Rails slide out of both ends to corner clamps, so one controller spans all six tank settings: <b>31.4&ndash;49.9 cm wide and 15.7&ndash;24.9 cm deep</b>.</p>',
+      body: '<p>The next three steps are <b>proposals that need project-team confirmation</b>. The last step is the filter design your group has confirmed. All four are simulated only, and nothing has been built.</p><p>A fixed 24 cm housing rests on the front rim. Rails slide out of both ends to corner clamps, so one controller spans all six tank settings: <b>31.4&ndash;49.9 cm wide and 15.7&ndash;24.9 cm deep</b>.</p>',
       target: '#bay', act: function (live) { if (live) show3d('controller'); }
     },
     {
@@ -131,8 +131,8 @@
       target: '#bay', act: function (live) { if (live) show3d('top'); }
     },
     {
-      title: 'Proposal: multi-stage filter',
-      body: '<p>A pump loop beside the tank, <b>off by default</b>, with a sponge, biological media and optional carbon. Bacteria mature over weeks, so ammonia and nitrite fall gradually. It never regulates pH or TDS. Low flow and low water both protect the pump.</p><p>All constants are illustrative, to confirm by measurement. Needs project-team confirmation. Open <b>Water &rarr; Filter System</b> to try it.</p><p>Exit to keep exploring this run, or use Reset run to start fresh.</p>',
+      title: 'Team-confirmed design: three-stage filter',
+      body: '<p>A pump loop beside the tank, <b>off by default</b>, with a sponge, biological media and optional carbon. Bacteria mature over weeks, so ammonia and nitrite fall gradually. It never regulates pH or TDS. Low flow and low water both protect the pump.</p><p>The group has confirmed this design, but it has not been built. All values are illustrative, to confirm by measurement. Open <b>Water &rarr; Filter System</b> to try it.</p><p>Exit to keep exploring this run, or use Reset run to start fresh.</p>',
       target: '#bay', act: function (live) { if (live) show3d('reset'); }
     }
   ];

@@ -1,5 +1,5 @@
 /*
- * AquaCare digital prototype - filter stages and tank nitrogen model (PROPOSAL, needs project-team confirmation)
+ * AquaCare digital prototype - filter stages and tank nitrogen model (team-confirmed design; values to confirm by measurement)
  * ---------------------------------------------------------------------------------------------------------------
  * SIMULATION ONLY. Tracks what the four existing sensors do not: ammonia, nitrite, nitrate, dissolved oxygen,
  * dissolved organics, water level, biological maturity and activated-carbon capacity.

@@ -1,6 +1,6 @@
 # AquaCare digital prototype: how to run the simulation and collect data
 
-EE7008 Project 1 · Group 2 · Prototype v5+ (four sensors, feeding modes, resume after closing, phone/tablet/desktop layout, plus the proposed controller, mini arm, top camera and filter)
+EE7008 Project 1 · Group 2 · Prototype v5+ (four sensors, feeding modes, resume after closing, phone/tablet/desktop layout, plus the proposed controller, mini arm and top camera, and the team-confirmed filter design)
 
 > **Read this first.** The prototype is a **simulation**. Every reading, alert, feed and CSV row it produces is **demo data** generated in the browser. None of it is a hardware measurement or a test result. The pH ±0.1 and temperature ±0.5 °C figures are **project targets**, not results. Every exported file and every row is labelled `SIMULATION - DEMO DATA`. Keep that label wherever you use the data.
 >
@@ -46,11 +46,11 @@ The five sections:
 
 | Section | What's in it |
 |---|---|
-| **Tank** | The animated tank (feeder, IR beam, probes, LCD, LED, buzzer, tank button), the feeding cycle card with the countdown and the 5 logic steps, the four sensor cards, system health and recent events. In 3D it also shows the proposed upgrades (section 2.2), the **Top camera and phone app** card and the **Controller from every side** card |
+| **Tank** | The animated tank (feeder, IR beam, probes, LCD, LED, buzzer, tank button), the feeding cycle card with the countdown and the 5 logic steps, the four sensor cards, system health and recent events. In 3D it also shows the upgrades (section 2.2), the **Top camera and phone app** card and the **Controller from every side** card |
 | **Water** | The four sensor cards, the processing rule (measure → calibrate → validate → smooth 5 → compare → alert), system health, the four stacked charts, and the tabs **Sensors & processing** and **pH calibration** |
 | **Feeding** | The feeding cycle card, run setup (start date, feed times), the 30-day calendar, the tabs **Feed log**, **Feeding modes** and **Scenarios**, and the charts |
 | **Records** | **Event log** and **App view** |
-| **Project** | Project title and summary, the **Proposed upgrades** note, the tabs **Alerts & settings**, **Architecture**, **Assumptions** and **Logic self-test**, and the document title block |
+| **Project** | Project title and summary, the **Upgrades beyond the brief** note, the tabs **Alerts & settings**, **Architecture**, **Assumptions** and **Logic self-test**, and the document title block |
 
 A first-visit card on the Tank section explains how to start. **Got it** hides it for good on that browser.
 
@@ -79,11 +79,11 @@ The tank starts the run 1.5 simulated days after a clean, so it looks lived-in. 
 | **Graphs** section | Four stacked charts (pH, temperature, TDS, turbidity) with range lines and perturbation markers: all 30 days, the selected day, or the last 24 h |
 | Tabs | Feed log · Event log · **Sensors & processing** · **Feeding modes** · Scenarios · Alerts & settings · pH calibration · Architecture · App view · Assumptions · Logic self-test |
 
-### 2.2 Proposed upgrades in the 3D tank
+### 2.2 Upgrades in the 3D tank
 
-> **SIMULATION / DEMO DATA.** The controller, mini arm, top camera, behaviour analysis and filter are **proposals that need project-team confirmation**. None of them has been built, measured or tested. Every current or power rating is proposed, to confirm by measurement.
+> **SIMULATION / DEMO DATA.** The controller, mini arm, top camera and behaviour analysis are **proposals that need project-team confirmation**. The group has **confirmed the three-stage filter design**. None of them has been built, measured or tested. Every current or power rating is proposed, to confirm by measurement.
 
-| Proposal | How to see it |
+| Upgrade | How to see it |
 |---|---|
 | Universal controller | Tank section → camera view list → **Controller**. Change **Presenter controls → Display → Tank size** to watch the rails extend. **Labels** names the parts. |
 | Mini feeder arm | Camera view list → **Feeder (hopper and mini arm)**, then run a feed |
@@ -132,7 +132,7 @@ The tank starts the run 1.5 simulated days after a clean, so it looks lived-in. 
 - The behaviour analysis is a rule-based stand-in with placeholder limits, not a trained model. Notifications fire only if you tick them on.
 - **Not modelled:** plants and rocks blocking the view, ripple, glare from the light bar and condensation on the lens.
 
-**Multi-stage filter**
+**Three-stage filter (team-confirmed design)**
 
 Open **Water → Filter System** for the status table, controls, water quality, performance charts and maintenance history.
 
@@ -239,7 +239,7 @@ Set the speed to **60×** first.
 | Power interruption | **Cut power** during a reminder → **Restore power** | The slot is marked missed (default restart policy) |
 | Reset | **Reset run** | Day 1, 0/3, paused |
 
-For a scripted version, press **Show the project logic**. This 21-step guided mode **rebuilds its own state at each step**, so **do not open it in the middle of a data-collection run**. It replaces the current run. Steps 18 to 21 introduce the proposed controller, mini arm, top camera and filter.
+For a scripted version, press **Show the project logic**. This 21-step guided mode **rebuilds its own state at each step**, so **do not open it in the middle of a data-collection run**. It replaces the current run. Steps 18 to 21 introduce the proposed controller, mini arm and top camera, and the team-confirmed filter design.
 
 ### 3.5 Schedule faults on chosen days (Scenarios tab)
 
@@ -359,7 +359,7 @@ Use **Run all 30 days now** for these. Runs started from **Reset run** with the 
 | **F: Feeding modes** | **Feeding modes** tab → **Compare feeding modes**. Repeat with the owner at 30 %, 60 % and 90 %, and once after **Load paper [3] study setup** (2 feeds/day, 36 × 22 × 26 cm tank, 6 fish; 08:00 and 18:00 are demo times) | Why ask-then-fallback: delivery like automatic, with the owner still at the tank |
 | **E: Perturbation tests** | Reference ranges loaded. Run B already contains the four tests (days 6, 12, 16, 23) and a bubbles day (day 20). For more, schedule extra tests or press the live buttons. | How the processing rule turns a water change into an alert |
 
-**Keep the proposed filter off for these runs.** It changes the turbidity readings, and the run settings line in each CSV does not record whether it was on. If you run it on purpose, say so in the file name and your lab notes.
+**Keep the filter off for these runs.** It changes the turbidity readings, and the run settings line in each CSV does not record whether it was on. If you run it on purpose, say so in the file name and your lab notes.
 
 For each run:
 
@@ -479,7 +479,8 @@ Call this **logic verification in simulation** or **simulated scenario testing**
 - That AquaCare achieved the paper's accuracy (96.5 / 92.5 / 91 / 88 %) or response times (1.8–2.3 s). Those are **Ayon et al.'s results**. Note too that the four table figures average 92.0 %, not the 96 % in the paper's abstract.
 - That AquaCare improves fish growth, reduces stress, or delays cloudy water. Those are **paper [3]'s reported comparisons** from one small study, and the slide itself warns they do not prove the feeder caused them.
 - That the reference ranges are safe for any species, or that TDS and turbidity are part of the confirmed AquaCare design.
-- That the controller, mini arm, top camera, behaviour analysis or filter are part of the confirmed design, or that any of them has been built or tested.
+- That the controller, mini arm, top camera or behaviour analysis are part of the confirmed design.
+- That any upgrade, including the team-confirmed filter, has been built or tested.
 - That the camera sees the whole tank, or that the behaviour analysis is a trained or validated model.
 - That the filter's clearing, clogging, flow, nitrogen, oxygen or carbon figures are measured. They are illustrative.
 
@@ -519,4 +520,4 @@ In every figure caption or table title, add: *"Simulation output (demo data), no
 - [ ] CSVs for Runs A and B exported and renamed
 - [ ] Screenshots taken with the SIMULATION label visible
 - [ ] Practised **Show the project logic** once end to end
-- [ ] Open items noted for Dr. Furugaan: cap counting rule, power-restart policy, Away Mode alarms, owner response assumption, whether TDS and turbidity join the design, whether the proposed controller, mini arm, top camera, behaviour analysis and filter join the design, which operating ranges to use, validate-before-smoothing order, and how to cite paper [3] (its DOI on the slide, v2i02, does not match volume 3(1))
+- [ ] Open items noted for Dr. Furugaan: cap counting rule, power-restart policy, Away Mode alarms, owner response assumption, whether TDS and turbidity join the design, whether the proposed controller, mini arm, top camera and behaviour analysis join the design, which operating ranges to use, validate-before-smoothing order, and how to cite paper [3] (its DOI on the slide, v2i02, does not match volume 3(1))

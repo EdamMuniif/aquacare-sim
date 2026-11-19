@@ -1051,7 +1051,7 @@
     this.dirty = true;
   };
 
-  // ---- mechanical filter (proposal): external unit beside the tank, tubes over the back rim ----
+  // ---- three-stage filter (team-confirmed design): external unit beside the tank, tubes over the back rim ----
   Tank3D.prototype.buildFilter = function (a) {
     var g = new T.Group(), self = this;
     var V3 = function (p) { return new T.Vector3().fromArray(p); };
@@ -1165,7 +1165,7 @@
       extra: 2 * (bx + bw / 2 + 0.15 - W / 2), center: new T.Vector3(bx, by + bh / 2, bz),
       group: g, parts: parts, jet: jet, spout: new T.Vector3(xR, SURFACE - 0.14, zT + 0.5), dir: new T.Vector3(-0.15, -0.12, 1).normalize(), spin: 0,
       disp: { canvas: dc, tex: dTex, sig: '' },
-      labels: [['Filter unit (proposal)', new T.Vector3(bx, by + bh + 0.55, bz)], ['1 Mechanical: sponge', new T.Vector3(cx0, trayY + spH * 0.85, bz + bd / 2)],
+      labels: [['Filter unit', new T.Vector3(bx, by + bh + 0.55, bz)], ['1 Mechanical: sponge', new T.Vector3(cx0, trayY + spH * 0.85, bz + bd / 2)],
         ['2 Biological media', new T.Vector3(cx0 + cw, trayY + spH * 0.5, bz + bd / 2)], ['3 Chemical: carbon', new T.Vector3(cx0 + cw * 2, trayY + spH * 0.15, bz + bd / 2)],
         ['Pump', new T.Vector3(bx - bw / 2 + 0.1, pumpY, bz + bd / 2)], ['Intake strainer (in tank)', new T.Vector3(xI, 0.8, zT)], ['Return', new T.Vector3(xR, SURFACE + 0.05, zT + 0.45)]]
     };

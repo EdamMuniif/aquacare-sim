@@ -28,7 +28,7 @@ The aquarium uses the same simulated turbidity, probe faults, LCD, tank button, 
 
 The simulation runs in each visitor's browser. A web page can't run while it's closed, so the run is saved in that browser and, when the page is reopened, rebuilt and caught up by the time away (at the chosen speed). Nothing is stored online, and true 24/7 running would need a server or the real ESP32. Use the CSV exports to keep the data.
 
-### Multi-stage filter (proposal, needs project-team confirmation)
+### Three-stage filter (team-confirmed design, values to confirm by measurement)
 
 Off by default. Turn it on under **Presenter controls → Filter** or **Water → Filter System**. It is a pump loop beside the tank, with intake and return tubes over the back rim, and three stages: sponge, biological media and optional activated carbon.
 
