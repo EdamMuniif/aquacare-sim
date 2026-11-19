@@ -65,6 +65,12 @@ test('Snapshot can be saved and restored, with invalid snapshots rejected', () =
   const bad=JSON.parse(json);bad.state.water.volumeL=-1;
   assert.throws(()=>Core.restore(bad));
 });
+test('Unbounded time advances are rejected before changing state', () => {
+  const e = Core.create(); e.resume();
+  const before = e.snapshot();
+  assert.throws(() => e.advanceSimulatedMs(1e15), RangeError);
+  assert.deepEqual(e.snapshot(), before);
+});
 test('Parameter register identifies all defined demonstration inputs', () => {
   const r=Config.register();
   for (const key of ['tank.lengthCm','tank.displacementL','environment.relativeHumidity','fixedStepMs']) {
