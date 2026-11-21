@@ -36,6 +36,7 @@
       if (sv.limitsSource === 'custom' || sv.limitsSource === 'none' || sv.limitsSource === 'reference') d.limitsSource = sv.limitsSource;
       ['phPerHour', 'tPerHour'].forEach(function (k) { if (sv.roc && typeof sv.roc[k] === 'number') d.roc[k] = sv.roc[k]; });
       if (sv.alertClearing === 'hold') d.alertClearing = 'hold';
+      if (sv.clock === 'wifi') d.clock = 'wifi';
       d.awayMode = !!sv.awayMode;
       if (sv.dailyPattern === false) d.dailyPattern = false;
       if (sv.owner && (sv.owner.mode === 'simulated' || sv.owner.mode === 'presenter')) d.owner.mode = sv.owner.mode;
@@ -214,12 +215,12 @@
     alert: 'Alert', system: 'System', demo: 'Presenter action', scenario: 'Scenario', logic: 'Local logic response', owner: 'Simulated owner', perturb: 'Perturbation test'
   };
   var OUT = {
-    manual: ['Manual at tank', 'is-manual'], auto_ok: ['Auto, passage detected', 'is-ok'], auto_fail: ['Auto, no passage (fault)', 'is-fail'],
-    cap_skip: ['Skipped, daily cap', 'is-cap'], missed_power: ['Missed, no power', 'is-miss'], missed_manual: ['Missed, manual-only mode', 'is-missm'], open: ['In progress', 'is-open']
+    manual: ['Manual at tank', 'is-manual'], auto_ok: ['Auto, passage detected', 'is-ok'], auto_fail: ['Auto, not confirmed (fault)', 'is-fail'],
+    cap_skip: ['Skipped, daily cap', 'is-cap'], missed_power: ['Missed, no power', 'is-miss'], missed_manual: ['Missed, manual-only mode', 'is-missm'], missed_clock: ['Missed, clock not set', 'is-miss'], open: ['In progress', 'is-open']
   };
   function kindClass(k) { return (k === 'sensor' || k === 'wifi' || k === 'power' || k === 'system') ? 'state' : (k === 'scenario' || k === 'logic' || k === 'perturb') ? 'scen' : (k === 'owner' ? 'manual' : k); }
   var TONE = { idle: 'ok', paused: 'off', reminder: 'attn', dispense: 'accent', fault: 'fault', cap: 'accent', off: 'off', boot: 'off', done: 'accent' };
-  var SC_ABBR = { wifi: 'WIFI', sensor: 'SENS', chute: 'CHUTE', missed: 'MISS', power: 'PWR', perturb: 'TEST', bubbles: 'BUBL', lcd: 'LCD' };
+  var SC_ABBR = { wifi: 'WIFI', sensor: 'SENS', chute: 'CHUTE', missed: 'MISS', power: 'PWR', perturb: 'TEST', bubbles: 'BUBL', lcd: 'LCD', hopper: 'HOPR', irclear: 'IR-C', irblocked: 'IR-B' };
 
   // ---------- architecture diagram ----------
   (function buildArch() {
@@ -343,7 +344,7 @@
     var title, sub;
     if (code === 'reminder') { title = 'Feeding reminder: press the button at the tank'; sub = 'Slot ' + s.reminder.label + '. If nobody presses it within 10 minutes, the feeder runs automatically.'; }
     else if (code === 'dispense') { title = 'Automatic dispense'; sub = Engine.DISPENSE_STEPS[Math.min(s.dispense.step, 2)].label + '.'; }
-    else if (code === 'fault') { title = 'Feeder fault: no food passage detected'; sub = 'The attempt was logged as unsuccessful and counted toward the cap. Inspect the feeder, then acknowledge the fault.'; }
+    else if (code === 'fault') { title = 'Feeder fault: last feed not confirmed'; sub = 'The attempt was logged as unsuccessful and counted toward the cap. Check the hopper, the chute and the IR sensor, then acknowledge the fault.'; }
     else if (code === 'cap') { title = 'Daily cap reached (' + f.counted + '/' + CAP + ')'; sub = 'Further scheduled feeds today are skipped. The count resets at midnight on the simulated clock.'; }
     else if (code === 'off') { title = 'Controller off'; sub = 'Simulated power interruption. The schedule, sensors and feeder are stopped.'; }
     else if (code === 'boot') { title = 'Controller restarting'; sub = 'Simulated boot. The restart policy is applied when it finishes.'; }
@@ -410,6 +411,7 @@
     else if (code === 'dispense') l2 = 'Dispensing...';
     else if (code === 'fault') l2 = 'FEEDER FAULT';
     else if (code === 'cap') l2 = 'Cap ' + f.counted + '/' + CAP + ' reached';
+    else if (!s.clockSet) l2 = 'CLOCK NOT SET';
     else if (nf) l2 = 'Next feed ' + F.hhmm(nf.at);
     else l2 = 'Day ' + s.day + ' done';
     var anyAlert = s.alerts.some(function (a) { return !a.ack; });
@@ -737,7 +739,7 @@
         else if (r.outcome === 'auto_ok') { map.reminder = map.window = r.reminderAt == null ? 'is-skip' : 'is-done'; map.cap = map.dispense = map.ir = 'is-done'; }
         else if (r.outcome === 'auto_fail') { map.reminder = map.window = r.reminderAt == null ? 'is-skip' : 'is-done'; map.cap = map.dispense = 'is-done'; map.ir = 'is-bad'; }
         else if (r.outcome === 'cap_skip') { map.reminder = r.reminderAt ? 'is-done' : 'is-skip'; map.window = r.windowExpiredAt ? 'is-done' : 'is-skip'; map.cap = 'is-bad'; map.dispense = map.ir = 'is-skip'; }
-        else if (r.outcome === 'missed_power') { map.reminder = r.reminderAt ? 'is-bad' : 'is-skip'; map.window = map.cap = map.dispense = map.ir = 'is-skip'; }
+        else if (r.outcome === 'missed_power' || r.outcome === 'missed_clock') { map.reminder = r.reminderAt ? 'is-bad' : 'is-skip'; map.window = map.cap = map.dispense = map.ir = 'is-skip'; }
         else if (r.outcome === 'missed_manual') { map.reminder = 'is-done'; map.window = 'is-bad'; map.cap = map.dispense = map.ir = 'is-skip'; }
       }
     }
@@ -917,9 +919,9 @@
     var rows = all.filter(function (r) {
       return (dv === 'all' || r.day === +dv) && (oc === 'all' || currentRecordOutcome(r) === oc) && (!q || recText(r).indexOf(q) >= 0);
     });
-    var cnt = { manual: 0, auto_ok: 0, auto_fail: 0, cap_skip: 0, missed_power: 0, missed_manual: 0 };
+    var cnt = { manual: 0, auto_ok: 0, auto_fail: 0, cap_skip: 0, missed_power: 0, missed_manual: 0, missed_clock: 0 };
     all.forEach(function (r) { if (cnt[r.outcome] !== undefined) cnt[r.outcome]++; });
-    setText('feedSummary', all.length ? (all.length + ' feed events in this run: ' + cnt.manual + ' manual at tank, ' + cnt.auto_ok + ' auto with passage, ' + cnt.auto_fail + ' auto with no passage, ' + cnt.cap_skip + ' skipped by the cap, ' + cnt.missed_power + ' missed with no power' + (cnt.missed_manual ? ', ' + cnt.missed_manual + ' missed in manual-only mode' : '') + '.' + (rows.length !== all.length ? ' Showing ' + rows.length + '.' : '')) : 'No feed events yet. All rows are simulated demo data.');
+    setText('feedSummary', all.length ? (all.length + ' feed events in this run: ' + cnt.manual + ' manual at tank, ' + cnt.auto_ok + ' auto with passage, ' + cnt.auto_fail + ' auto not confirmed, ' + cnt.cap_skip + ' skipped by the cap, ' + cnt.missed_power + ' missed with no power' + (cnt.missed_manual ? ', ' + cnt.missed_manual + ' missed in manual-only mode' : '') + (cnt.missed_clock ? ', ' + cnt.missed_clock + ' missed with the clock not set' : '') + '.' + (rows.length !== all.length ? ' Showing ' + rows.length + '.' : '')) : 'No feed events yet. All rows are simulated demo data.');
     function tm(t) { return t == null ? '<span class="fine">-</span>' : F.hhmm(t); }
     $('feedBody').innerHTML = rows.slice().reverse().slice(0, 500).map(function (r) {
       var o = currentRecordOutcome(r), press = r.responseAt != null ? F.hhmm(r.responseAt) + ' (' + r.responder + ')' : (r.reminderAt == null && r.outcome !== 'cap_skip' && r.outcome !== 'missed_power' && r.outcome ? 'skipped (Away)' : '-');
@@ -1072,7 +1074,7 @@
         ctx.fillText((h % DAY === 0 ? 'D' + (Math.floor(h / DAY) + 1) + ' ' : '') + F.hhmm(h), xh, axY + 10 * fz);
       }
     }
-    var colors = { manual: '#0a6672', auto_ok: '#1b6e38', auto_fail: '#a8221a', cap_skip: '#5b3a8a', missed_power: '#46525a', missed_manual: '#c2410c', open: '#d98a1e' };
+    var colors = { manual: '#0a6672', auto_ok: '#1b6e38', auto_fail: '#a8221a', cap_skip: '#5b3a8a', missed_power: '#46525a', missed_manual: '#c2410c', missed_clock: '#7a8288', open: '#d98a1e' };
     s.records.forEach(function (r) {
       var t = r.responseAt || r.attemptAt || r.reminderAt || r.scheduledAt;
       if (t < t0 || t > t1) return;
@@ -1433,6 +1435,7 @@
     $('polReminder').value = settings.policy.interruptedReminder;
     $('alertClear').value = settings.alertClearing === 'hold' ? 'hold' : 'instant';
     $('polCount').value = settings.policy.countAfterRestart;
+    $('clockMode').value = settings.clock === 'wifi' ? 'wifi' : 'kept';
   }
   fillLimits();
   $('limitsForm').addEventListener('submit', function (ev) {
@@ -1488,6 +1491,11 @@
     save(); render();
   });
   $('polReminder').addEventListener('change', function () { settings.policy.interruptedReminder = $('polReminder').value; engine.addLog('demo', 'Restart policy for interrupted reminders: ' + $('polReminder').selectedOptions[0].text + ' (requires team decision)', { injected: true }); save(); });
+  $('clockMode').addEventListener('change', function () {
+    settings.clock = $('clockMode').value === 'wifi' ? 'wifi' : 'kept';
+    engine.addLog('demo', 'Controller clock after a power cut: ' + (settings.clock === 'wifi' ? 'time comes only from Wi-Fi (no backup clock)' : 'time is kept (assumes a backup clock module)') + ' (requires team decision)', { injected: true });
+    save(); render();
+  });
   $('polCount').addEventListener('change', function () { settings.policy.countAfterRestart = $('polCount').value; engine.addLog('demo', 'Restart policy for the daily count: ' + $('polCount').selectedOptions[0].text + ' (requires team decision)', { injected: true }); save(); });
   $('defaultsBtn').addEventListener('click', function () {
     var d = Engine.defaultSettings(), keep = { startDate: settings.startDate, slots: settings.slots, scenarios: settings.scenarios };
@@ -1607,7 +1615,7 @@
         ['Feeds delivered (manual + automatic with passage)', 'delivered'],
         ['Owner at the tank (manual feeds)', 'manual'],
         ['Automatic feeds with passage detected', 'autoOk'],
-        ['Automatic attempts with no passage (fault)', 'autoFail'],
+        ['Automatic attempts not confirmed (fault)', 'autoFail'],
         ['Feeds missed (nobody fed / no power)', 'missed'],
         ['Days with every scheduled feed delivered', 'daysAllFed'],
         ['Average delay after the scheduled time', 'meanDelay'],

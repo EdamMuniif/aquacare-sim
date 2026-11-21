@@ -737,6 +737,7 @@ body.touring .mbar { display: none !important; }
 /* ===================== v3.1: feeding modes ===================== */
 .pip.is-missm { background: #fff; border-color: #c2410c; background-image: linear-gradient(135deg, transparent 42%, #c2410c 42%, #c2410c 58%, transparent 58%); }
 .oc--missed_manual { background: #fff1e6; color: #c2410c; }
+.oc--missed_clock { background: #e7eaec; color: var(--off); }
 .table--cmp td { padding: 10px 12px; }
 .table--cmp td:first-child { width: auto; font-weight: 600; }
 .table--cmp td.is-design { background: var(--accent-soft); font-weight: 700; }

@@ -7,14 +7,14 @@
   'use strict';
   var Engine = root.AquaEngine, F = Engine.fmt, CAP = Engine.DAILY_CAP, KEYS = Engine.KEYS;
   var OUT = {
-    manual: ['Fed by hand at the tank', 'is-manual'], auto_ok: ['Fed automatically, food passage seen', 'is-ok'], auto_fail: ['Automatic attempt, no food passage (fault)', 'is-fail'],
-    cap_skip: ['Skipped, daily limit', 'is-cap'], missed_power: ['Missed, no power', 'is-miss'], missed_manual: ['Missed, manual-only mode', 'is-missm'], open: ['In progress', 'is-open']
+    manual: ['Fed by hand at the tank', 'is-manual'], auto_ok: ['Fed automatically, food passage seen', 'is-ok'], auto_fail: ['Automatic attempt not confirmed (fault)', 'is-fail'],
+    cap_skip: ['Skipped, daily limit', 'is-cap'], missed_power: ['Missed, no power', 'is-miss'], missed_manual: ['Missed, manual-only mode', 'is-missm'], missed_clock: ['Missed, clock not set', 'is-miss'], open: ['In progress', 'is-open']
   };
   var TONE = { idle: 'ok', paused: 'off', reminder: 'attn', dispense: 'accent', fault: 'fault', cap: 'accent', off: 'off', boot: 'off', done: 'accent' };
   var STATE = {
     idle: 'Monitoring. All feeding runs on the controller.', paused: 'Simulation paused.',
     reminder: 'Feeding time: waiting for the button at the tank.', dispense: 'The feeder is giving one portion now.',
-    fault: 'Feeder fault: no food passage seen on the last attempt. Check the chute.', cap: 'Daily limit reached: no more feeds today.'
+    fault: 'Feeder fault: the last automatic feed was not confirmed. Check the hopper, the chute and the IR sensor.', cap: 'Daily limit reached: no more feeds today.'
   };
   var LIST_MAX = 3, ALERT_MAX = 2;   // keeps every page on one phone screen
 

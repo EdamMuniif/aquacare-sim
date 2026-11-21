@@ -64,6 +64,7 @@
     else if (code === 'dispense') l2 = 'Dispensing...';
     else if (code === 'fault') l2 = 'FEEDER FAULT';
     else if (code === 'cap') l2 = 'Cap ' + s.feeds.counted + '/' + CAP + ' reached';
+    else if (!s.clockSet) l2 = 'CLOCK NOT SET';
     else if (nf) l2 = 'Next feed ' + F.hhmm(nf.at);
     else l2 = 'Day ' + s.day + ' done';
     var anyAlert = s.alerts.some(function (a) { return !a.ack; });

@@ -376,7 +376,7 @@
   <div class="legend" aria-hidden="true">
     <span><i class="pip is-manual"></i>Manual at tank</span>
     <span><i class="pip is-ok"></i>Auto, passage</span>
-    <span><i class="pip is-fail"></i>Auto, no passage</span>
+    <span><i class="pip is-fail"></i>Auto, not confirmed</span>
     <span><i class="pip is-cap"></i>Cap skip</span>
     <span><i class="pip is-miss"></i>Missed (no power)</span>
     <span><i class="pip is-missm"></i>Missed (manual-only mode)</span>
@@ -445,9 +445,10 @@
           <option value="all">All outcomes</option>
           <option value="manual">Manual at tank</option>
           <option value="auto_ok">Auto, passage detected</option>
-          <option value="auto_fail">Auto, no passage (fault)</option>
+          <option value="auto_fail">Auto, not confirmed (fault)</option>
           <option value="cap_skip">Skipped, daily cap</option>
           <option value="missed_power">Missed, no power</option>
+          <option value="missed_clock">Missed, clock not set</option>
           <option value="missed_manual">Missed, manual-only mode</option>
           <option value="open">In progress</option>
         </select>
@@ -626,6 +627,9 @@
               <option value="perturb">Perturbation test</option>
               <option value="bubbles">Air bubbles at turbidity sensor</option>
               <option value="lcd">LCD status not updating</option>
+              <option value="hopper">Feed hopper empty</option>
+              <option value="irclear">IR sensor stuck: reads clear</option>
+              <option value="irblocked">IR sensor stuck: reads blocked</option>
             </select><span class="unit"></span></div>
           <div class="limits__row" id="scKindRow"><span>Test</span>
             <select id="scKind" aria-label="Perturbation test">
@@ -730,6 +734,14 @@
             <option value="reset">Reset the count to 0</option>
           </select>
         </div>
+        <div class="field">
+          <label class="field__label" for="clockMode">Controller clock after a power cut</label>
+          <select id="clockMode">
+            <option value="kept">Time is kept (assumes a backup clock module, not yet in the parts list)</option>
+            <option value="wifi">Time comes only from Wi-Fi (no backup clock)</option>
+          </select>
+        </div>
+        <p class="fine">With no backup clock, a power cut while Wi-Fi is down leaves the controller without the time. It keeps monitoring the water but cannot start scheduled feeds until Wi-Fi returns. Simulation setting; the team must choose a backup clock or accept this.</p>
         <button class="btn btn--sm" type="button" id="defaultsBtn">Restore default demo settings</button>
       </section>
     </div>

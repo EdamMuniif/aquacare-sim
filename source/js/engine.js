@@ -35,7 +35,11 @@
     power:  { label: 'Power interruption', needsMinutes: true },
     perturb: { label: 'Perturbation test', needsMinutes: true },
     bubbles: { label: 'Air bubbles at the turbidity sensor', needsMinutes: true },
-    lcd: { label: 'LCD status not updating', needsMinutes: true }
+    lcd: { label: 'LCD status not updating', needsMinutes: true },
+    // Gap checks added later (off unless scheduled): an empty hopper and an IR sensor stuck in one state.
+    hopper: { label: 'Feed hopper empty', needsMinutes: true },
+    irclear: { label: 'IR sensor stuck: reads clear', needsMinutes: true },
+    irblocked: { label: 'IR sensor stuck: reads blocked', needsMinutes: true }
   };
   // Feeding modes. 'manual' and 'auto' mirror the two conditions compared in reviewed paper [3]
   // (Setiawan et al., CEPAT 2024); 'hybrid' is AquaCare's ask-then-fallback design.
@@ -127,6 +131,7 @@
       limitsSource: 'reference',
       roc: { phPerHour: null, tPerHour: null },
       alertClearing: 'instant',                        // 'instant' (original) | 'hold' (margin + 10-min hold; proposal)
+      clock: 'kept',                                   // 'kept' (time survives a power cut: needs a backup clock, not yet in the parts list) | 'wifi' (time only from Wi-Fi)
       awayMode: false,                                 // proposed feature
       feedMode: 'hybrid',                              // 'hybrid' | 'manual' | 'auto' (comparison conditions)
       fishCount: 10,                                   // decorative only
@@ -170,6 +175,7 @@
       phase: 'idle', reminder: null, dispense: null,
       passageMode: 'detect',
       chuteBlocked: false, ownerSuppressed: false, lcdBug: 0, lcdFrozen: null,
+      hopperEmpty: 0, irStuck: null, clockSet: true,
       firedSlots: {},
       feeds: { counted: 0, manual: 0, autoOk: 0, autoFail: 0 },
       interrupted: null,
@@ -595,6 +601,10 @@
       if (this.s.power === 'on') queued.forEach(function (e) { e.pendingSync = false; });
       this.s.appLastSync = this.s.simTime;
       this.addLog('wifi', 'Wi-Fi reconnected: ' + queued.length + ' queued event' + (queued.length === 1 ? '' : 's') + ' synced to the app', inj);
+      if (!this.s.clockSet && this.s.power === 'on') {
+        this.s.clockSet = true;
+        this.clear('clock', 'Clock set from internet time over Wi-Fi: scheduled feeding resumes');
+      }
     }
     this.emit('change');
   };
@@ -638,6 +648,14 @@
     var s = this.s, pol = this.settings.policy;
     s.power = 'on'; s.boot = null;
     this.addLog('power', 'Controller running again');
+    if (this.settings.clock === 'wifi') {
+      if (s.wifi) this.addLog('logic', 'Clock set from internet time over Wi-Fi after the restart (no backup clock)');
+      else {
+        s.clockSet = false;
+        this.raise('clock', 'equipment', 'Clock not set: no backup clock and no Wi-Fi. Scheduled feeds are paused until the time is known');
+        this.addLog('logic', 'Without a backup clock the controller does not know the time after a restart. It keeps monitoring the water, but no scheduled feed can start until Wi-Fi returns and the time is set.');
+      }
+    }
     if (pol.countAfterRestart === 'reset') {
       s.feeds = { counted: 0, manual: 0, autoOk: 0, autoFail: 0 };
       this.addLog('logic', 'Restart policy: daily feed count reset to 0 (requires team decision)');
@@ -821,11 +839,14 @@
     }
     s.feeds.counted++;   // attempts count toward the cap: no repeated dispensing after a fault
     s.phase = 'dispensing';
-    var outcome = (s.chuteBlocked || s.passageMode === 'none') ? 'none' : 'detect';
-    s.dispense = { slot: slot, label: label, outcome: outcome, simStart: s.simTime, realElapsed: 0, step: 0, cause: s.chuteBlocked ? 'chute blocked (scenario)' : (s.passageMode === 'none' ? 'presenter set no passage' : '') };
+    // outcome is what the IR beam reports; irFault marks a beam that already read blocked before the feeder moved
+    var outcome = (s.chuteBlocked || s.hopperEmpty > 0 || s.irStuck === 'clear' || s.passageMode === 'none') ? 'none' : 'detect';
+    var cause = s.chuteBlocked ? 'chute blocked (scenario)' : (s.hopperEmpty > 0 ? 'hopper empty (scenario)' : (s.irStuck === 'clear' ? 'IR sensor stuck reading clear (scenario)' : (s.passageMode === 'none' ? 'presenter set no passage' : '')));
+    s.dispense = { slot: slot, label: label, outcome: outcome, simStart: s.simTime, realElapsed: 0, step: 0, cause: cause, irFault: s.irStuck === 'blocked' };
     if (s.curRec) s.curRec.attemptAt = s.simTime;
     this.addLog('auto', 'Automatic feed attempt (' + label + ' slot): feeder dispensing one ' +
       (this.settings.portion ? 'configured portion (' + this.settings.portion + ')' : 'portion (portion size not configured)'));
+    if (s.dispense.irFault) this.addLog('logic', 'IR self-check (proposed): the beam reads blocked before the feeder has moved, so food passage cannot be verified for this attempt');
     if (!this.quiet) this.emit('dispense', { phase: 'start' });
   };
 
@@ -847,6 +868,16 @@
   P.finishDispense = function () {
     var s = this.s, d = s.dispense, rec = s.curRec;
     s.phase = 'idle'; s.dispense = null;
+    if (d.irFault) {
+      s.feeds.autoFail++;
+      s.feederFault = true;
+      if (rec) { rec.ir = 'not verified (IR sensor fault)'; if (rec.notes.indexOf('IR sensor stuck reading blocked (scenario)') < 0) rec.notes.push('IR sensor stuck reading blocked (scenario)'); }
+      this.addLog('fail', 'Food passage could not be verified: the IR beam read blocked before and after dispensing. Attempt logged unsuccessful and counted toward the cap (' + d.label + ' slot)');
+      this.raise('ir-sensor', 'equipment', 'IR sensor fault: beam reads blocked with nothing passing');
+      this.closeRecord(rec, 'auto_fail');
+      if (!this.quiet) this.emit('dispense', { phase: 'end' });
+      return;
+    }
     if (d.outcome === 'detect') {
       s.feeds.autoOk++;
       if (rec) rec.ir = 'passage detected';
@@ -888,6 +919,9 @@
     power: 'Local logic: the controller is off. Slots during the outage are logged missed. On restart the selected restart policy is applied.',
     perturb: 'Local logic: each new reading is validated, averaged over the last 5 samples and compared with the operating range. An alert is raised when the smoothed value leaves the range. The detection time is logged.',
     lcd: 'Local logic: feeding, readings and alerts carry on normally, but the LCD keeps showing an old status. The controller cannot see that its own display is wrong, so the event log and app are the record to trust. Paper [3] reports an occasional LCD status bug.',
+    hopper: 'Local logic: the design has no hopper level sensor, so an empty hopper only shows up at the next automatic attempt: the IR beam sees no food pass, a fault is raised and the attempt counts toward the cap. The controller cannot tell an empty hopper from a blocked chute, so the owner must check both.',
+    irclear: 'Local logic: the IR receiver never reports the beam broken, so every automatic attempt looks like no food passed, even when food did. A fault is raised and the attempt counts toward the cap. This false fault looks the same as a blocked chute.',
+    irblocked: 'Local logic (proposed self-check): before each dispense the controller reads the beam at rest. A beam that already reads blocked means the sensor cannot be trusted, so the feed goes ahead but is logged as not verified, never as a success. Without this check every attempt would be logged as a success.',
     bubbles: 'Local logic: bubbles cause short false spikes in raw turbidity. The values are physically possible, so validation cannot reject them. Five-sample smoothing damps most spikes, but a cluster of spikes can still trigger a false alert.'
   };
   P.startScenario = function (sc) {
@@ -902,6 +936,9 @@
     else if (sc.type === 'chute') { s.chuteBlocked = true; }
     else if (sc.type === 'missed') { s.ownerSuppressed = true; }
     else if (sc.type === 'power') this.cutPower('scenario');
+    else if (sc.type === 'hopper') { s.hopperEmpty++; }
+    else if (sc.type === 'irclear') { s.irStuck = 'clear'; }
+    else if (sc.type === 'irblocked') { s.irStuck = 'blocked'; }
     this.addLog('logic', RESPONSES[sc.type] || '');
     s.lastScenario = { sc: sc, phase: 'started', at: s.simTime, day: s.day, response: RESPONSES[sc.type] || '' };
     this.emit('scenario', s.lastScenario);
@@ -919,6 +956,11 @@
     else if (sc.type === 'chute') { s.chuteBlocked = false; note = 'Chute clear. Any feeder fault stays latched until it is acknowledged.'; }
     else if (sc.type === 'missed') { s.ownerSuppressed = false; note = 'The owner responds normally again from tomorrow.'; }
     else if (sc.type === 'power') { this.restorePower('scenario'); note = 'Power back: the controller restarts and applies the restart policy.'; }
+    else if (sc.type === 'hopper') { s.hopperEmpty = Math.max(0, s.hopperEmpty - 1); note = 'Hopper refilled. Any feeder fault stays latched until it is acknowledged.'; }
+    else if (sc.type === 'irclear' || sc.type === 'irblocked') {
+      s.irStuck = null; note = 'IR sensor working again. Any feeder fault stays latched until it is acknowledged.';
+      if (sc.type === 'irblocked') this.clear('ir-sensor', 'IR beam reads clear at rest again: IR sensor alert cleared');
+    }
     s.lastScenario = { sc: sc, phase: 'ended', at: s.simTime, day: s.day, response: note };
     this.emit('scenario', s.lastScenario);
   };
@@ -1143,6 +1185,12 @@
         r.notes.push('controller had no power');
         this.addLog('reminder', 'Feed slot ' + hhmm(times[i]) + ' missed: the controller had no power');
         this.closeRecord(r, 'missed_power');
+      } else if (!s.clockSet) {
+        s.firedSlots[i] = true;
+        var rc = this.newRecord(i, hhmm(times[i]), 'schedule');
+        rc.notes.push('clock not set (no backup clock)');
+        this.addLog('reminder', 'Feed slot ' + hhmm(times[i]) + ' missed: the controller does not know the time (no backup clock, Wi-Fi down)');
+        this.closeRecord(rc, 'missed_clock');
       } else if (s.phase === 'idle') {
         this.fireSlot(i, hhmm(times[i]), 'schedule');
       }
@@ -1331,7 +1379,7 @@
   // ---------- feeding-mode comparison ----------
   Engine.summarize = function (records) {
     var sch = records.filter(function (r) { return r.source === 'schedule'; });
-    var c = { scheduled: sch.length, manual: 0, auto_ok: 0, auto_fail: 0, missed_manual: 0, missed_power: 0, cap_skip: 0 };
+    var c = { scheduled: sch.length, manual: 0, auto_ok: 0, auto_fail: 0, missed_manual: 0, missed_power: 0, missed_clock: 0, cap_skip: 0 };
     var delays = [], byDay = {};
     sch.forEach(function (r) {
       if (c[r.outcome] !== undefined) c[r.outcome]++;
@@ -1343,7 +1391,7 @@
     var mean = delays.length ? delays.reduce(function (a, b) { return a + b; }, 0) / delays.length : null;
     return {
       scheduled: c.scheduled, delivered: c.manual + c.auto_ok, manual: c.manual, autoOk: c.auto_ok, autoFail: c.auto_fail,
-      missed: c.missed_manual + c.missed_power, missedManual: c.missed_manual, missedPower: c.missed_power, capSkip: c.cap_skip,
+      missed: c.missed_manual + c.missed_power + c.missed_clock, missedManual: c.missed_manual, missedPower: c.missed_power, missedClock: c.missed_clock, capSkip: c.cap_skip,
       meanDelay: mean, maxDelay: delays.length ? Math.max.apply(null, delays) : null, daysAllFed: full, days: days.length
     };
   };
