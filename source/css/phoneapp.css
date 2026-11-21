@@ -1,6 +1,6 @@
 /* Standalone phone app page (phone.html). Desktop: a real-size phone beside a short note.
    On a phone: the app fills the whole screen. */
-body.pa { margin: 0; min-height: 100vh; background: #dfe8eb; color: #12232b; }
+body.pa { margin: 0; padding: 0; min-height: 100vh; background: #dfe8eb; color: #12232b; }
 .pa__wrap { min-height: 100vh; display: flex; align-items: safe center; justify-content: center; gap: 40px; padding: 24px 16px; box-sizing: border-box; }
 .pa__phone.phone { flex: none; }
 .pa__side { max-width: 380px; font-size: 15px; line-height: 1.5; }
