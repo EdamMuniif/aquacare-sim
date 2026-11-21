@@ -206,7 +206,7 @@
 </div>
 <p class="papp__k">Today</p>
 <ol class="papp__list" data-app-html="feedlist"></ol>
-<p class="phone__rule">No &ldquo;confirm feed&rdquo; button here. By design, a manual feed can only be confirmed with the button at the tank.</p>
+<p class="phone__rule">No feed button in the app: only the button at the tank confirms a hand feed.</p>
 </section>
 <section class="ppage" role="tabpanel" id="cp-pg-alerts" aria-labelledby="cp-tab-alerts" data-page="alerts" hidden>
 <p class="papp__k">Active alerts</p>
@@ -215,7 +215,7 @@
 <ol class="papp__list" data-app-html="notes"></ol>
 <p class="papp__k">Fish behaviour alerts</p>
 <label class="phone__check"><input type="checkbox" id="notifOn"> Behaviour alerts to this phone</label>
-              <p class="phone__fit" id="notifState">Not configured. Alerts stay off until you turn them on.</p>
+              <p class="phone__fit" id="notifState">Off until you turn them on.</p>
               <ul class="phone__list" id="notifList" aria-label="Notifications"></ul>
 </section>
 <section class="ppage" role="tabpanel" id="cp-pg-set" aria-labelledby="cp-tab-set" data-page="set" hidden>
@@ -245,7 +245,7 @@
           <h3 class="h3">How it works in this simulation</h3>
           <ul class="camcard__points">
             <li><b>One controller for every tank.</b> The head, display, hopper, arm and camera are the same size on all six tank settings. Two telescoping rails and four clamps stretch to the tank that the phone reports. The camera keeps one fixed 120&deg; lens on every size, about 81&deg; under water, so it has blind spots near the surface.</li>
-            <li><b>Analysis is a rule-based stand-in.</b> It reads the simulated fish positions: how fast they move compared with this tank's own normal (learned in the first seconds), how many are near the surface, and how many come to the food after a feed. A real build would need a trained detector on camera frames. None exists or has been tested here.</li>
+            <li><b>Analysis is a rule-based stand-in.</b> It reads the simulated fish positions: how fast they move compared with this tank's own normal (learned in the first seconds), how many are near the surface, and how many come to the food after a feed. A real build would need a trained detector on camera frames. None exists or has been tested here. The blind-spot count comes from the simulation; a real camera cannot know what it does not see. Hiding behind plants or rocks is not modelled.</li>
             <li><b>The camera picks where to drop food, not whether.</b> When a feed is approved with the tank button, the mini arm carries the scoop over the spot where the fish are, inside its reach. The pellets then fall, float and sink under simple physics. Proposed upgrade; needs project-team confirmation.</li>
             <li><b>The rule limits are placeholders.</b> The project team has not confirmed any alert limit, so alerts are off until you switch them on, and every line is labelled as a demo rule.</li>
           </ul>
@@ -847,7 +847,7 @@
 </div>
 <p class="papp__k">Today</p>
 <ol class="papp__list" data-app-html="feedlist"></ol>
-<p class="phone__rule">No &ldquo;confirm feed&rdquo; button here. By design, a manual feed can only be confirmed with the button at the tank.</p>
+<p class="phone__rule">No feed button in the app: only the button at the tank confirms a hand feed.</p>
 </section>
 <section class="ppage" role="tabpanel" id="ap-pg-alerts" aria-labelledby="ap-tab-alerts" data-page="alerts" hidden>
 <p class="papp__k">Active alerts</p>
@@ -882,6 +882,7 @@
         <h3 class="h3">What the app is for</h3>
         <p>In the proposal, Wi-Fi and the app are a secondary connection. They carry readings, history and notifications when connected. The schedule, the 10-minute window, the daily cap and the dispense check all run on the local controller.</p>
         <p>Disconnect Wi-Fi in the presenter controls, or schedule a Wi-Fi loss, and watch this screen go stale while feeding carries on. Events queue and sync when Wi-Fi returns.</p>
+        <p><a class="btn btn--sm" href="phone.html">Open the phone app on its own page</a> It runs at real phone size and works in a phone&rsquo;s browser, with its own copy of the simulation.</p>
       </div>
     </div>
   </div>
@@ -1126,6 +1127,7 @@
 <script src="js/tank.js"></script>
 <script src="vendor/three-r160.min.js"></script>
 <script src="js/tank3d.js"></script>
+<script src="js/phoneui.js"></script>
 <script src="js/app.js"></script>
 <script src="js/tour.js"></script>
 <script src="js/phone.js"></script>

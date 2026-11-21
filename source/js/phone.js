@@ -97,7 +97,7 @@
     if (st.lastAlert[kind] && now - st.lastAlert[kind] < DEMO.cooldownMs) return;
     st.lastAlert[kind] = now;
     st.notif.unshift({ at: simClock(), text: text, warn: !!warn });
-    st.notif.length = Math.min(st.notif.length, 6);
+    st.notif.length = Math.min(st.notif.length, 1);
     renderNotif();
   }
   function renderNotif() {
@@ -111,7 +111,7 @@
   }
   $('notifOn').addEventListener('change', function () {
     st.enabled = $('notifOn').checked;
-    say('notifState', st.enabled ? 'On. Using demo placeholder rules, not validated limits. Alerts appear here.' : 'Not configured. Alerts stay off until you turn them on.');
+    say('notifState', st.enabled ? 'On: demo rules, not validated limits.' : 'Off until you turn them on.');
     if (!st.enabled) { st.notif = []; renderNotif(); }
   });
 
@@ -186,22 +186,18 @@
   function renderPanel(a) {
     var learning = !st.baseline, warn = st.baseline && ((a.activity !== null && a.activity < DEMO.lowActivity) || (a.n && a.counts.surface / a.n >= DEMO.surfaceShare && !tank.pellets.length));
     var rows = [
-      ['Fish in view', String(a.n)],
-      ['In a blind spot (sim only)', String(a.hidden || 0)],
-      ['Activity vs this tank’s normal', learning ? 'learning ' + Math.min(100, Math.round(st.samples / DEMO.learnSamples * 100)) + '%' : (a.activity === null ? 'no fish in view' : Math.round(a.activity * 100) + '%')],
-      ['Swimming', String(a.counts.swimming)],
-      ['Slow', String(a.counts.slow)],
-      ['Near surface', String(a.counts.surface)],
-      ['At the food', String(a.counts.feeding)],
-      ['Feed spot', tank.feedPlan ? (tank.feedPlan.near + ' fish near' + (tank.feedPlan.clamped ? ', edge of arm reach' : '')) : 'not used yet'],
-      ['Food left (camera count)', String(tank.pellets.length)]
+      ['Fish in view (blind spot)', a.n + ' (' + (a.hidden || 0) + ')'],
+      ['Activity vs normal', learning ? 'learning ' + Math.min(100, Math.round(st.samples / DEMO.learnSamples * 100)) + '%' : (a.activity === null ? 'no fish in view' : Math.round(a.activity * 100) + '%')],
+      ['Swim / slow / surface', a.counts.swimming + ' / ' + a.counts.slow + ' / ' + a.counts.surface],
+      ['At the food (food left)', a.counts.feeding + ' (' + tank.pellets.length + ')'],
+      ['Feed spot', tank.feedPlan ? (tank.feedPlan.near + ' fish near' + (tank.feedPlan.clamped ? ', arm edge' : '')) : 'not used yet'],
     ];
     var chip = learning ? 'Learning normal' : (warn ? 'Check tank' : 'Looks normal');
     var key = chip + (tank.fd ? tank.fd.phase : '') + rows.map(function (r) { return r[1]; }).join('|');
     if (key === panelKey) return; panelKey = key;
     var p = $('aiPanel'); p.textContent = '';
     var head = document.createElement('div'); head.className = 'ai__head';
-    head.appendChild(document.createTextNode('Fish behaviour · demo rule'));
+    head.appendChild(document.createTextNode('Fish behaviour (demo)'));
     var c = document.createElement('span'); c.className = 'ai__chip' + (warn ? ' is-warn' : ''); c.textContent = chip; head.appendChild(c);
     p.appendChild(head);
     var dl = document.createElement('dl'); dl.className = 'ai__grid';
@@ -211,7 +207,7 @@
     });
     p.appendChild(dl);
     var note = document.createElement('p'); note.className = 'ai__note';
-    note.textContent = 'SIMULATION. Rule-based stand-in on simulated fish, not a trained or validated model. Limits are placeholders for the project team to set. The blind-spot count comes from the simulation; a real camera cannot know what it does not see. Hiding behind plants or rocks is not modelled.';
+    note.textContent = 'SIMULATION. Rule-based stand-in, not a trained model. Limits are placeholders.';
     p.appendChild(note);
   }
   renderPanel({ n: 0, hidden: 0, counts: { swimming: 0, slow: 0, surface: 0, feeding: 0 }, activity: null });

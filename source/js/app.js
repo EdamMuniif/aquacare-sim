@@ -193,10 +193,7 @@
   tank.onButton(function () { engine.pressTankButton(); render(); });
   engine.on(function (type, d) {
     if (type === 'dispense') tank.dispense(d.phase, d.phase === 'start' && engine.s.dispense ? engine.s.dispense.outcome : d.outcome);
-    if (type === 'log' && d.kind === 'wifi' && /disconnected/.test(d.text)) {
-      var sn = engine.s.sensors;
-      if (appSnap.at == null || appSnap.at < d.t) appSnap = { ph: sn.ph.value, temp: sn.temp.value, tds: sn.tds.value, turb: sn.turb.value, at: d.t, feeds: engine.s.feeds.counted, alerts: copyAlerts() };
-    }
+    if (phoneUI) phoneUI.onEvent(type, d);
     if (type === 'log' && d.kind === 'alert' && /^Alert raised/.test(d.text) && !engine.quiet) $('liveAlert').textContent = d.text;
   });
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -254,8 +251,7 @@
 
   // ---------- state for heavy views ----------
   var ui = { selectedDay: null, range: 'all', lastState: null, sigCal: '', sigFeed: '', sigLog: '', sigChart: '', chartAt: 0, sigScen: '', sigAlerts: '' };
-  var appSnap = { ph: null, temp: null, tds: null, turb: null, at: null, feeds: null, alerts: [] };
-  function copyAlerts() { return engine.s.alerts.map(function (a) { return { key: a.key, cat: a.cat, text: a.text, since: a.since, day: a.day, ack: a.ack }; }); }
+  var phoneUI = null;   // set up with the phone app below
 
   function dayRecords(day) { return engine.s.records.filter(function (r) { return r.day === day; }); }
   function currentRecordOutcome(r) { return r.outcome || 'open'; }
@@ -822,113 +818,21 @@
     }).join('');
     $('alertEmpty').hidden = s.alerts.length > 0;
   }
-  // ---------- phone app: five pages (Home, Camera, Feeding, Alerts, Settings) ----------
-  // Both phone mock-ups (beside the tank and in App view) share this code. When Wi-Fi is down
-  // the app shows the last synced data, as a real app would; the controller keeps feeding.
-  function appEach(sel, fn) { Array.prototype.forEach.call(document.querySelectorAll(sel), fn); }
-  function appSet(key, t) { appEach('[data-app="' + key + '"]', function (n) { if (n.textContent !== t) n.textContent = t; }); }
-  function appHTML(key, h) { appEach('[data-app-html="' + key + '"]', function (n) { if (n.innerHTML !== h) n.innerHTML = h; }); }
-  function appShow(key, on) { appEach('[data-app-show="' + key + '"]', function (n) { if (n.hidden === on) n.hidden = !on; }); }
-  function selectPhonePage(screen, page, focus) {
-    Array.prototype.forEach.call(screen.querySelectorAll('.ptabs [role="tab"]'), function (b) {
-      var on = b.getAttribute('data-page') === page;
-      b.setAttribute('aria-selected', on ? 'true' : 'false'); b.tabIndex = on ? 0 : -1;
-      if (on && focus) b.focus();
-    });
-    Array.prototype.forEach.call(screen.querySelectorAll('.ppage'), function (pg) { pg.hidden = pg.getAttribute('data-page') !== page; });
-    screen.querySelector('.ppages').scrollTop = 0;
-  }
-  appEach('.papp', function (screen) {
-    var bar = screen.querySelector('.ptabs');
-    bar.addEventListener('click', function (e) { var b = e.target.closest('[role="tab"]'); if (b) selectPhonePage(screen, b.getAttribute('data-page')); });
-    bar.addEventListener('keydown', function (e) {
-      var list = Array.prototype.slice.call(bar.querySelectorAll('[role="tab"]')), i = list.indexOf(document.activeElement), n = list.length;
-      var j = e.key === 'ArrowRight' ? (i + 1) % n : e.key === 'ArrowLeft' ? (i + n - 1) % n : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : -1;
-      if (i < 0 || j < 0) return;
-      e.preventDefault(); selectPhonePage(screen, list[j].getAttribute('data-page'), true);
-    });
-  });
-  appEach('[data-app-size]', function (sel) {
-    sel.addEventListener('change', function () { var m = $('sizeSel'); m.value = sel.value; m.dispatchEvent(new Event('change')); });
-  });
-  appEach('[data-app-gocam]', function (btn) {
-    btn.addEventListener('click', function () {
+  // ---------- phone app: five pages (shared code in phoneui.js) ----------
+  phoneUI = new window.AquaPhoneUI({
+    engine: function () { return engine; },
+    tankGal: function () { return settings.tankGal; },
+    setTankGal: function (v) { var m = $('sizeSel'); m.value = v; m.dispatchEvent(new Event('change')); },
+    has3d: function () { return !!tank3d && !$('camCard').hidden; },
+    goCam: function () {
       var screen = document.querySelector('.papp[data-phone="cam"]');
       if (!screen || $('camCard').hidden) return;
       setView('tank', { noScroll: true });
-      selectPhonePage(screen, 'cam');
+      window.AquaPhoneUI.selectPage(screen, 'cam');
       $('camCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    }
   });
-  var APP_STATE = {
-    idle: 'Monitoring. All feeding runs on the controller.', paused: 'Simulation paused.',
-    reminder: 'Feeding time: waiting for the button at the tank.', dispense: 'The feeder is giving one portion now.',
-    fault: 'Feeder fault: no food passage seen on the last attempt. Check the chute.', cap: 'Daily limit reached: no more feeds today.'
-  };
-  function renderApp() {
-    var s = engine.s, live = s.wifi && s.power === 'on';
-    if (live) appSnap = { ph: s.sensors.ph.value, temp: s.sensors.temp.value, tds: s.sensors.tds.value, turb: s.sensors.turb.value, at: s.simTime, feeds: s.feeds.counted, alerts: copyAlerts() };
-    // Home
-    appSet('conn', live ? 'Live (simulated link)' : (!s.wifi ? 'Offline: showing last synced data from ' + (appSnap.at != null ? F.hhmm(appSnap.at) : '-') : 'Device not responding (no power)'));
-    appEach('[data-app="conn"]', function (n) { n.classList.toggle('is-stale', !live); });
-    appSet('ph', appSnap.ph == null ? 'No data' : appSnap.ph.toFixed(2));
-    appSet('temp', appSnap.temp == null ? 'No data' : appSnap.temp.toFixed(1) + ' °C');
-    appSet('tds', appSnap.tds == null ? 'No data' : Math.round(appSnap.tds) + ' ppm');
-    appSet('turb', appSnap.turb == null ? 'No data' : appSnap.turb.toFixed(1) + ' NTU');
-    var alerts = appSnap.alerts || [];
-    KEYS.forEach(function (k) {
-      var warn = alerts.some(function (a) { return a.cat === 'water' && a.key.indexOf(k + '-') === 0; });
-      appEach('[data-tile="' + k + '"]', function (n) { n.classList.toggle('is-warn', warn); });
-    });
-    var nf = engine.nextFeed(), next;
-    if (live && s.phase === 'reminder') next = 'Now: press the tank button';
-    else if (live && s.phase === 'dispensing') next = 'Now: feeder dispensing';
-    else if (!nf) next = 'None left in this run';
-    else next = (appSnap.feeds >= CAP && nf.today) ? 'Daily limit reached' : F.hhmm(nf.at) + (nf.today ? '' : ' tomorrow');
-    appSet('next', next);
-    appSet('feeds', appSnap.feeds == null ? '-' : appSnap.feeds + ' of ' + CAP + (live ? '' : ' (may be out of date)'));
-    var syncedToday = dayRecords(s.day).filter(function (r) { return live || r.scheduledAt <= appSnap.at; });
-    var pips = '', got = [];
-    syncedToday.forEach(function (r) { if (r.outcome === 'manual' || r.outcome === 'auto_ok' || r.outcome === 'auto_fail') got.push(OUT[r.outcome][1]); });
-    for (var i = 0; i < CAP; i++) pips += '<span class="pip ' + (got[i] || '') + '"></span>';
-    appHTML('pips', pips);
-    var open = alerts.filter(function (a) { return !a.ack; }).length;
-    appSet('alertsum', alerts.length ? alerts.length + ' active' + (open < alerts.length ? ' (' + (alerts.length - open) + ' reviewed)' : '') : 'No active alerts');
-    appEach('[data-app-card="alerts"]', function (n) { n.classList.toggle('is-warn', alerts.length > 0); });
-    appSet('badge', open ? String(open) : '');
-    appEach('[data-app="badge"]', function (n) { if (n.hidden === !!open) n.hidden = !open; });
-    // Feeding
-    var code = engine.systemState().code;
-    appSet('fstate', !live ? (s.wifi ? 'The controller is not responding (no power).' : 'Offline. The controller keeps feeding on its own; this page may be out of date.') : (APP_STATE[code] || engine.systemState().text + '.'));
-    appEach('[data-app="fstate"]', function (n) { n.setAttribute('data-tone', !live ? 'off' : (TONE[code] || 'ok')); });
-    var remind = live && s.phase === 'reminder';
-    appShow('remind', remind);
-    if (remind) {
-      var left = engine.reminderLeft();
-      appSet('cd', mmss(left));
-      appEach('[data-app-bar="cd"]', function (n) { n.style.transform = 'scaleX(' + (left / Engine.REMINDER_WINDOW).toFixed(4) + ')'; });
-    }
-    appHTML('feedlist', syncedToday.map(function (r) {
-      var o = OUT[r.outcome || 'open'], t = r.responseAt != null ? r.responseAt : (r.attemptAt != null ? r.attemptAt : r.scheduledAt);
-      return '<li class="' + o[1] + '"><b>' + esc(r.slot) + ' slot · ' + F.hhmm(t) + '</b>' + esc(o[0]) + '</li>';
-    }).join('') || '<li>No feeds yet today.</li>');
-    // Alerts
-    appHTML('alerts', alerts.slice().reverse().map(function (a) {
-      return '<li class="' + (a.ack ? '' : 'is-warn') + '">' + esc(a.text) + '<small>' + (a.cat === 'water' ? 'Water quality' : 'Equipment') + ' · since Day ' + a.day + ', ' + F.hhmm(a.since) + (a.ack ? ' · reviewed' : '') + '</small></li>';
-    }).join('') || '<li>No active alerts.</li>');
-    var notes = [];
-    for (var j = engine.log.length - 1; j >= 0 && notes.length < 5; j--) {
-      var e = engine.log[j];
-      if (!e.pendingSync && ['reminder', 'alert', 'fail', 'ok', 'manual', 'cap'].indexOf(e.kind) >= 0) notes.push(e);
-    }
-    appHTML('notes', notes.map(function (e) { return '<li>' + esc(e.text) + '<small>Day ' + e.day + ', ' + F.hhmm(e.t) + ' SIM</small></li>'; }).join('') || '<li>No notifications yet.</li>');
-    // Camera and Settings (App view phone)
-    var has3d = !!tank3d && !$('camCard').hidden;
-    appEach('[data-app-gocam]', function (n) { if (n.hidden === has3d) n.hidden = !has3d; });
-    appSet('camnote', has3d ? 'The top camera is a proposed upgrade. Its picture and fish analysis are on the phone beside the tank in the 3D Tank view.'
-      : 'The top camera is a proposed upgrade shown only in the 3D Tank view. 3D graphics are not running here.');
-    appEach('[data-app-size]', function (n) { if (document.activeElement !== n && n.value !== String(settings.tankGal)) n.value = String(settings.tankGal); });
-  }
+  function renderApp() { phoneUI.render(); }
 
   // ---------- calendar ----------
   function renderCalendar() {

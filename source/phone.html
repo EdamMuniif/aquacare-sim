@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f2b36">
+<title>AquaCare Phone App - SIMULATION</title>
+<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/phoneapp.css">
+</head>
+<body class="pa">
+<div class="pa__wrap">
+  <div class="phone pa__phone" role="group" aria-label="AquaCare phone app (simulation)">
+    <div class="phone__notch" aria-hidden="true"></div>
+    <div class="phone__screen papp" data-phone="solo">
+      <div class="phone__bar"><b>AquaCare</b><span class="simtag">SIM</span></div>
+      <div class="pa__sim" aria-label="Simulation controls">
+        <span class="pa__clock mono" id="paClock">Day 1 · 00:00</span>
+        <button type="button" class="pa__btn" id="paRun" aria-pressed="false">Start</button>
+        <button type="button" class="pa__btn" id="paSpeed" aria-label="Simulation speed">60×</button>
+        <button type="button" class="pa__btn pa__btn--tank" id="paPress" title="Simulates pressing the physical button on the tank">Tank btn</button>
+      </div>
+      <div class="ppages">
+<section class="ppage" role="tabpanel" id="sp-pg-home" aria-labelledby="sp-tab-home" data-page="home">
+<div class="papp__conn" data-app="conn">Live</div>
+<div class="papp__tiles">
+  <div data-tile="ph"><span class="k">pH</span><span class="v mono" data-app="ph">-</span></div>
+  <div data-tile="temp"><span class="k">Temperature</span><span class="v mono" data-app="temp">-</span></div>
+  <div data-tile="tds"><span class="k">TDS</span><span class="v mono" data-app="tds">-</span></div>
+  <div data-tile="turb"><span class="k">Turbidity</span><span class="v mono" data-app="turb">-</span></div>
+</div>
+<div class="papp__card"><span class="k">Next feed</span><b data-app="next">-</b></div>
+<div class="papp__card"><span class="k">Feeds today</span><b data-app="feeds">-</b><span class="papp__pips" data-app-html="pips" aria-hidden="true"></span></div>
+<div class="papp__card" data-app-card="alerts"><span class="k">Alerts</span><b data-app="alertsum">-</b></div>
+</section>
+<section class="ppage" role="tabpanel" id="sp-pg-cam" aria-labelledby="sp-tab-cam" data-page="cam" hidden>
+<div class="pa__tankbox"><svg id="tank" class="tank" role="img" aria-label="Simulated front view of the aquarium with the feeder and controller. Tap the red button on the controller to press the tank button."></svg></div>
+<p class="papp__note">Simulated front view of the tank. Tap the red button on the controller to press the tank button. The proposed top camera and fish analysis run in the 3D view on the <a href="index.html">main page</a>.</p>
+</section>
+<section class="ppage" role="tabpanel" id="sp-pg-feed" aria-labelledby="sp-tab-feed" data-page="feed" hidden>
+<div class="papp__state" data-app="fstate">Monitoring</div>
+<div class="papp__remind" data-app-show="remind" hidden>
+  <p class="papp__cd"><b class="mono" data-app="cd">10:00</b> left to feed by hand</p>
+  <div class="bar" aria-hidden="true"><span data-app-bar="cd"></span></div>
+  <p>Go to the tank and press the red button. If nobody presses it in time, the feeder gives one portion on its own, if today&rsquo;s limit allows.</p>
+</div>
+<p class="papp__k">Today</p>
+<ol class="papp__list" data-app-html="feedlist"></ol>
+<p class="phone__rule">No feed button in the app: only the button at the tank confirms a hand feed (the red demo button stands in for it).</p>
+</section>
+<section class="ppage" role="tabpanel" id="sp-pg-alerts" aria-labelledby="sp-tab-alerts" data-page="alerts" hidden>
+<p class="papp__k">Active alerts</p>
+<ul class="papp__list" data-app-html="alerts"></ul>
+<p class="papp__k">Recent notifications</p>
+<ol class="papp__list" data-app-html="notes"></ol>
+</section>
+<section class="ppage" role="tabpanel" id="sp-pg-set" aria-labelledby="sp-tab-set" data-page="set" hidden>
+<label class="phone__label" for="paSize">Tank profile</label>
+<select id="paSize" data-app-size>
+  <option value="2.5">2.5 US gal</option>
+  <option value="3">3 US gal</option>
+  <option value="5">5 US gal</option>
+  <option value="7.5">7.5 US gal</option>
+  <option value="10">10 US gal</option>
+  <option value="p3">36 &times; 22 &times; 26 cm (paper [3] tank)</option>
+</select>
+<p class="papp__k">Demo controls</p>
+<div class="phone__row">
+  <button class="btn btn--sm" type="button" id="paWifi" aria-pressed="false">Disconnect Wi-Fi</button>
+  <button class="btn btn--sm" type="button" id="paReset">Restart run</button>
+</div>
+<p class="phone__fit">This page runs its own copy of the simulation in this browser. It is not linked to the simulation open on another device. Nothing is saved.</p>
+<p class="phone__sim">SIMULATION &middot; DEMO DATA &middot; NOT HARDWARE MEASUREMENTS</p>
+</section>
+      </div>
+      <nav class="ptabs" role="tablist" aria-label="App pages">
+        <button type="button" role="tab" id="sp-tab-home" aria-controls="sp-pg-home" aria-selected="true" tabindex="0" data-page="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/></svg><span>Home</span></button>
+        <button type="button" role="tab" id="sp-tab-cam" aria-controls="sp-pg-cam" aria-selected="false" tabindex="-1" data-page="cam"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8 7l2-3h4l2 3"/></svg><span>Tank</span></button>
+        <button type="button" role="tab" id="sp-tab-feed" aria-controls="sp-pg-feed" aria-selected="false" tabindex="-1" data-page="feed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10h14l-2 9H7z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg><span>Feeding</span></button>
+        <button type="button" role="tab" id="sp-tab-alerts" aria-controls="sp-pg-alerts" aria-selected="false" tabindex="-1" data-page="alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span>Alerts</span><span class="ptabs__badge" data-app="badge" hidden></span></button>
+        <button type="button" role="tab" id="sp-tab-set" aria-controls="sp-pg-set" aria-selected="false" tabindex="-1" data-page="set"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span>Settings</span></button>
+      </nav>
+    </div>
+  </div>
+  <aside class="pa__side">
+    <h1>AquaCare phone app</h1>
+    <p>A working mock-up of the proposed phone app, at real phone size. Open this page on a phone to use it full screen.</p>
+    <ul>
+      <li>It runs its own copy of the AquaCare simulation in this browser. Press <b>Start</b>, then use the speed button to move time faster.</li>
+      <li>At a feed time the app shows the 10-minute countdown. Only the button at the tank can confirm a hand feed; the red <b>Tank button</b> at the top of the app stands in for it.</li>
+      <li>Under Settings, disconnect Wi-Fi to see the app go out of date while the controller keeps feeding.</li>
+    </ul>
+    <p class="pa__label">SIMULATION / DEMO DATA &mdash; NOT HARDWARE MEASUREMENTS</p>
+    <p><a href="index.html">Open the full simulation</a></p>
+  </aside>
+</div>
+<script src="js/filterstages.js"></script>
+<script src="js/filter.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/tank.js"></script>
+<script src="js/phoneui.js"></script>
+<script src="js/phoneapp.js"></script>
+</body>
+</html>
