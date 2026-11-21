@@ -59,6 +59,9 @@
     turb: { key: 'turb', name: 'Turbidity sensor', part: 'SEN0189', unit: 'NTU', dp: 1, base: 5,    noise: 0.6,  pat: [0.8, 0.55],  scope: 'paper', lim: ['turbMin', 'turbMax'], ref: [null, 50], plaus: [0, 3000] }
   };
   var KEYS = ['ph', 'temp', 'tds', 'turb'];
+  // Demonstration pH calibration (off by default). ILLUSTRATIVE probe values, not measured or sourced:
+  // the probe reads 7 + slope*(pH - 7) + offset, and the offset drifts a little every day.
+  var PH_PROBE = { offset0: 0.20, slope: 0.95, driftPerDay: 0.01, buffers: [7.00, 4.01], dueDays: 30 };
   var SMOOTH_N = 5;   // five-sample smoothing, as described in the reviewed paper
   // Optional alert-clearing rule (proposal, requires team decision): with alertClearing 'hold', a water-range alert clears only
   // after the shown value has been back inside the range by this margin for CLEAR_HOLD. Raising is never delayed.
@@ -131,6 +134,7 @@
       limitsSource: 'reference',
       roc: { phPerHour: null, tPerHour: null },
       alertClearing: 'instant',                        // 'instant' (original) | 'hold' (margin + 10-min hold; proposal)
+      phCalDemo: false,                                // demonstration probe error, drift and two-point calibration (illustrative)
       clock: 'kept',                                   // 'kept' (time survives a power cut: needs a backup clock, not yet in the parts list) | 'wifi' (time only from Wi-Fi)
       awayMode: false,                                 // proposed feature
       feedMode: 'hybrid',                              // 'hybrid' | 'manual' | 'auto' (comparison conditions)
@@ -176,6 +180,7 @@
       passageMode: 'detect',
       chuteBlocked: false, ownerSuppressed: false, lcdBug: 0, lcdFrozen: null,
       hopperEmpty: 0, irStuck: null, clockSet: true,
+      phCal: null,          // demo two-point calibration: { at, day, r7, r4 }
       firedSlots: {},
       feeds: { counted: 0, manual: 0, autoOk: 0, autoFail: 0 },
       interrupted: null,
@@ -221,6 +226,7 @@
   Engine.SENSORS = SENSORS;
   Engine.FEED_MODES = FEED_MODES;
   Engine.KEYS = KEYS;
+  Engine.PH_PROBE = PH_PROBE;
   Engine.PERTURB = PERTURB;
   Engine.SMOOTH_N = SMOOTH_N;
   Engine.referenceLimits = referenceLimits;
@@ -587,6 +593,36 @@
       this.raise('sensor-' + which, 'equipment', txt);
     }
     this.emit('change');
+  };
+
+  // ---------- demonstration pH calibration (illustrative values; off by default) ----------
+  P.phOffset = function (t) { return PH_PROBE.offset0 + PH_PROBE.driftPerDay * (t / DAY); };
+  P.phProbeRead = function (ph, t) { return 7 + PH_PROBE.slope * (ph - 7) + this.phOffset(t); };
+  P.phCalApply = function (raw) {
+    var c = this.s.phCal, b = PH_PROBE.buffers;
+    return b[0] + (raw - c.r7) * (b[0] - b[1]) / (c.r7 - c.r4);
+  };
+  P.phCalStatus = function () {
+    var s = this.s;
+    if (!this.settings.phCalDemo) return { code: 'none', text: 'Not calibrated' };
+    if (!s.phCal) return { code: 'none', text: 'Not calibrated (demo probe error on)' };
+    var age = (s.simTime - s.phCal.at) / DAY;
+    if (age >= PH_PROBE.dueDays) return { code: 'due', text: 'Calibration due (demo)' };
+    return { code: 'ok', text: 'Calibrated (demo), Day ' + s.phCal.day };
+  };
+  P.calibratePh = function () {
+    var s = this.s, sn = s.sensors.ph;
+    if (!this.settings.phCalDemo) return 'off';
+    if (s.power !== 'on' || sn.status !== 'ok') { this.addLog('demo', 'pH calibration not possible: the pH sensor is not reporting', { injected: true }); this.emit('change'); return 'no-sensor'; }
+    var b = PH_PROBE.buffers, r7 = this.phProbeRead(b[0], s.simTime), r4 = this.phProbeRead(b[1], s.simTime);
+    s.phCal = { at: s.simTime, day: s.day, r7: r7, r4: r4 };
+    sn.buf = [];
+    var slope = (r7 - r4) / (b[0] - b[1]) * 100;
+    this.addLog('sensor', 'pH two-point calibration (demo): pH ' + b[0].toFixed(2) + ' buffer read ' + r7.toFixed(2) + ', pH ' + b[1].toFixed(2) + ' buffer read ' + r4.toFixed(2) +
+      '; correction saved (offset ' + (r7 - b[0] >= 0 ? '+' : '') + (r7 - b[0]).toFixed(2) + ' pH, slope ' + slope.toFixed(1) + '%). Illustrative probe values, not a real calibration.', { injected: true });
+    this.clear('ph-cal', 'pH calibration renewed: calibration-due alert cleared');
+    this.emit('change');
+    return 'ok';
   };
 
   P.setWifi = function (on, via) {
@@ -1046,8 +1082,10 @@
       } else {
         var raw = sn.status === 'faulty' ? BAD_RAW[k] : sn.water + noise;
         if (k === 'turb' && (s.bubbles || s.bubblesScn > 0) && sn.status === 'ok' && spike < 0.2) raw += 40 + spike * 600;   // bubble artifact
+        if (k === 'ph' && self.settings.phCalDemo && sn.status === 'ok') raw = self.phProbeRead(raw, t);
         sn.raw = raw;
-        var cal = raw;   // calibration step: no calibration data in this demo, identity applied
+        var cal = raw;   // calibration step: identity unless the demonstration calibration has been run
+        if (k === 'ph' && self.settings.phCalDemo && s.phCal && sn.status === 'ok') cal = self.phCalApply(raw);
         // local validation: reject values outside the plausibility window (demo choice)
         var ok = isFinite(cal) && cal >= d.plaus[0] && cal <= d.plaus[1];
         sn.rawValid = ok;
@@ -1064,6 +1102,8 @@
       row[k + '_raw'] = sn.raw == null ? null : Math.round(sn.raw * f * 10) / (f * 10);
       row[k + '_ok'] = sn.raw == null ? null : sn.rawValid;
     });
+    if (this.settings.phCalDemo && s.phCal && !this.findAlert('ph-cal') && (t - s.phCal.at) >= PH_PROBE.dueDays * DAY)
+      this.raise('ph-cal', 'equipment', 'pH calibration due: ' + PH_PROBE.dueDays + ' days since the last calibration (demo interval)');
     s.samples.push(row);
     if (s.samples.length > 50000) s.samples.splice(0, s.samples.length - 50000);
     s.perts = s.perts.filter(function (p) { return t < p.end + 6 * PERTURB[p.kind].down * MIN; });
@@ -1275,7 +1315,7 @@
   // its starting settings plus every top-level action and the simulated time it happened at.
   // Replaying that list rebuilds the identical run, including all readings, without storing them.
   var JOURNALED = ['start', 'pause', 'setSpeed', 'clearHistory', 'clearLog', 'setPassageMode', 'setTarget', 'commitTarget',
-    'setSensorStatus', 'setWifi', 'setAway', 'cutPower', 'restorePower', 'finishBoot', 'pressTankButton', 'injectTrigger',
+    'setSensorStatus', 'setWifi', 'setAway', 'cutPower', 'restorePower', 'finishBoot', 'pressTankButton', 'injectTrigger', 'calibratePh',
     'jumpToNextFeed', 'expireNow', 'fastForwardToDay', 'fastForwardNextDay', 'runToEnd', 'ackFeederFault', 'ackAlert',
     'addLog', 'raise', 'clear', 'startScenario', 'endScenario', 'syncScenarios', 'setLcdBug', 'setFeedMode', 'setBubbles',
     'startPerturbation', 'settle', 'advanceTo', 'cleanTank', 'setFilter', 'filterPump', 'setFilterFlow', 'cleanFilter',

@@ -794,7 +794,7 @@
   <div class="pane" role="tabpanel" id="pane-cal" aria-labelledby="tab-cal" hidden>
     <div class="grid2">
       <section>
-        <p class="callout callout--fault"><b>Calibration status: Not calibrated.</b> The simulated pH sensor has no calibration data. The pH values on this page are generated numbers, not calibrated measurements.</p>
+        <p class="callout callout--fault" id="calCallout"><b>Calibration status: Not calibrated.</b> The simulated pH sensor has no calibration data. The pH values on this page are generated numbers, not calibrated measurements.</p>
         <h3 class="h3">Why calibration is required</h3>
         <p>An analog pH probe's output drifts with age, temperature and storage. The &plusmn;0.1 pH target cannot be claimed until the real probe has been calibrated and then checked against a reference.</p>
         <h3 class="h3">General procedure for the real sensor</h3>
@@ -806,6 +806,18 @@
           <li>Store the calibration constants in the controller and note the date.</li>
           <li>Verify against a buffer not used for calibration before trusting readings.</li>
         </ol>
+        <h3 class="h3">Demonstration calibration <span class="pill pill--attn">Illustrative</span></h3>
+        <label class="switch"><input type="checkbox" id="calDemo"><span>Simulate probe error and drift <em>(made-up values)</em></span></label>
+        <div class="caldemo" id="calDemoBox" hidden>
+          <button class="btn btn--sm" type="button" id="calRun">Calibrate with pH 7.00 and 4.01 buffers</button>
+          <table class="caltab"><tbody>
+            <tr><th scope="row">Water pH (simulated true value)</th><td class="mono" id="calWater">-</td></tr>
+            <tr><th scope="row">Probe reading before correction</th><td class="mono" id="calRaw">-</td></tr>
+            <tr><th scope="row">Reading shown (after correction, averaged)</th><td class="mono" id="calShown">-</td></tr>
+            <tr><th scope="row">Error of the shown reading</th><td class="mono" id="calErr">-</td></tr>
+          </tbody></table>
+        </div>
+        <p class="fine">Demonstration only. The simulated probe reads 0.20 pH high at first, has a 95% slope and drifts by 0.01 pH per day; calibration is marked due after 30 days. These numbers are made up to show how calibration works. They are not data for any real probe, and running this does not calibrate anything. Turning it on changes the simulated pH readings, so results differ from the standard runs.</p>
       </section>
       <section>
         <h3 class="h3">Verification still to be planned</h3>

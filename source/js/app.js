@@ -37,6 +37,7 @@
       ['phPerHour', 'tPerHour'].forEach(function (k) { if (sv.roc && typeof sv.roc[k] === 'number') d.roc[k] = sv.roc[k]; });
       if (sv.alertClearing === 'hold') d.alertClearing = 'hold';
       if (sv.clock === 'wifi') d.clock = 'wifi';
+      if (sv.phCalDemo === true) d.phCalDemo = true;
       d.awayMode = !!sv.awayMode;
       if (sv.dailyPattern === false) d.dailyPattern = false;
       if (sv.owner && (sv.owner.mode === 'simulated' || sv.owner.mode === 'presenter')) d.owner.mode = sv.owner.mode;
@@ -684,7 +685,9 @@
     rows.push(['Wi-Fi', s.wifi ? 'Connected' : 'Disconnected', s.wifi ? 'ok' : 'fault', 0]);
     rows.push(['App link', !s.wifi ? 'Stale since ' + F.hhmm(s.appLastSync) : (s.power === 'on' ? 'Live' : 'Device offline'), s.wifi && s.power === 'on' ? 'ok' : 'attn', 0]);
     rows.push(['LCD', s.power !== 'on' ? 'No power' : (s.lcdBug ? 'Status not updating (fault)' : 'Updating'), s.power !== 'on' ? 'off' : (s.lcdBug ? 'fault' : 'ok'), 1]);
-    rows.push(['pH calibration', 'Not calibrated', 'attn', 0]);
+    var pcs = engine.phCalStatus();
+    rows.push(['pH calibration', pcs.text, pcs.code === 'ok' ? 'ok' : 'attn', 0]);
+    renderCal(pcs);
     var ff = s.filter;
     if (ff && ff.enabled) rows.push(['Filter pump', s.power !== 'on' ? 'No power' : FILT_WORD[ff.state] + (ff.state === 'RUNNING' || ff.state === 'WARNING' ? ', ' + Math.round(ff.flow) + ' L/h' : ''), s.power !== 'on' ? 'off' : FILT_TONE[ff.state], 0, true]);
     var u = engine.upkeep(), worst = Math.max(u.glass, u.detritus, u.probes);
@@ -711,7 +714,7 @@
       else if (r[0] == null && r[1] == null) res = '<span class="oc oc--open">Not configured</span>';
       else if ((r[0] != null && sn.value < r[0]) || (r[1] != null && sn.value > r[1])) res = '<span class="oc oc--auto_fail">Alert</span>';
       else res = '<span class="oc oc--auto_ok">In range</span>';
-      return '<tr><td><b>' + SHORT[k] + '</b> <span class="fine">' + d.part + '</span></td><td class="mono">' + raw + '</td><td class="fine">identity (not calibrated)</td><td>' + val +
+      return '<tr><td><b>' + SHORT[k] + '</b> <span class="fine">' + d.part + '</span></td><td class="mono">' + raw + '</td><td class="fine">' + (k === 'ph' && settings.phCalDemo && s.phCal ? 'two-point (demo)' : 'identity (not calibrated)') + '</td><td>' + val +
         (sn.rejected ? ' <span class="fine">(' + sn.rejected + ' rejected so far)</span>' : '') + '</td><td class="mono">' + buf + '</td><td class="mono"><b>' + fmtV(k, sn.value) + '</b></td><td class="mono">' + rangeText(k) + '</td><td>' + res + '</td></tr>';
     }).join('');
     var recs = s.pertRecords;
@@ -835,6 +838,24 @@
     }
   });
   function renderApp() { phoneUI.render(); }
+  // pH calibration tab: status callout and the demonstration table
+  function renderCal(pcs) {
+    var s = engine.s, sn = s.sensors.ph, on = !!settings.phCalDemo, co = $('calCallout');
+    var cls = 'callout ' + (pcs.code === 'ok' ? 'callout--ok' : (pcs.code === 'due' ? 'callout--attn' : 'callout--fault'));
+    if (co.className !== cls) co.className = cls;
+    var msg = pcs.code === 'ok' ? '<b>Calibration status: ' + esc(pcs.text) + '.</b> A demonstration two-point calibration is applied to the simulated probe. It is not a calibration of any real sensor.'
+      : (pcs.code === 'due' ? '<b>Calibration status: due.</b> The demonstration calibration is ' + Engine.PH_PROBE.dueDays + ' or more days old, so the simulated probe has drifted. Run it again.'
+      : (on ? '<b>Calibration status: Not calibrated.</b> Demonstration probe error is on, so the pH readings include the probe\u2019s offset and drift until you run the calibration below.'
+      : '<b>Calibration status: Not calibrated.</b> The simulated pH sensor has no calibration data. The pH values on this page are generated numbers, not calibrated measurements.'));
+    setHTML(co, msg);
+    $('calDemoBox').hidden = !on;
+    $('calRun').disabled = !on || s.power !== 'on' || sn.status !== 'ok';
+    var f = function (v) { return v == null ? '-' : v.toFixed(2); };
+    setText('calWater', f(sn.water));
+    setText('calRaw', f(sn.raw));
+    setText('calShown', f(sn.value));
+    setText('calErr', sn.value == null || sn.water == null ? '-' : ((sn.value - sn.water >= 0 ? '+' : '') + (sn.value - sn.water).toFixed(2) + ' pH'));
+  }
 
   // ---------- calendar ----------
   function renderCalendar() {
@@ -1436,6 +1457,7 @@
     $('alertClear').value = settings.alertClearing === 'hold' ? 'hold' : 'instant';
     $('polCount').value = settings.policy.countAfterRestart;
     $('clockMode').value = settings.clock === 'wifi' ? 'wifi' : 'kept';
+    $('calDemo').checked = !!settings.phCalDemo;
   }
   fillLimits();
   $('limitsForm').addEventListener('submit', function (ev) {
@@ -1491,6 +1513,13 @@
     save(); render();
   });
   $('polReminder').addEventListener('change', function () { settings.policy.interruptedReminder = $('polReminder').value; engine.addLog('demo', 'Restart policy for interrupted reminders: ' + $('polReminder').selectedOptions[0].text + ' (requires team decision)', { injected: true }); save(); });
+  $('calDemo').addEventListener('change', function () {
+    settings.phCalDemo = $('calDemo').checked;
+    engine.s.sensors.ph.buf = [];
+    engine.addLog('demo', 'Demonstration pH probe error and drift ' + (settings.phCalDemo ? 'ON (illustrative values; pH readings now include probe error until calibrated)' : 'OFF'), { injected: true });
+    save(); render();
+  });
+  $('calRun').addEventListener('click', function () { engine.calibratePh(); save(); render(); });
   $('clockMode').addEventListener('change', function () {
     settings.clock = $('clockMode').value === 'wifi' ? 'wifi' : 'kept';
     engine.addLog('demo', 'Controller clock after a power cut: ' + (settings.clock === 'wifi' ? 'time comes only from Wi-Fi (no backup clock)' : 'time is kept (assumes a backup clock module)') + ' (requires team decision)', { injected: true });

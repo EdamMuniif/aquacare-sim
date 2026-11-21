@@ -84,6 +84,36 @@ const clockScen = () => [sc('wifi', '09:00', 420, 'w'), sc('power', '09:30', 15,
   check('4g No backup clock: no reminder opens while the time is unknown', !e.log.some(l => /Feeding reminder for the 13:00 slot/.test(l.text)));
 }
 
+// 5. demonstration pH calibration (illustrative probe values; off by default)
+{
+  const DAY = 24 * 60 * MIN;
+  check('5a pH demo off by default; status Not calibrated', Engine.defaultSettings().phCalDemo === false && new Engine({ settings: Engine.defaultSettings() }).phCalStatus().text === 'Not calibrated');
+  const mk = on => { const s = Engine.defaultSettings(); s.startDate = '2026-11-19'; s.days = 30; s.phCalDemo = on; const e = new Engine({ settings: s, seed: 20261122 }); e.start(); e.quiet = true; return e; };
+  const meanErr = (e, from, to) => { let n = 0, m = 0; e.s.samples.forEach(r => { if (r.t >= from && r.t < to && r.ph != null) { n++; m += r.ph; } }); return n ? m / n : null; };
+  // the samples hold the shown (averaged) value; compare with the probe-free water value from a demo-off twin run
+  const off = mk(false), on = mk(true);
+  const step = (e, ms) => e.advanceTo(e.s.simTime + ms, true);
+  step(off, 6 * 60 * MIN); step(on, 6 * 60 * MIN);
+  const t0 = on.s.simTime - 6 * 60 * MIN;
+  const before = meanErr(on, t0, on.s.simTime) - meanErr(off, t0, off.s.simTime);
+  check('5b Demo probe before calibration reads about 0.2 pH high', before > 0.12 && before < 0.30, before.toFixed(3));
+  check('5c calibratePh refuses when the demo is off', off.calibratePh() === 'off' && off.s.phCal === null);
+  check('5d Calibration succeeds and is logged', on.calibratePh() === 'ok' && on.s.phCal && on.log.some(l => /pH two-point calibration \(demo\)/.test(l.text)) && on.phCalStatus().code === 'ok');
+  const tc = on.s.simTime;
+  step(off, 6 * 60 * MIN); step(on, 6 * 60 * MIN);
+  const after = meanErr(on, tc + 10 * MIN, on.s.simTime) - meanErr(off, tc + 10 * MIN, off.s.simTime);
+  check('5e Right after calibration the error is small', Math.abs(after) < 0.03, after.toFixed(3));
+  step(off, 19 * DAY); step(on, 19 * DAY);
+  const t2 = on.s.simTime - 6 * 60 * MIN;
+  const drift = meanErr(on, t2, on.s.simTime) - meanErr(off, t2, off.s.simTime);
+  check('5f About 19 days later the probe has drifted again (~0.2 pH)', drift > 0.14 && drift < 0.28, drift.toFixed(3));
+  check('5g Not yet due before 30 days; no due alert', on.phCalStatus().code === 'ok' && !on.findAlert('ph-cal'));
+  on.s.phCal.at -= 31 * DAY; step(on, 2 * MIN);
+  check('5h After 30 days: status due and an equipment alert', on.phCalStatus().code === 'due' && !!on.findAlert('ph-cal'));
+  on.calibratePh();
+  check('5i Recalibrating clears the due alert', on.phCalStatus().code === 'ok' && !on.findAlert('ph-cal'));
+}
+
 out.forEach(l => console.log(l));
 console.log(pass + '/' + (pass + fail) + ' gap checks passed');
 if (fail) process.exit(1);
