@@ -10,8 +10,37 @@
   var engine = new Engine({ settings: settings });
   engine.setSpeed(60);
 
-  var tank = new window.AquaTank($('tank'));
-  tank.fishCount = settings.fishCount;
+  // The Camera page shows the top-camera picture from the 3D tank, which runs off-screen.
+  // Without WebGL it falls back to the 2D front view of the tank.
+  var flat = new window.AquaTank($('tank'));
+  flat.fishCount = settings.fishCount;
+  var cam3d = null;
+  if (window.AquaTank3D && window.ResizeObserver && window.IntersectionObserver) {
+    try {
+      cam3d = new window.AquaTank3D($('paEngine3d'));
+      cam3d.attachFeed($('paCam'));
+      cam3d.onFeedFrame = stampFeed;
+    } catch (e) { cam3d = null; }
+  }
+  if (!cam3d) {
+    $('paCamWrap').hidden = true; $('paTank2d').hidden = false;
+    $('paCamNote').textContent = 'Simulated front view of the tank (3D graphics are not available here, so the top-camera picture cannot be shown). Tap the red button on the controller to press the tank button.';
+  }
+  var views = cam3d ? [flat, cam3d] : [flat];
+  var tank = {
+    render: function (size) { flat.render(size); if (cam3d) cam3d.render(size, settings.fishCount); },
+    setAnimate: function (on) { views.forEach(function (v) { v.setAnimate(on); }); },
+    dispense: function (phase, outcome) { views.forEach(function (v) { v.dispense(phase, outcome); }); },
+    pulseButton: function () { views.forEach(function (v) { v.pulseButton(); }); },
+    update: function (st) { views.forEach(function (v) { v.update(st); }); },
+    onButton: function (fn) { flat.onButton(fn); if (cam3d) cam3d.buttonHandler = fn; }
+  };
+  function stampFeed(f) {
+    var cw = f.canvas.width, u = cw / 480, g = f.ctx;
+    g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(0, 0, cw, 22 * u);
+    g.fillStyle = '#f3c735'; g.font = 'bold ' + 12 * u + 'px ui-monospace, Menlo, Consolas, monospace'; g.textBaseline = 'middle';
+    g.fillText('SIMULATION  TOP CAMERA  ' + F.hhmm(engine.s.simTime), 8 * u, 11 * u);
+  }
   tank.render(settings.tankGal);
   tank.setAnimate(true);
 

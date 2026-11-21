@@ -19,6 +19,10 @@ body.pa { margin: 0; padding: 0; min-height: 100vh; background: #dfe8eb; color: 
 @keyframes paPulse { 50% { box-shadow: 0 0 0 4px rgba(192, 57, 43, .35); } }
 @media (prefers-reduced-motion: reduce) { .pa__btn--tank.is-due { animation: none; outline: 3px solid #f2b630; } }
 
+.pa__camwrap { background: #05090b; border-radius: 10px; overflow: hidden; }
+.pa__camwrap canvas { display: block; width: 100%; height: auto; }
+.pa__engine3d { position: fixed; left: -10000px; top: 0; width: 480px; height: 300px; overflow: hidden; pointer-events: none; }
+.pa__engine3d .tank3d__viewport { width: 480px; height: 300px; }
 .pa__tankbox { background: #05090b; border-radius: 10px; overflow: hidden; }
 .pa__tankbox .tank { display: block; width: 100%; height: auto; }
 

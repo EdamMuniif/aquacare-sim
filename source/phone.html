@@ -34,8 +34,9 @@
 <div class="papp__card" data-app-card="alerts"><span class="k">Alerts</span><b data-app="alertsum">-</b></div>
 </section>
 <section class="ppage" role="tabpanel" id="sp-pg-cam" aria-labelledby="sp-tab-cam" data-page="cam" hidden>
-<div class="pa__tankbox"><svg id="tank" class="tank" role="img" aria-label="Simulated front view of the aquarium with the feeder and controller. Tap the red button on the controller to press the tank button."></svg></div>
-<p class="papp__note">Simulated front view of the tank. Tap the red button on the controller to press the tank button. The proposed top camera and fish analysis run in the 3D view on the <a href="index.html">main page</a>.</p>
+<div class="pa__camwrap" id="paCamWrap"><canvas id="paCam" width="480" height="270" aria-label="Simulated live picture from the proposed top camera"></canvas></div>
+<p class="papp__note" id="paCamNote">Simulated live picture from the proposed top camera above the tank. The fish analysis runs on the <a href="index.html">main page</a>.</p>
+<div class="pa__tankbox" id="paTank2d" hidden><svg id="tank" class="tank" role="img" aria-label="Simulated front view of the aquarium with the feeder and controller. Tap the red button on the controller to press the tank button."></svg></div>
 </section>
 <section class="ppage" role="tabpanel" id="sp-pg-feed" aria-labelledby="sp-tab-feed" data-page="feed" hidden>
 <div class="papp__state" data-app="fstate">Monitoring</div>
@@ -75,7 +76,7 @@
       </div>
       <nav class="ptabs" role="tablist" aria-label="App pages">
         <button type="button" role="tab" id="sp-tab-home" aria-controls="sp-pg-home" aria-selected="true" tabindex="0" data-page="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/></svg><span>Home</span></button>
-        <button type="button" role="tab" id="sp-tab-cam" aria-controls="sp-pg-cam" aria-selected="false" tabindex="-1" data-page="cam"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8 7l2-3h4l2 3"/></svg><span>Tank</span></button>
+        <button type="button" role="tab" id="sp-tab-cam" aria-controls="sp-pg-cam" aria-selected="false" tabindex="-1" data-page="cam"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8 7l2-3h4l2 3"/></svg><span>Camera</span></button>
         <button type="button" role="tab" id="sp-tab-feed" aria-controls="sp-pg-feed" aria-selected="false" tabindex="-1" data-page="feed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10h14l-2 9H7z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg><span>Feeding</span></button>
         <button type="button" role="tab" id="sp-tab-alerts" aria-controls="sp-pg-alerts" aria-selected="false" tabindex="-1" data-page="alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span>Alerts</span><span class="ptabs__badge" data-app="badge" hidden></span></button>
         <button type="button" role="tab" id="sp-tab-set" aria-controls="sp-pg-set" aria-selected="false" tabindex="-1" data-page="set"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span>Settings</span></button>
@@ -94,10 +95,14 @@
     <p><a href="index.html">Open the full simulation</a></p>
   </aside>
 </div>
+<!-- 3D tank used only to make the top-camera picture; kept off-screen -->
+<div class="pa__engine3d" id="paEngine3d" aria-hidden="true"><div class="tank3d__viewport"></div><select tabindex="-1"><option value="reset">reset</option></select><button type="button" data-camera="pan" tabindex="-1">pan</button></div>
 <script src="js/filterstages.js"></script>
 <script src="js/filter.js"></script>
 <script src="js/engine.js"></script>
 <script src="js/tank.js"></script>
+<script src="vendor/three-r160.min.js"></script>
+<script src="js/tank3d.js"></script>
 <script src="js/phoneui.js"></script>
 <script src="js/phoneapp.js"></script>
 </body>
