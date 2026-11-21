@@ -1249,6 +1249,54 @@ html.fv-open, html.fv-open body { overflow: hidden; }
 }
 @media (prefers-reduced-motion: reduce) { .fv-tile, .bay.is-full .fv-feed { backdrop-filter: none; } }
 
+/* ---- phone app: five pages with a bottom tab bar (both phone mock-ups) ---- */
+.phone__screen.papp { display: flex; flex-direction: column; height: 600px; min-height: 0; padding: 0; gap: 0; overflow: hidden; background: #f4f7f8; color: #12232b; }
+.papp .phone__bar { flex: none; padding: 12px 14px; background: #0f2b36; color: #fff; font-size: 15px; }
+.ppages { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.ppage { padding: 12px 14px 16px; display: grid; gap: 10px; align-content: start; }
+.ppage[hidden] { display: none; }
+.papp__k { margin: 4px 0 -4px; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #4c6069; }
+.papp__conn { font-size: 13px; font-weight: 650; padding: 8px 10px; border-radius: 8px; background: #e2f3e8; color: #1d6b3a; }
+.papp__conn.is-stale { background: #fdecc8; color: #6a4300; }
+.papp__tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.papp__tiles > div { background: #fff; border: 1px solid #dde5e8; border-radius: 12px; padding: 10px; display: grid; gap: 2px; }
+.papp__tiles > div.is-warn { border-color: #c77d00; background: #fff7e6; }
+.papp__tiles .k, .papp__card .k { font-size: 12px; color: #4c6069; font-weight: 600; }
+.papp__tiles .v { font-size: 21px; font-weight: 650; color: #12232b; }
+.papp__card { background: #fff; border: 1px solid #dde5e8; border-radius: 12px; padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; }
+.papp__card b { font-size: 15px; text-align: right; }
+.papp__card.is-warn { border-color: #c77d00; background: #fff7e6; }
+.papp__pips { grid-column: 1 / -1; display: flex; gap: 6px; }
+.papp__state { font-size: 14px; font-weight: 650; line-height: 1.4; padding: 10px 12px; border-radius: 12px; background: #e4f1f4; color: #0f4352; }
+.papp__state[data-tone="attn"] { background: #fdecc8; color: #6a4300; }
+.papp__state[data-tone="fault"] { background: #fbe1df; color: #8a1f17; }
+.papp__state[data-tone="off"] { background: #e8ecee; color: #3f535c; }
+.papp__remind { background: #fff; border: 2px solid #d98a1e; border-radius: 12px; padding: 10px 12px; font-size: 13.5px; line-height: 1.4; }
+.papp__remind p { margin: 0; }
+.papp__remind .bar { margin: 8px 0; }
+.papp__cd b { font-size: 24px; }
+.papp__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.papp__list li { background: #fff; border: 1px solid #dde5e8; border-left: 4px solid #1f7a8c; border-radius: 8px; padding: 7px 9px; line-height: 1.35; }
+.papp__list li b { display: block; font: 600 11.5px var(--mono); color: #4c6069; }
+.papp__list li small { display: block; color: #5b6b72; font-size: 11.5px; margin-top: 2px; }
+.papp__list li.is-warn, .papp__list li.is-fail { border-left-color: #c77d00; }
+.papp__list li.is-ok { border-left-color: #2f8a4c; }
+.papp__list li.is-manual { border-left-color: #1f7a8c; }
+.papp__list li.is-cap, .papp__list li.is-miss, .papp__list li.is-missm { border-left-color: #8a96a0; }
+.papp__note { font-size: 13.5px; line-height: 1.45; margin: 0; color: #3f535c; }
+.papp .phone__rule, .papp .phone__sim { margin: 0; }
+.papp .phone__rule { font-size: 12px; color: #3f535c; border: 1px dashed #b9c6cc; border-radius: 8px; padding: 8px; }
+.papp .phone__sim { text-align: center; font: 700 10.5px var(--mono); letter-spacing: .1em; color: #8a6a06; }
+.papp .ai__grid { margin: 0; }
+.ptabs { flex: none; display: grid; grid-template-columns: repeat(5, 1fr); background: #fff; border-top: 1px solid #dde5e8; padding: 4px 4px 8px; }
+.ptabs [role="tab"] { position: relative; display: grid; justify-items: center; gap: 2px; min-height: 48px; padding: 4px 0; border: 0; border-radius: 10px; background: none; color: #5b6b72; font: 600 11px var(--sans); cursor: pointer; }
+.ptabs svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ptabs [role="tab"][aria-selected="true"] { color: #0f4352; background: #e4f1f4; }
+.ptabs [role="tab"]:focus-visible { outline: 2px solid #1f7a8c; outline-offset: -2px; }
+.ptabs__badge { position: absolute; top: 2px; right: calc(50% - 20px); min-width: 17px; height: 17px; padding: 0 4px; border-radius: 99px; background: #c0392b; color: #fff; font: 700 10.5px/17px var(--sans); }
+.ptabs__badge[hidden] { display: none; }
+@media (max-width: 400px) { .phone__screen.papp { height: 560px; } .ptabs [role="tab"] { font-size: 10.5px; } }
+
 </style>
 <style>
 /* Real-Life Aquarium Research Simulation page. Loaded only by research.html. */
@@ -3377,7 +3425,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
   Tank3D.prototype.resetArm = function () {
     this.servo = ARM.rest.map(function (q) { return { q: q, v: 0, t: q }; });
-    this.fd = { phase: 'rest', t: 0, outcome: null, queue: 0, tip: 0, released: 0, jam: false };
+    this.fd = { phase: 'rest', t: 0, outcome: null, queue: [], tip: 0, released: 0, jam: false };
     this.armPhase = 'rest';
     if (this.arm) { this.arm.load.visible = false; setArmJoints(this.arm, ARM.rest); }
   };
@@ -3406,14 +3454,17 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
 
   Tank3D.prototype.dispense = function (phase, outcome) {
     var fd = this.fd;
+    // The arm stays empty at rest until the controller starts a feed. Then it takes food from
+    // the hopper and carries it straight to the drop point in one motion: it never scoops
+    // early and never waits holding food. The outcome is known when the attempt starts.
     if (phase === 'start') {
       if (fd.phase === 'rest') {
         this.chooseFeedSpot();
-        fd.phase = 'toHopper'; fd.t = 0; fd.outcome = null; fd.tip = 0; fd.released = 0; fd.jam = false;
+        fd.phase = 'toHopper'; fd.t = 0; fd.outcome = outcome || null; fd.tip = 0; fd.released = 0; fd.jam = false;
         this.beam = 'active'; this.beamUntil = 0;
-      } else fd.queue = Math.min(2, fd.queue + 1);
+      } else if (fd.queue.length < 2) fd.queue.push(outcome || null);
     }
-    if (phase === 'chute') fd.outcome = outcome;     // the arm acts on it when it gets there
+    if (phase === 'chute' && !fd.outcome) fd.outcome = outcome;
     this.armPhase = fd.phase;
     this.armLast = 0;
     this.dirty = true;
@@ -3466,9 +3517,9 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     switch (fd.phase) {
       case 'toHopper': if (settled) next('dip'); break;
       case 'dip': if (settled && fd.t > 0.35) { arm.load.visible = true; next('lift'); } break;
-      case 'lift': if (settled && fd.t > 0.6 && fd.outcome) next('carry'); break;
+      case 'lift': if (settled && fd.t > 0.6) next('carry'); break;
       case 'carry': if (settled) next('lower'); break;
-      case 'lower': if (settled) {
+      case 'lower': if (settled && fd.outcome) {
         fd.jam = fd.outcome !== 'detect';
         this.beam = fd.jam ? 'blocked' : 'passed';
         this.dropOutcome = fd.outcome; this.lastFeedAt = now;
@@ -3488,7 +3539,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       case 'unload': if (fd.t > 1.6) { arm.load.visible = false; next('home'); } break;
       case 'home': if (settled) {
         next('rest');
-        if (fd.queue > 0) { fd.queue--; this.dispense('start'); }
+        if (fd.queue.length) this.dispense('start', fd.queue.shift());
       } break;
     }
     this.armPhase = fd.phase;

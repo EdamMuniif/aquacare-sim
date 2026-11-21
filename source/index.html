@@ -170,10 +170,56 @@
       <div class="camcard__grid">
         <div class="phone" role="group" aria-label="Simulated phone app">
           <div class="phone__notch" aria-hidden="true"></div>
-          <div class="phone__screen">
+          <div class="phone__screen papp" data-phone="cam">
             <div class="phone__bar"><b>AquaCare</b><span class="simtag">SIM</span></div>
-            <div class="phone__sec">
-              <label class="phone__label" for="appSize">Tank profile</label>
+            <div class="ppages">
+<section class="ppage" role="tabpanel" id="cp-pg-home" aria-labelledby="cp-tab-home" data-page="home">
+<div class="papp__conn" data-app="conn">Live</div>
+<div class="papp__tiles">
+  <div data-tile="ph"><span class="k">pH</span><span class="v mono" data-app="ph">-</span></div>
+  <div data-tile="temp"><span class="k">Temperature</span><span class="v mono" data-app="temp">-</span></div>
+  <div data-tile="tds"><span class="k">TDS</span><span class="v mono" data-app="tds">-</span></div>
+  <div data-tile="turb"><span class="k">Turbidity</span><span class="v mono" data-app="turb">-</span></div>
+</div>
+<div class="papp__card"><span class="k">Next feed</span><b data-app="next">-</b></div>
+<div class="papp__card"><span class="k">Feeds today</span><b data-app="feeds">-</b><span class="papp__pips" data-app-html="pips" aria-hidden="true"></span></div>
+<div class="papp__card" data-app-card="alerts"><span class="k">Alerts</span><b data-app="alertsum">-</b></div>
+</section>
+<section class="ppage" role="tabpanel" id="cp-pg-cam" aria-labelledby="cp-tab-cam" data-page="cam" hidden>
+<div class="phone__feedwrap">
+                <canvas id="camFeed" width="480" height="270" aria-label="Simulated live picture from the top camera"></canvas>
+                <canvas id="camOver" width="960" height="540" aria-hidden="true"></canvas>
+              </div>
+              <div class="phone__row">
+                <label class="phone__check"><input type="checkbox" id="camAI" checked> Show analysis</label>
+                <button class="btn btn--sm" type="button" id="camSnap">Save snapshot</button>
+              </div>
+              <p class="phone__msg" id="camMsg" role="status"></p>
+<div id="aiPanel" class="papp__ai" aria-live="off"></div>
+</section>
+<section class="ppage" role="tabpanel" id="cp-pg-feed" aria-labelledby="cp-tab-feed" data-page="feed" hidden>
+<div class="papp__state" data-app="fstate">Monitoring</div>
+<div class="papp__remind" data-app-show="remind" hidden>
+  <p class="papp__cd"><b class="mono" data-app="cd">10:00</b> left to feed by hand</p>
+  <div class="bar" aria-hidden="true"><span data-app-bar="cd"></span></div>
+  <p>Go to the tank and press the red button. If nobody presses it in time, the feeder gives one portion on its own, if today&rsquo;s limit allows.</p>
+</div>
+<p class="papp__k">Today</p>
+<ol class="papp__list" data-app-html="feedlist"></ol>
+<p class="phone__rule">No &ldquo;confirm feed&rdquo; button here. By design, a manual feed can only be confirmed with the button at the tank.</p>
+</section>
+<section class="ppage" role="tabpanel" id="cp-pg-alerts" aria-labelledby="cp-tab-alerts" data-page="alerts" hidden>
+<p class="papp__k">Active alerts</p>
+<ul class="papp__list" data-app-html="alerts"></ul>
+<p class="papp__k">Recent notifications</p>
+<ol class="papp__list" data-app-html="notes"></ol>
+<p class="papp__k">Fish behaviour alerts</p>
+<label class="phone__check"><input type="checkbox" id="notifOn"> Behaviour alerts to this phone</label>
+              <p class="phone__fit" id="notifState">Not configured. Alerts stay off until you turn them on.</p>
+              <ul class="phone__list" id="notifList" aria-label="Notifications"></ul>
+</section>
+<section class="ppage" role="tabpanel" id="cp-pg-set" aria-labelledby="cp-tab-set" data-page="set" hidden>
+<label class="phone__label" for="appSize">Tank profile</label>
               <select id="appSize">
                 <option value="2.5">2.5 US gal</option>
                 <option value="3">3 US gal</option>
@@ -183,24 +229,16 @@
                 <option value="p3">36 &times; 22 &times; 26 cm (paper [3] tank)</option>
               </select>
               <p class="phone__fit" id="appFit">Controller fitted.</p>
+<p class="phone__sim">SIMULATION &middot; DEMO DATA</p>
+</section>
             </div>
-            <div class="phone__sec">
-              <div class="phone__feedwrap">
-                <canvas id="camFeed" width="480" height="270" aria-label="Simulated live picture from the top camera"></canvas>
-                <canvas id="camOver" width="960" height="540" aria-hidden="true"></canvas>
-              </div>
-              <div class="phone__row">
-                <label class="phone__check"><input type="checkbox" id="camAI" checked> Show analysis</label>
-                <button class="btn btn--sm" type="button" id="camSnap">Save snapshot</button>
-              </div>
-              <p class="phone__msg" id="camMsg" role="status"></p>
-            </div>
-            <div class="phone__sec" id="aiPanel" aria-live="off"></div>
-            <div class="phone__sec">
-              <label class="phone__check"><input type="checkbox" id="notifOn"> Behaviour alerts to this phone</label>
-              <p class="phone__fit" id="notifState">Not configured. Alerts stay off until you turn them on.</p>
-              <ul class="phone__list" id="notifList" aria-label="Notifications"></ul>
-            </div>
+<nav class="ptabs" role="tablist" aria-label="App pages">
+  <button type="button" role="tab" id="cp-tab-home" aria-controls="cp-pg-home" aria-selected="true" tabindex="0" data-page="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/></svg><span>Home</span></button>
+  <button type="button" role="tab" id="cp-tab-cam" aria-controls="cp-pg-cam" aria-selected="false" tabindex="-1" data-page="cam"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8 7l2-3h4l2 3"/></svg><span>Camera</span></button>
+  <button type="button" role="tab" id="cp-tab-feed" aria-controls="cp-pg-feed" aria-selected="false" tabindex="-1" data-page="feed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10h14l-2 9H7z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg><span>Feeding</span></button>
+  <button type="button" role="tab" id="cp-tab-alerts" aria-controls="cp-pg-alerts" aria-selected="false" tabindex="-1" data-page="alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span>Alerts</span><span class="ptabs__badge" data-app="badge" hidden></span></button>
+  <button type="button" role="tab" id="cp-tab-set" aria-controls="cp-pg-set" aria-selected="false" tabindex="-1" data-page="set"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span>Settings</span></button>
+</nav>
           </div>
         </div>
         <div class="camcard__side">
@@ -781,20 +819,63 @@
     <div class="appview">
       <div class="phone" aria-label="Simulated mobile app screen">
         <div class="phone__notch" aria-hidden="true"></div>
-        <div class="phone__screen">
+        <div class="phone__screen papp" data-phone="app">
           <div class="phone__bar"><span>AquaCare app</span><span class="pill">Proposed</span></div>
-          <div class="phone__conn" id="appConn">Live</div>
-          <div class="phone__readings">
-            <div><span class="k">pH</span><span class="v mono" id="appPh">-</span></div>
-            <div><span class="k">Temp</span><span class="v mono" id="appT">-</span></div>
-            <div><span class="k">TDS</span><span class="v mono" id="appTds">-</span></div>
-            <div><span class="k">Turbidity</span><span class="v mono" id="appTurb">-</span></div>
+          <div class="ppages">
+<section class="ppage" role="tabpanel" id="ap-pg-home" aria-labelledby="ap-tab-home" data-page="home">
+<div class="papp__conn" data-app="conn">Live</div>
+<div class="papp__tiles">
+  <div data-tile="ph"><span class="k">pH</span><span class="v mono" data-app="ph">-</span></div>
+  <div data-tile="temp"><span class="k">Temperature</span><span class="v mono" data-app="temp">-</span></div>
+  <div data-tile="tds"><span class="k">TDS</span><span class="v mono" data-app="tds">-</span></div>
+  <div data-tile="turb"><span class="k">Turbidity</span><span class="v mono" data-app="turb">-</span></div>
+</div>
+<div class="papp__card"><span class="k">Next feed</span><b data-app="next">-</b></div>
+<div class="papp__card"><span class="k">Feeds today</span><b data-app="feeds">-</b><span class="papp__pips" data-app-html="pips" aria-hidden="true"></span></div>
+<div class="papp__card" data-app-card="alerts"><span class="k">Alerts</span><b data-app="alertsum">-</b></div>
+</section>
+<section class="ppage" role="tabpanel" id="ap-pg-cam" aria-labelledby="ap-tab-cam" data-page="cam" hidden>
+<p class="papp__note" data-app="camnote">The top camera is a proposed upgrade. Its picture and fish analysis are on the phone beside the tank in the 3D Tank view.</p>
+<button class="btn btn--sm" type="button" data-app-gocam>Open the camera phone</button>
+</section>
+<section class="ppage" role="tabpanel" id="ap-pg-feed" aria-labelledby="ap-tab-feed" data-page="feed" hidden>
+<div class="papp__state" data-app="fstate">Monitoring</div>
+<div class="papp__remind" data-app-show="remind" hidden>
+  <p class="papp__cd"><b class="mono" data-app="cd">10:00</b> left to feed by hand</p>
+  <div class="bar" aria-hidden="true"><span data-app-bar="cd"></span></div>
+  <p>Go to the tank and press the red button. If nobody presses it in time, the feeder gives one portion on its own, if today&rsquo;s limit allows.</p>
+</div>
+<p class="papp__k">Today</p>
+<ol class="papp__list" data-app-html="feedlist"></ol>
+<p class="phone__rule">No &ldquo;confirm feed&rdquo; button here. By design, a manual feed can only be confirmed with the button at the tank.</p>
+</section>
+<section class="ppage" role="tabpanel" id="ap-pg-alerts" aria-labelledby="ap-tab-alerts" data-page="alerts" hidden>
+<p class="papp__k">Active alerts</p>
+<ul class="papp__list" data-app-html="alerts"></ul>
+<p class="papp__k">Recent notifications</p>
+<ol class="papp__list" data-app-html="notes"></ol>
+</section>
+<section class="ppage" role="tabpanel" id="ap-pg-set" aria-labelledby="ap-tab-set" data-page="set" hidden>
+<label class="phone__label" for="appSize2">Tank profile</label>
+<select id="appSize2" data-app-size>
+  <option value="2.5">2.5 US gal</option>
+  <option value="3">3 US gal</option>
+  <option value="5">5 US gal</option>
+  <option value="7.5">7.5 US gal</option>
+  <option value="10">10 US gal</option>
+  <option value="p3">36 &times; 22 &times; 26 cm (paper [3] tank)</option>
+</select>
+<p class="phone__fit">Same setting as the tank size on the main page.</p>
+<p class="phone__sim">SIMULATION &middot; DEMO DATA</p>
+</section>
           </div>
-          <div class="phone__feed" id="appFeed">-</div>
-          <p class="phone__k">Notifications</p>
-          <ol class="phone__notes" id="appNotes"></ol>
-          <p class="phone__rule">No &ldquo;confirm feed&rdquo; button here. By design, a manual feed can only be confirmed with the button at the tank.</p>
-          <p class="phone__sim">SIMULATION &middot; DEMO DATA</p>
+<nav class="ptabs" role="tablist" aria-label="App pages">
+  <button type="button" role="tab" id="ap-tab-home" aria-controls="ap-pg-home" aria-selected="true" tabindex="0" data-page="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/></svg><span>Home</span></button>
+  <button type="button" role="tab" id="ap-tab-cam" aria-controls="ap-pg-cam" aria-selected="false" tabindex="-1" data-page="cam"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><circle cx="12" cy="13.5" r="3.5"/><path d="M8 7l2-3h4l2 3"/></svg><span>Camera</span></button>
+  <button type="button" role="tab" id="ap-tab-feed" aria-controls="ap-pg-feed" aria-selected="false" tabindex="-1" data-page="feed"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 10h14l-2 9H7z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/></svg><span>Feeding</span></button>
+  <button type="button" role="tab" id="ap-tab-alerts" aria-controls="ap-pg-alerts" aria-selected="false" tabindex="-1" data-page="alerts"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg><span>Alerts</span><span class="ptabs__badge" data-app="badge" hidden></span></button>
+  <button type="button" role="tab" id="ap-tab-set" aria-controls="ap-pg-set" aria-selected="false" tabindex="-1" data-page="set"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><span>Settings</span></button>
+</nav>
         </div>
       </div>
       <div class="appview__text">

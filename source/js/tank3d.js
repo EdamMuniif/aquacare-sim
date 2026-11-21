@@ -1495,7 +1495,7 @@
 
   Tank3D.prototype.resetArm = function () {
     this.servo = ARM.rest.map(function (q) { return { q: q, v: 0, t: q }; });
-    this.fd = { phase: 'rest', t: 0, outcome: null, queue: 0, tip: 0, released: 0, jam: false };
+    this.fd = { phase: 'rest', t: 0, outcome: null, queue: [], tip: 0, released: 0, jam: false };
     this.armPhase = 'rest';
     if (this.arm) { this.arm.load.visible = false; setArmJoints(this.arm, ARM.rest); }
   };
@@ -1524,14 +1524,17 @@
 
   Tank3D.prototype.dispense = function (phase, outcome) {
     var fd = this.fd;
+    // The arm stays empty at rest until the controller starts a feed. Then it takes food from
+    // the hopper and carries it straight to the drop point in one motion: it never scoops
+    // early and never waits holding food. The outcome is known when the attempt starts.
     if (phase === 'start') {
       if (fd.phase === 'rest') {
         this.chooseFeedSpot();
-        fd.phase = 'toHopper'; fd.t = 0; fd.outcome = null; fd.tip = 0; fd.released = 0; fd.jam = false;
+        fd.phase = 'toHopper'; fd.t = 0; fd.outcome = outcome || null; fd.tip = 0; fd.released = 0; fd.jam = false;
         this.beam = 'active'; this.beamUntil = 0;
-      } else fd.queue = Math.min(2, fd.queue + 1);
+      } else if (fd.queue.length < 2) fd.queue.push(outcome || null);
     }
-    if (phase === 'chute') fd.outcome = outcome;     // the arm acts on it when it gets there
+    if (phase === 'chute' && !fd.outcome) fd.outcome = outcome;
     this.armPhase = fd.phase;
     this.armLast = 0;
     this.dirty = true;
@@ -1584,9 +1587,9 @@
     switch (fd.phase) {
       case 'toHopper': if (settled) next('dip'); break;
       case 'dip': if (settled && fd.t > 0.35) { arm.load.visible = true; next('lift'); } break;
-      case 'lift': if (settled && fd.t > 0.6 && fd.outcome) next('carry'); break;
+      case 'lift': if (settled && fd.t > 0.6) next('carry'); break;
       case 'carry': if (settled) next('lower'); break;
-      case 'lower': if (settled) {
+      case 'lower': if (settled && fd.outcome) {
         fd.jam = fd.outcome !== 'detect';
         this.beam = fd.jam ? 'blocked' : 'passed';
         this.dropOutcome = fd.outcome; this.lastFeedAt = now;
@@ -1606,7 +1609,7 @@
       case 'unload': if (fd.t > 1.6) { arm.load.visible = false; next('home'); } break;
       case 'home': if (settled) {
         next('rest');
-        if (fd.queue > 0) { fd.queue--; this.dispense('start'); }
+        if (fd.queue.length) this.dispense('start', fd.queue.shift());
       } break;
     }
     this.armPhase = fd.phase;
