@@ -663,6 +663,15 @@
           <button class="btn btn--sm btn--wide" type="button" id="limitsRef">Load reference ranges from Ayon et al. [2]</button>
         </form>
         <p class="fine" id="limitsState"></p>
+        <h3 class="h3">Alert clearing <span class="pill pill--attn">Requires team decision</span></h3>
+        <div class="field">
+          <label class="field__label" for="alertClear">When a water alert clears</label>
+          <select id="alertClear">
+            <option value="instant">As soon as the reading is back in range (original)</option>
+            <option value="hold">After the reading is clearly back in range for 10 minutes (proposal)</option>
+          </select>
+        </div>
+        <p class="fine">Alerts are always raised at once. The proposal only delays clearing, so a reading that hovers at a limit gives one alert instead of several. &ldquo;Clearly back&rdquo; means inside the range by pH 0.05, 0.2&nbsp;&deg;C, 5&nbsp;ppm TDS or 2&nbsp;NTU turbidity. Simulation setting only.</p>
         <h3 class="h3">Portion</h3>
         <div class="limits">
           <div class="limits__row"><span>Portion size</span><input id="portion" placeholder="Not configured" aria-label="Portion size label"><span class="unit"></span></div>

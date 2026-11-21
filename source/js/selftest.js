@@ -256,6 +256,31 @@
       return Math.abs(gained - 180 * 60 * MIN) < MIN && e.s.day === 8 && recs(e).length >= 21 || ('gained ' + gained / MIN + ' min, day ' + e.s.day);
     });
 
+    // Drives the water-alert logic with a shown pH that hovers at the 6.8 limit, then recovers.
+    function hover(rule) {
+      var e = make(function (st) { st.alertClearing = rule; }), t0 = e.s.simTime, out = { raisedAt: [], clearedAt: null, openAt24: null };
+      var seq = [6.79, 6.81, 6.79, 6.81, 6.79]; for (var i = 5; i < 15; i++) seq.push(6.83); for (i = 15; i < 30; i++) seq.push(6.86);
+      seq.forEach(function (v, m) {
+        e.s.simTime = t0 + m * 60000; var n = e.log.length;
+        e.evaluateWater({ t: e.s.simTime, ph: v, temp: 26.5, tds: 230, turb: 5 });
+        e.log.slice(n).forEach(function (l) { if (/Alert raised: pH below/.test(l.text)) out.raisedAt.push(m); if (/^pH .*alert cleared/.test(l.text) && out.clearedAt == null) out.clearedAt = m; });
+        if (m === 24) out.openAt24 = !!e.findAlert('ph-low');
+      });
+      e.s.simTime = t0 + 31 * 60000; e.evaluateWater({ t: e.s.simTime, ph: 6.7, temp: 26.5, tds: 230, turb: 5 }); out.raisedAgain = !!e.findAlert('ph-low');
+      return out;
+    }
+    check('Alert clearing (original): a reading hovering at a limit clears at once and raises again each time', function () {
+      var o = hover('instant');
+      return o.raisedAt.join() === '0,2,4' && o.clearedAt === 1 || 'raised at ' + o.raisedAt.join() + ', first cleared at ' + o.clearedAt;
+    });
+    check('Alert clearing (margin + 10 min): one alert, raised at once, cleared only after 10 min clearly in range', function () {
+      var o = hover('hold');
+      if (o.raisedAt.join() !== '0') return 'raised at ' + o.raisedAt.join() + ' (expected once, at minute 0)';
+      if (!o.openAt24) return 'cleared before 10 min clearly in range';
+      if (o.clearedAt !== 25) return 'cleared at minute ' + o.clearedAt + ' (expected 25)';
+      return o.raisedAgain || 'a new problem after clearing did not raise a new alert';
+    });
+
     check('Tank upkeep: algae builds with days, resets on cleaning, never touches readings', function () {
       var a = make(), b = make();
       a.setSpeed(3600); b.setSpeed(3600); a.start(); b.start();

@@ -86,7 +86,8 @@ On a phone, the presenter controls open from the button at the bottom of the scr
 | `vendor/` | Bundled Three.js r160 renderer and its MIT license. |
 | `js/app.js` | Dashboard, calendar, chart, logs, exports |
 | `js/tour.js` | Guided "Show the project logic" mode |
-| `js/selftest.js` | Logic self-test with 30 checks, including complete 30-day runs and scenarios. It also runs in the *Logic self-test* tab. |
+| `js/selftest.js` | Logic self-test with 32 checks, including complete 30-day runs, scenarios and the alert-clearing rule. It also runs in the *Logic self-test* tab. |
+| `tests/alerts.test.js` | Alert-clearing regression checks: the original rule must reproduce the released alerts exactly: `node tests/alerts.test.js` |
 | `tests/engine.test.js` | The same self-test from the command line: `node tests/engine.test.js` |
 | `tools/build_single.py` | Rebuilds the standalone file: `python tools/build_single.py` |
 | `cover/` | Cover plate for the presentation (PNG) and its design notes |

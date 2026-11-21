@@ -264,6 +264,7 @@ When a scenario starts or ends, the **Scenario** card under the feeding cycle ex
 
 - **Operating ranges** start loaded with the **reference values from paper [2]**: temperature 24–28 °C, pH 6.8–8.2, TDS 180–280 ppm, turbidity ≤ 50 NTU. The panel says where they came from. **Set all to Not configured** clears them (then no water-quality alerts are evaluated), and **Load reference ranges** restores them. If the team enters its own values, the source changes to *team-entered*.
 - **Rate-of-change** limits (pH and temperature) start as *Not configured*.
+- **Alert clearing** (*Requires team decision*): by default a water alert clears as soon as the 5-sample average is back inside the range (the original rule). The proposed option clears it only after the reading has been clearly back for 10 minutes (inside by pH 0.05, 0.2 °C, 5 ppm TDS or 2 NTU), so a reading hovering at a limit gives one alert instead of several. Alerts are always raised at once. In the example fault month this changes 19 alerts to 9 with the same detection times.
 - **Portion size** is a text label only.
 - **After a power interruption:** choose whether to mark the slot missed or restart the window, and whether to keep or reset the daily count. Both are marked *Requires team decision*.
 - **Away Mode** (proposed) skips the hand-feed reminder. Alerts stay visible.
@@ -508,7 +509,7 @@ In every figure caption or table title, add: *"Simulation output (demo data), no
 | The filter button says **clean sponge** or **fault** | Flow has dropped below 60 % or 30 % of set flow. Press **Clean sponge** in **Presenter controls → Filter**. |
 | Fewer fish are in view than are in the tank | That's the camera's blind spots (section 2.2), shown on purpose. |
 | The phone card says the feed spot is at the **edge of arm reach** | The fish are beyond the arm's reach of about 8.7 cm, so the pour point is clamped. |
-| Want to confirm the logic still works | **Logic self-test** tab → **Run logic self-test** (30 checks, software only), or run `node tests/engine.test.js`. For the filter model, run `node tests/filter.test.js` (11 checks) and `node tests/filterstages.test.js` (15 checks). Run them from the `source` folder. |
+| Want to confirm the logic still works | **Logic self-test** tab → **Run logic self-test** (32 checks, software only), or run `node tests/engine.test.js`. `node tests/alerts.test.js` (6 checks) confirms the original alert rule is unchanged and tests the alert-clearing option. For the filter model, run `node tests/filter.test.js` (11 checks) and `node tests/filterstages.test.js` (15 checks). Run them from the `source` folder. |
 | The pump won't start and the filter shows a fault | Check the water level in **Water → Filter System**. Dry-run protection holds the pump until the level is back to 75 %. |
 
 ---

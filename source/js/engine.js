@@ -56,6 +56,9 @@
   };
   var KEYS = ['ph', 'temp', 'tds', 'turb'];
   var SMOOTH_N = 5;   // five-sample smoothing, as described in the reviewed paper
+  // Optional alert-clearing rule (proposal, requires team decision): with alertClearing 'hold', a water-range alert clears only
+  // after the shown value has been back inside the range by this margin for CLEAR_HOLD. Raising is never delayed.
+  var CLEAR_MARGIN = { ph: 0.05, temp: 0.2, tds: 5, turb: 2 }, CLEAR_HOLD = 10 * MIN;
   // Invalid raw values the "faulty" mode produces; local validation must reject them.
   var BAD_RAW = { ph: 15.3, temp: -127, tds: -40, turb: -12 };
   // Controlled changes. heater / vinegar / soil follow the paper's tests; magnitudes and
@@ -123,6 +126,7 @@
       limits: referenceLimits(),                       // reference values from paper [2]; team to confirm
       limitsSource: 'reference',
       roc: { phPerHour: null, tPerHour: null },
+      alertClearing: 'instant',                        // 'instant' (original) | 'hold' (margin + 10-min hold; proposal)
       awayMode: false,                                 // proposed feature
       feedMode: 'hybrid',                              // 'hybrid' | 'manual' | 'auto' (comparison conditions)
       fishCount: 10,                                   // decorative only
@@ -180,6 +184,7 @@
       nextSampleAt: 0,
       samples: [],
       alerts: [],
+      clearAt: {},          // alert key -> time the value was first clearly back in range ('hold' rule)
       feederFault: false,
       records: [], curRec: null,
       scn: {},              // scenario id -> 'pending' | 'active' | 'done' | 'late'
@@ -203,6 +208,7 @@
 
   Engine.REMINDER_WINDOW = REMINDER_WINDOW;
   Engine.DAILY_CAP = DAILY_CAP;
+  Engine.ALERT_CLEARING = { margin: CLEAR_MARGIN, holdMin: CLEAR_HOLD / MIN };
   Engine.DISPENSE_STEPS = DISPENSE_STEPS;
   Engine.SCENARIO_TYPES = SCENARIO_TYPES;
   Engine.defaultSettings = defaultSettings;
@@ -1035,10 +1041,19 @@
       var nm = k === 'temp' ? 'Temperature' : (k === 'ph' ? 'pH' : (k === 'tds' ? 'TDS' : 'Turbidity'));
       if (v == null) return;
       var u = d.unit === 'pH' ? '' : ' ' + d.unit;
-      if (lo != null && v < lo) { if (!self.findAlert(k + '-low')) { self.raise(k + '-low', 'water', nm + ' below operating range (' + lo + u + ')'); self.detected(k, k + '-low'); } }
-      else if (self.findAlert(k + '-low')) { self.clear(k + '-low', nm + ' back within operating range: alert cleared'); self.recovered(k); }
-      if (hi != null && v > hi) { if (!self.findAlert(k + '-high')) { self.raise(k + '-high', 'water', nm + ' above operating range (' + hi + u + ')'); self.detected(k, k + '-high'); } }
-      else if (self.findAlert(k + '-high')) { self.clear(k + '-high', nm + ' back within operating range: alert cleared'); self.recovered(k); }
+      var hold = self.settings.alertClearing === 'hold', mg = hold ? CLEAR_MARGIN[k] : 0;
+      // Clearing: at once (original), or after the value has been clearly back in range for CLEAR_HOLD ('hold').
+      function clearSide(key, limit, inside) {
+        if (!self.findAlert(key)) { s.clearAt[key] = null; return; }
+        if (!hold || limit == null) { s.clearAt[key] = null; self.clear(key, nm + ' back within operating range: alert cleared'); self.recovered(k); return; }
+        if (!inside) { s.clearAt[key] = null; return; }
+        if (s.clearAt[key] == null) s.clearAt[key] = s.simTime;
+        if (s.simTime - s.clearAt[key] >= CLEAR_HOLD) { s.clearAt[key] = null; self.clear(key, nm + ' clearly back within operating range for ' + (CLEAR_HOLD / MIN) + ' min: alert cleared'); self.recovered(k); }
+      }
+      if (lo != null && v < lo) { s.clearAt[k + '-low'] = null; if (!self.findAlert(k + '-low')) { self.raise(k + '-low', 'water', nm + ' below operating range (' + lo + u + ')'); self.detected(k, k + '-low'); } }
+      else clearSide(k + '-low', lo, lo == null || v >= lo + mg);
+      if (hi != null && v > hi) { s.clearAt[k + '-high'] = null; if (!self.findAlert(k + '-high')) { self.raise(k + '-high', 'water', nm + ' above operating range (' + hi + u + ')'); self.detected(k, k + '-high'); } }
+      else clearSide(k + '-high', hi, hi == null || v <= hi - mg);
     });
     if (R.phPerHour == null && R.tPerHour == null) return;
     var past = null;

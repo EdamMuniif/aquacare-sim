@@ -35,6 +35,7 @@
       if (sv.limits) Object.keys(d.limits).forEach(function (k) { if (typeof sv.limits[k] === 'number' || sv.limits[k] === null) d.limits[k] = sv.limits[k]; });
       if (sv.limitsSource === 'custom' || sv.limitsSource === 'none' || sv.limitsSource === 'reference') d.limitsSource = sv.limitsSource;
       ['phPerHour', 'tPerHour'].forEach(function (k) { if (sv.roc && typeof sv.roc[k] === 'number') d.roc[k] = sv.roc[k]; });
+      if (sv.alertClearing === 'hold') d.alertClearing = 'hold';
       d.awayMode = !!sv.awayMode;
       if (sv.dailyPattern === false) d.dailyPattern = false;
       if (sv.owner && (sv.owner.mode === 'simulated' || sv.owner.mode === 'presenter')) d.owner.mode = sv.owner.mode;
@@ -1436,6 +1437,7 @@
     limitFields.forEach(function (f) { var v = settings[f[1]][f[2]]; $(f[0]).value = v == null ? '' : String(v); });
     $('portion').value = settings.portion || '';
     $('polReminder').value = settings.policy.interruptedReminder;
+    $('alertClear').value = settings.alertClearing === 'hold' ? 'hold' : 'instant';
     $('polCount').value = settings.policy.countAfterRestart;
   }
   fillLimits();
@@ -1485,6 +1487,11 @@
     settings.portion = v || null;
     engine.addLog('demo', 'Portion label ' + (v ? 'set to "' + v + '" (label only, not a confirmed amount)' : 'cleared: Not configured'), { injected: true });
     save();
+  });
+  $('alertClear').addEventListener('change', function () {
+    settings.alertClearing = $('alertClear').value === 'hold' ? 'hold' : 'instant';
+    engine.addLog('demo', 'Alert clearing: ' + (settings.alertClearing === 'hold' ? 'water alerts now clear only after the reading is clearly back in range for 10 min (proposal, requires team decision)' : 'water alerts clear as soon as the reading is back in range (original)'), { injected: true });
+    save(); render();
   });
   $('polReminder').addEventListener('change', function () { settings.policy.interruptedReminder = $('polReminder').value; engine.addLog('demo', 'Restart policy for interrupted reminders: ' + $('polReminder').selectedOptions[0].text + ' (requires team decision)', { injected: true }); save(); });
   $('polCount').addEventListener('change', function () { settings.policy.countAfterRestart = $('polCount').value; engine.addLog('demo', 'Restart policy for the daily count: ' + $('polCount').selectedOptions[0].text + ' (requires team decision)', { injected: true }); save(); });

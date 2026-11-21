@@ -1908,6 +1908,15 @@ html.fv-open, html.fv-open body { overflow: hidden; }
           <button class="btn btn--sm btn--wide" type="button" id="limitsRef">Load reference ranges from Ayon et al. [2]</button>
         </form>
         <p class="fine" id="limitsState"></p>
+        <h3 class="h3">Alert clearing <span class="pill pill--attn">Requires team decision</span></h3>
+        <div class="field">
+          <label class="field__label" for="alertClear">When a water alert clears</label>
+          <select id="alertClear">
+            <option value="instant">As soon as the reading is back in range (original)</option>
+            <option value="hold">After the reading is clearly back in range for 10 minutes (proposal)</option>
+          </select>
+        </div>
+        <p class="fine">Alerts are always raised at once. The proposal only delays clearing, so a reading that hovers at a limit gives one alert instead of several. &ldquo;Clearly back&rdquo; means inside the range by pH 0.05, 0.2&nbsp;&deg;C, 5&nbsp;ppm TDS or 2&nbsp;NTU turbidity. Simulation setting only.</p>
         <h3 class="h3">Portion</h3>
         <div class="limits">
           <div class="limits__row"><span>Portion size</span><input id="portion" placeholder="Not configured" aria-label="Portion size label"><span class="unit"></span></div>
@@ -2751,6 +2760,9 @@ html.fv-open, html.fv-open body { overflow: hidden; }
   };
   var KEYS = ['ph', 'temp', 'tds', 'turb'];
   var SMOOTH_N = 5;   // five-sample smoothing, as described in the reviewed paper
+  // Optional alert-clearing rule (proposal, requires team decision): with alertClearing 'hold', a water-range alert clears only
+  // after the shown value has been back inside the range by this margin for CLEAR_HOLD. Raising is never delayed.
+  var CLEAR_MARGIN = { ph: 0.05, temp: 0.2, tds: 5, turb: 2 }, CLEAR_HOLD = 10 * MIN;
   // Invalid raw values the "faulty" mode produces; local validation must reject them.
   var BAD_RAW = { ph: 15.3, temp: -127, tds: -40, turb: -12 };
   // Controlled changes. heater / vinegar / soil follow the paper's tests; magnitudes and
@@ -2818,6 +2830,7 @@ html.fv-open, html.fv-open body { overflow: hidden; }
       limits: referenceLimits(),                       // reference values from paper [2]; team to confirm
       limitsSource: 'reference',
       roc: { phPerHour: null, tPerHour: null },
+      alertClearing: 'instant',                        // 'instant' (original) | 'hold' (margin + 10-min hold; proposal)
       awayMode: false,                                 // proposed feature
       feedMode: 'hybrid',                              // 'hybrid' | 'manual' | 'auto' (comparison conditions)
       fishCount: 10,                                   // decorative only
@@ -2875,6 +2888,7 @@ html.fv-open, html.fv-open body { overflow: hidden; }
       nextSampleAt: 0,
       samples: [],
       alerts: [],
+      clearAt: {},          // alert key -> time the value was first clearly back in range ('hold' rule)
       feederFault: false,
       records: [], curRec: null,
       scn: {},              // scenario id -> 'pending' | 'active' | 'done' | 'late'
@@ -2898,6 +2912,7 @@ html.fv-open, html.fv-open body { overflow: hidden; }
 
   Engine.REMINDER_WINDOW = REMINDER_WINDOW;
   Engine.DAILY_CAP = DAILY_CAP;
+  Engine.ALERT_CLEARING = { margin: CLEAR_MARGIN, holdMin: CLEAR_HOLD / MIN };
   Engine.DISPENSE_STEPS = DISPENSE_STEPS;
   Engine.SCENARIO_TYPES = SCENARIO_TYPES;
   Engine.defaultSettings = defaultSettings;
@@ -3730,10 +3745,19 @@ html.fv-open, html.fv-open body { overflow: hidden; }
       var nm = k === 'temp' ? 'Temperature' : (k === 'ph' ? 'pH' : (k === 'tds' ? 'TDS' : 'Turbidity'));
       if (v == null) return;
       var u = d.unit === 'pH' ? '' : ' ' + d.unit;
-      if (lo != null && v < lo) { if (!self.findAlert(k + '-low')) { self.raise(k + '-low', 'water', nm + ' below operating range (' + lo + u + ')'); self.detected(k, k + '-low'); } }
-      else if (self.findAlert(k + '-low')) { self.clear(k + '-low', nm + ' back within operating range: alert cleared'); self.recovered(k); }
-      if (hi != null && v > hi) { if (!self.findAlert(k + '-high')) { self.raise(k + '-high', 'water', nm + ' above operating range (' + hi + u + ')'); self.detected(k, k + '-high'); } }
-      else if (self.findAlert(k + '-high')) { self.clear(k + '-high', nm + ' back within operating range: alert cleared'); self.recovered(k); }
+      var hold = self.settings.alertClearing === 'hold', mg = hold ? CLEAR_MARGIN[k] : 0;
+      // Clearing: at once (original), or after the value has been clearly back in range for CLEAR_HOLD ('hold').
+      function clearSide(key, limit, inside) {
+        if (!self.findAlert(key)) { s.clearAt[key] = null; return; }
+        if (!hold || limit == null) { s.clearAt[key] = null; self.clear(key, nm + ' back within operating range: alert cleared'); self.recovered(k); return; }
+        if (!inside) { s.clearAt[key] = null; return; }
+        if (s.clearAt[key] == null) s.clearAt[key] = s.simTime;
+        if (s.simTime - s.clearAt[key] >= CLEAR_HOLD) { s.clearAt[key] = null; self.clear(key, nm + ' clearly back within operating range for ' + (CLEAR_HOLD / MIN) + ' min: alert cleared'); self.recovered(k); }
+      }
+      if (lo != null && v < lo) { s.clearAt[k + '-low'] = null; if (!self.findAlert(k + '-low')) { self.raise(k + '-low', 'water', nm + ' below operating range (' + lo + u + ')'); self.detected(k, k + '-low'); } }
+      else clearSide(k + '-low', lo, lo == null || v >= lo + mg);
+      if (hi != null && v > hi) { s.clearAt[k + '-high'] = null; if (!self.findAlert(k + '-high')) { self.raise(k + '-high', 'water', nm + ' above operating range (' + hi + u + ')'); self.detected(k, k + '-high'); } }
+      else clearSide(k + '-high', hi, hi == null || v <= hi - mg);
     });
     if (R.phPerHour == null && R.tPerHour == null) return;
     var past = null;
@@ -4303,6 +4327,31 @@ html.fv-open, html.fv-open body { overflow: hidden; }
       var e = make(); e.setSpeed(60);
       var gained = e.catchUp(3 * 3600 * 1000);   // 3 real hours at 60x = 180 simulated hours
       return Math.abs(gained - 180 * 60 * MIN) < MIN && e.s.day === 8 && recs(e).length >= 21 || ('gained ' + gained / MIN + ' min, day ' + e.s.day);
+    });
+
+    // Drives the water-alert logic with a shown pH that hovers at the 6.8 limit, then recovers.
+    function hover(rule) {
+      var e = make(function (st) { st.alertClearing = rule; }), t0 = e.s.simTime, out = { raisedAt: [], clearedAt: null, openAt24: null };
+      var seq = [6.79, 6.81, 6.79, 6.81, 6.79]; for (var i = 5; i < 15; i++) seq.push(6.83); for (i = 15; i < 30; i++) seq.push(6.86);
+      seq.forEach(function (v, m) {
+        e.s.simTime = t0 + m * 60000; var n = e.log.length;
+        e.evaluateWater({ t: e.s.simTime, ph: v, temp: 26.5, tds: 230, turb: 5 });
+        e.log.slice(n).forEach(function (l) { if (/Alert raised: pH below/.test(l.text)) out.raisedAt.push(m); if (/^pH .*alert cleared/.test(l.text) && out.clearedAt == null) out.clearedAt = m; });
+        if (m === 24) out.openAt24 = !!e.findAlert('ph-low');
+      });
+      e.s.simTime = t0 + 31 * 60000; e.evaluateWater({ t: e.s.simTime, ph: 6.7, temp: 26.5, tds: 230, turb: 5 }); out.raisedAgain = !!e.findAlert('ph-low');
+      return out;
+    }
+    check('Alert clearing (original): a reading hovering at a limit clears at once and raises again each time', function () {
+      var o = hover('instant');
+      return o.raisedAt.join() === '0,2,4' && o.clearedAt === 1 || 'raised at ' + o.raisedAt.join() + ', first cleared at ' + o.clearedAt;
+    });
+    check('Alert clearing (margin + 10 min): one alert, raised at once, cleared only after 10 min clearly in range', function () {
+      var o = hover('hold');
+      if (o.raisedAt.join() !== '0') return 'raised at ' + o.raisedAt.join() + ' (expected once, at minute 0)';
+      if (!o.openAt24) return 'cleared before 10 min clearly in range';
+      if (o.clearedAt !== 25) return 'cleared at minute ' + o.clearedAt + ' (expected 25)';
+      return o.raisedAgain || 'a new problem after clearing did not raise a new alert';
     });
 
     check('Tank upkeep: algae builds with days, resets on cleaning, never touches readings', function () {
@@ -6854,6 +6903,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
       if (sv.limits) Object.keys(d.limits).forEach(function (k) { if (typeof sv.limits[k] === 'number' || sv.limits[k] === null) d.limits[k] = sv.limits[k]; });
       if (sv.limitsSource === 'custom' || sv.limitsSource === 'none' || sv.limitsSource === 'reference') d.limitsSource = sv.limitsSource;
       ['phPerHour', 'tPerHour'].forEach(function (k) { if (sv.roc && typeof sv.roc[k] === 'number') d.roc[k] = sv.roc[k]; });
+      if (sv.alertClearing === 'hold') d.alertClearing = 'hold';
       d.awayMode = !!sv.awayMode;
       if (sv.dailyPattern === false) d.dailyPattern = false;
       if (sv.owner && (sv.owner.mode === 'simulated' || sv.owner.mode === 'presenter')) d.owner.mode = sv.owner.mode;
@@ -8255,6 +8305,7 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     limitFields.forEach(function (f) { var v = settings[f[1]][f[2]]; $(f[0]).value = v == null ? '' : String(v); });
     $('portion').value = settings.portion || '';
     $('polReminder').value = settings.policy.interruptedReminder;
+    $('alertClear').value = settings.alertClearing === 'hold' ? 'hold' : 'instant';
     $('polCount').value = settings.policy.countAfterRestart;
   }
   fillLimits();
@@ -8304,6 +8355,11 @@ function(t,e){"object"==typeof exports&&"undefined"!=typeof module?e(exports):"f
     settings.portion = v || null;
     engine.addLog('demo', 'Portion label ' + (v ? 'set to "' + v + '" (label only, not a confirmed amount)' : 'cleared: Not configured'), { injected: true });
     save();
+  });
+  $('alertClear').addEventListener('change', function () {
+    settings.alertClearing = $('alertClear').value === 'hold' ? 'hold' : 'instant';
+    engine.addLog('demo', 'Alert clearing: ' + (settings.alertClearing === 'hold' ? 'water alerts now clear only after the reading is clearly back in range for 10 min (proposal, requires team decision)' : 'water alerts clear as soon as the reading is back in range (original)'), { injected: true });
+    save(); render();
   });
   $('polReminder').addEventListener('change', function () { settings.policy.interruptedReminder = $('polReminder').value; engine.addLog('demo', 'Restart policy for interrupted reminders: ' + $('polReminder').selectedOptions[0].text + ' (requires team decision)', { injected: true }); save(); });
   $('polCount').addEventListener('change', function () { settings.policy.countAfterRestart = $('polCount').value; engine.addLog('demo', 'Restart policy for the daily count: ' + $('polCount').selectedOptions[0].text + ' (requires team decision)', { injected: true }); save(); });
