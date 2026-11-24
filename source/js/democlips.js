@@ -77,7 +77,22 @@
     ]
   };
 
+  var DEMO2 = {
+    name: 'Demo 2: blocked chute', end: 28.5,
+    steps: [
+      { at: 0, run: function () { baseline('Demo 2: blocked chute'); } },
+      { at: 1, run: openReminder },
+      { at: 1.6, caption: '08:00 feed: the controller asks the owner' },
+      { at: 5.5, run: function () { E.setPassageMode('none'); }, caption: 'Presenter injects a blocked chute: no food will pass the beam' },
+      { at: 10.5, run: letExpire },
+      { at: 12.5, caption: 'IR beam sees nothing: fault alert, not a false success' },
+      { at: 17, caption: 'Fault alert latched. The feed is logged as failed.' },
+      { at: 21.5, caption: 'The failed attempt still counts toward the daily cap: no retry' }
+    ]
+  };
+
   $('clip1Btn').addEventListener('click', function () { play(DEMO1); });
+  $('clip2Btn').addEventListener('click', function () { play(DEMO2); });
   stopBtn.addEventListener('click', stop);
   $('tourBtn').addEventListener('click', function () { if (playing) stop(); });   // starting the tour ends a clip
 })();
